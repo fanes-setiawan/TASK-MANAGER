@@ -146,8 +146,33 @@ export default function ClientsPage() {
                 </tr>
               ) : clients.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: "24px", color: "var(--color-on-surface-variant)" }}>
-                    No clients found. Click "Add Client" to create one.
+                  <td colSpan={6} style={{ textAlign: "center", padding: "64px 24px" }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', animation: 'slideUpFade 0.6s ease-out' }}>
+                      <div style={{ 
+                        width: '80px', 
+                        height: '80px', 
+                        borderRadius: '50%', 
+                        background: 'var(--color-surface-container-high)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        color: 'var(--color-primary)'
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>group_add</span>
+                      </div>
+                      <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--color-on-surface)' }}>No clients yet</h3>
+                      <p style={{ margin: 0, color: 'var(--color-on-surface-variant)', maxWidth: '300px' }}>
+                        Start by adding your first client to manage their information and generate proposals.
+                      </p>
+                      <button 
+                        className={styles.btnPrimary} 
+                        onClick={() => setShowModal(true)}
+                        style={{ marginTop: '8px' }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+                        Add First Client
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ) : (

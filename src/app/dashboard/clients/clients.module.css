@@ -45,10 +45,12 @@
 }
 
 .glassCard {
-  background: var(--color-surface);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
   padding: var(--spacing-unit-xl);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
 }
 
 .tableWrapper {
@@ -57,8 +59,38 @@
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
+
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tr {
+  opacity: 0;
+  animation: slideUpFade 0.5s ease-out forwards;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.tr:hover {
+  background-color: var(--color-surface-container-lowest);
+}
+
+.tr:nth-child(1) { animation-delay: 0.05s; }
+.tr:nth-child(2) { animation-delay: 0.1s; }
+.tr:nth-child(3) { animation-delay: 0.15s; }
+.tr:nth-child(4) { animation-delay: 0.2s; }
+.tr:nth-child(5) { animation-delay: 0.25s; }
+.tr:nth-child(6) { animation-delay: 0.3s; }
+.tr:nth-child(n+7) { animation-delay: 0.35s; }
 
 .th {
   text-align: left;
@@ -107,22 +139,44 @@
 }
 
 /* Modal styles */
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes overlayEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
+  animation: overlayEnter 0.3s ease-out forwards;
 }
 
 .modalContent {
-  background-color: var(--color-surface);
-  border-radius: var(--radius-lg);
-  padding: 24px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 24px 48px rgba(0,0,0,0.1);
+  border-radius: 24px;
+  padding: 32px;
   width: 100%;
   max-width: 500px;
+  animation: modalEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .modalHeader {
