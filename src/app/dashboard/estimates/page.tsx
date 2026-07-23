@@ -3,14 +3,23 @@
 import React, { useEffect, useState } from "react";
 import styles from "./estimates.module.css";
 import Link from "next/link";
-import { auth } from "@/lib/firebase/client";
+import { auth, db } from "@/lib/firebase/client";
 import { getProjects, ProjectData } from "@/lib/firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
 
 export default function EstimatesPage() {
   const [project, setProject] = useState<ProjectData | null>(null);
   const [projectsList, setProjectsList] = useState<ProjectData[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editComplexity, setEditComplexity] = useState("Medium");
+  const [editPoints, setEditPoints] = useState<number>(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -68,6 +77,43 @@ export default function EstimatesPage() {
       return `Rp ${amount.toLocaleString('id-ID')}`;
     }
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.substring(0, 3) }).format(amount);
+  };
+
+  const handleRowClick = (idx: number, mod: any) => {
+    setEditingIndex(idx);
+    setEditName(mod.name || "");
+    setEditComplexity(mod.complexity || "Medium");
+    setEditPoints(mod.points || 0);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveModule = async () => {
+    if (editingIndex === null || !project || !project.id) return;
+    setIsSaving(true);
+    
+    const updatedModules = [...modules];
+    updatedModules[editingIndex] = {
+      ...updatedModules[editingIndex],
+      name: editName,
+      complexity: editComplexity,
+      points: editPoints
+    };
+
+    const newConfigJson = JSON.stringify({ modules: updatedModules });
+
+    try {
+      const projectRef = doc(db, "projects", project.id);
+      await updateDoc(projectRef, { configJson: newConfigJson });
+      
+      // Update local state
+      setProject({ ...project, configJson: newConfigJson });
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Error updating module:", error);
+      alert("Failed to save module.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -198,7 +244,7 @@ export default function EstimatesPage() {
                   <tr 
                     className={styles.tr} 
                     key={idx}
-                    onClick={() => alert(`Fitur Detail & Edit untuk modul "${mod.name}" akan hadir di update Task Manager berikutnya!`)}
+                    onClick={() => handleRowClick(idx, mod)}
                     style={{ cursor: "pointer" }}
                   >
                     <td className={`${styles.td} ${styles.tdBold}`}>{mod.name || "Unnamed Module"}</td>
@@ -305,6 +351,66 @@ export default function EstimatesPage() {
         </div>
 
       </div>
+
+      {/* Edit Module Modal */}
+      {isModalOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Edit Module</h3>
+              <button className={styles.closeBtn} onClick={() => setIsModalOpen(false)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className={styles.modalBody}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Module Name</label>
+                <input 
+                  type="text" 
+                  className={styles.input} 
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="e.g. Authentication System"
+                />
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Complexity</label>
+                <select 
+                  className={styles.select} 
+                  value={editComplexity}
+                  onChange={(e) => setEditComplexity(e.target.value)}
+                >
+                  <option value="Simple">Simple</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Complex">Complex</option>
+                </select>
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Story Points (Pts)</label>
+                <input 
+                  type="number" 
+                  className={styles.input} 
+                  value={editPoints}
+                  onChange={(e) => setEditPoints(Number(e.target.value))}
+                  min={1}
+                />
+              </div>
+            </div>
+            
+            <div className={styles.modalFooter}>
+              <button className={styles.btnSecondary} onClick={() => setIsModalOpen(false)} disabled={isSaving}>
+                Cancel
+              </button>
+              <button className={styles.btnPrimary} onClick={handleSaveModule} disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
