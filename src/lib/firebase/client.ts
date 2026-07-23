@@ -12,8 +12,8 @@ const firebaseConfig = {
   measurementId: "G-FHXQFPVRNB"
 };
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app = typeof window !== "undefined" ? (!getApps().length ? initializeApp(firebaseConfig) : getApp()) : null as any;
+const auth = typeof window !== "undefined" ? getAuth(app) : null as any;
+const db = typeof window !== "undefined" ? getFirestore(app) : null as any;
 
 export { app, auth, db };
