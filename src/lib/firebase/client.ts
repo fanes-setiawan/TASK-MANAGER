@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyCjY1BtMXbFMzgJHxcqFqijJwGpC32tkJA",
@@ -13,7 +13,7 @@ const firebaseConfig = {
 };
 
 const app = typeof window !== "undefined" ? (!getApps().length ? initializeApp(firebaseConfig) : getApp()) : null as any;
-const auth = typeof window !== "undefined" ? getAuth(app) : null as any;
-const db = typeof window !== "undefined" ? getFirestore(app) : null as any;
+const auth = (typeof window !== "undefined" ? getAuth(app) : null) as unknown as Auth;
+const db = (typeof window !== "undefined" ? getFirestore(app) : null) as unknown as Firestore;
 
 export { app, auth, db };

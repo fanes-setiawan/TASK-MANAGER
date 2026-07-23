@@ -47,7 +47,7 @@ export default function SettingsPage() {
       setLoading(false);
     };
 
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged((user: any) => {
       if (user) {
         fetchUserData();
       } else {
