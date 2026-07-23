@@ -1,0 +1,603 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px); /* Assuming 64px top bar from layout */
+  overflow: hidden;
+  background-color: var(--color-background);
+  margin: calc(var(--spacing-gutter) * -1); /* Pull out to fill mainContent */
+  margin-bottom: 0;
+}
+
+.topToolbar {
+  height: 56px;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-outline-variant);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--spacing-gutter);
+  z-index: 50;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-unit-md);
+}
+
+.docIcon {
+  color: var(--color-primary);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.docTitleBox {
+  display: flex;
+  flex-direction: column;
+}
+
+.docTitle {
+  font-family: var(--font-headline-md);
+  font-size: var(--text-label-md-size);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.docSubtitle {
+  font-size: 10px;
+  color: var(--color-outline);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.toolbarCenter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-unit-md);
+  background-color: var(--color-surface-container-low);
+  padding: 6px 12px;
+  border-radius: 9999px;
+  border: 1px solid rgba(188, 202, 194, 0.3);
+}
+
+.zoomBtn {
+  padding: 4px;
+  border-radius: 4px;
+  background: none;
+  border: none;
+  color: var(--color-on-surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoomBtn:hover {
+  background-color: var(--color-surface-container-high);
+}
+
+.zoomText {
+  font-family: var(--font-label-md);
+  font-size: var(--text-label-md-size);
+  font-weight: 600;
+  padding: 0 8px;
+  border-left: 1px solid rgba(188, 202, 194, 0.3);
+  border-right: 1px solid rgba(188, 202, 194, 0.3);
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-unit-sm);
+}
+
+.btnToolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  color: var(--color-on-surface-variant);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-label-md);
+  font-size: var(--text-label-md-size);
+  transition: all 0.2s;
+}
+
+.btnToolbar:hover {
+  background-color: var(--color-surface-container-high);
+}
+
+.btnIconOnly {
+  padding: 8px;
+  border-radius: 8px;
+  color: var(--color-on-surface-variant);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btnIconOnly:hover {
+  background-color: var(--color-surface-container-high);
+}
+
+.btnDownload {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-primary);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-family: var(--font-label-md);
+  font-size: var(--text-label-md-size);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.btnDownload:hover {
+  filter: brightness(1.1);
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 24px;
+  background-color: var(--color-outline-variant);
+  margin: 0 8px;
+}
+
+/* Main Content Area */
+.mainWorkspace {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Left Sidebar - Thumbnails */
+.sidebarLeft {
+  width: 220px;
+  border-right: 1px solid var(--color-outline-variant);
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.sidebarHeader {
+  padding: 16px;
+  border-bottom: 1px solid var(--color-outline-variant);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebarTitle {
+  font-family: var(--font-label-sm);
+  font-size: var(--text-label-sm-size);
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--color-outline);
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.thumbnailList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.thumbnailItem {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.a4Container {
+  aspect-ratio: 1 / 1.414;
+  width: 100%;
+  background-color: white;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.thumbActive .a4Container {
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(0, 132, 103, 0.2);
+}
+
+.thumbInactive .a4Container {
+  border: 1px solid var(--color-outline-variant);
+}
+
+.thumbInactive:hover .a4Container {
+  border-color: var(--color-primary);
+}
+
+.thumbLabel {
+  text-align: center;
+  font-family: var(--font-label-sm);
+  font-size: var(--text-label-sm-size);
+  font-weight: 500;
+  color: var(--color-on-surface-variant);
+  margin: 0;
+}
+
+.thumbActive .thumbLabel {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* Center Canvas - PDF Preview */
+.centerCanvas {
+  flex: 1;
+  background-color: var(--color-surface-container-low);
+  overflow-y: auto;
+  padding: var(--spacing-unit-xl);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.pdfPage {
+  background-color: white;
+  width: 100%;
+  max-width: 800px;
+  aspect-ratio: 1 / 1.414;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transform-origin: top center;
+  transition: transform 0.3s ease;
+}
+
+.pdfAccent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 100%;
+  background-color: var(--color-primary);
+}
+
+.pdfContent {
+  padding: var(--spacing-unit-xl);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-left: calc(var(--spacing-unit-xl) + 8px);
+}
+
+.pdfHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-unit-xl);
+}
+
+.pdfLogo {
+  width: 64px;
+  height: 64px;
+  background-color: var(--color-primary);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdfLogo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.pdfHeaderRight {
+  text-align: right;
+}
+
+.pdfHeaderRight h3 {
+  font-family: var(--font-label-md);
+  font-size: var(--text-label-md-size);
+  font-weight: 700;
+  color: var(--color-outline);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 4px 0;
+}
+
+.pdfHeaderRight p {
+  font-family: var(--font-body-sm);
+  font-size: var(--text-body-sm-size);
+  color: var(--color-outline-variant);
+  margin: 0;
+}
+
+.pdfTitleArea {
+  margin-top: auto;
+  margin-bottom: var(--spacing-unit-xl);
+}
+
+.pdfTitleArea h1 {
+  font-family: var(--font-display-lg);
+  font-size: var(--text-display-lg-size);
+  color: var(--color-on-surface);
+  margin: 0 0 var(--spacing-unit-sm) 0;
+}
+
+.pdfTitleArea p {
+  font-family: var(--font-headline-md);
+  font-size: var(--text-headline-md-size);
+  color: var(--color-primary);
+  font-weight: 500;
+  margin: 0;
+}
+
+.pdfDivider {
+  height: 6px;
+  width: 96px;
+  background-color: var(--color-secondary);
+  border-radius: 9999px;
+  margin-top: var(--spacing-unit-md);
+}
+
+.pdfImage {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: var(--spacing-unit-xl);
+}
+
+.pdfImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pdfImageOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.4), transparent);
+}
+
+.pdfFooter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-gutter);
+  border-top: 1px solid var(--color-outline-variant);
+  padding-top: var(--spacing-unit-lg);
+  margin-top: auto;
+}
+
+.pdfFooterCol h4 {
+  font-family: var(--font-label-sm);
+  font-size: var(--text-label-sm-size);
+  color: var(--color-outline);
+  text-transform: uppercase;
+  margin: 0 0 4px 0;
+}
+
+.pdfFooterCol h5 {
+  font-family: var(--font-body-lg);
+  font-size: var(--text-body-lg-size);
+  font-weight: 700;
+  margin: 0 0 4px 0;
+}
+
+.pdfFooterCol p {
+  font-family: var(--font-body-sm);
+  font-size: var(--text-body-sm-size);
+  color: var(--color-on-surface-variant);
+  margin: 0;
+}
+
+/* Right Sidebar - Properties */
+.sidebarRight {
+  width: 300px;
+  border-left: 1px solid var(--color-outline-variant);
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.propertiesList {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-gutter);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-unit-lg);
+}
+
+.propGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-unit-md);
+}
+
+.propLabel {
+  font-family: var(--font-label-sm);
+  font-size: var(--text-label-sm-size);
+  font-weight: 700;
+  color: rgba(11, 28, 48, 0.6); /* on-surface/60 */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.brandingBox {
+  border: 2px dashed var(--color-outline-variant);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.brandingBox:hover {
+  background-color: var(--color-surface-container-low);
+}
+
+.brandingBox img {
+  height: 64px;
+  width: 64px;
+  object-fit: contain;
+}
+
+.colorsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-unit-sm);
+}
+
+.colorSwatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.colorSwatch:hover {
+  transform: scale(1.05);
+}
+
+.colorActive {
+  box-shadow: 0 0 0 2px var(--color-primary), 0 0 0 4px white inset;
+}
+
+.btnAddColor {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--color-outline-variant);
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btnAddColor:hover {
+  background-color: var(--color-surface-container-low);
+}
+
+.inputField {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--color-outline-variant);
+  background-color: white;
+  font-family: var(--font-body-md);
+  font-size: var(--text-body-md-size);
+  color: var(--color-on-surface);
+  transition: all 0.2s;
+}
+
+.inputField:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 157, 123, 0.2);
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toggleLabel {
+  font-family: var(--font-body-sm);
+  font-size: var(--text-body-sm-size);
+  font-weight: 500;
+}
+
+.toggleSwitch {
+  width: 40px;
+  height: 20px;
+  border-radius: 9999px;
+  position: relative;
+  cursor: pointer;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.toggleSwitch.on {
+  background-color: var(--color-primary);
+}
+
+.toggleSwitch.off {
+  background-color: var(--color-outline-variant);
+}
+
+.toggleKnob {
+  width: 16px;
+  height: 16px;
+  background-color: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  transition: all 0.2s;
+}
+
+.toggleSwitch.on .toggleKnob {
+  right: 2px;
+}
+
+.toggleSwitch.off .toggleKnob {
+  left: 2px;
+}
+
+.sidebarFooter {
+  padding: var(--spacing-gutter);
+  border-top: 1px solid var(--color-outline-variant);
+  background-color: var(--color-surface-container-low);
+}
+
+.btnSave {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--color-on-surface);
+  color: white;
+  border-radius: 12px;
+  font-family: var(--font-label-md);
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.btnSave:hover {
+  background-color: black;
+}
