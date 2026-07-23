@@ -1,0 +1,171 @@
+.container {
+  padding: var(--spacing-margin-desktop);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-unit-xl);
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: var(--text-h2-size);
+  font-weight: var(--text-h2-weight);
+  color: var(--color-on-surface);
+}
+
+.subtitle {
+  color: var(--color-on-surface-variant);
+  margin-top: var(--spacing-unit-sm);
+}
+
+.actionRow {
+  display: flex;
+  gap: var(--spacing-unit-sm);
+}
+
+.btnPrimary {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.btnPrimary:hover {
+  background-color: var(--color-secondary);
+}
+
+.glassCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-unit-xl);
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.th {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--color-outline-variant);
+  color: var(--color-on-surface-variant);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.td {
+  padding: 16px;
+  border-bottom: 1px solid var(--color-outline-variant);
+  color: var(--color-on-surface);
+}
+
+.tdBold {
+  font-weight: 600;
+}
+
+.badgeActive {
+  background-color: rgba(52, 211, 153, 0.1);
+  color: #059669;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.btnIcon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  padding: 4px;
+  border-radius: 4px;
+}
+.btnIcon:hover {
+  background-color: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+.btnDelete:hover {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+/* Modal styles */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modalContent {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.input {
+  padding: 10px 12px;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-md);
+  outline: none;
+}
+.input:focus {
+  border-color: var(--color-primary);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btnSecondary {
+  background-color: transparent;
+  color: var(--color-on-surface);
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-outline);
+  cursor: pointer;
+}

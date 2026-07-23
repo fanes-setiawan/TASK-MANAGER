@@ -6,6 +6,8 @@ import Image from "next/image";
 
 export default function ProposalPreviewPage() {
   const [zoomLevel, setZoomLevel] = useState(125);
+  const [logoUrl, setLogoUrl] = useState("https://lh3.googleusercontent.com/aida-public/AB6AXuCAYxl62mvvaeKBMqiPv_xjWNJzn8AdapjWlfPMNMhCGQVzO059qxdGliakroZemwD6hYRC0dttMr5lZdIfj7k9a-qTbXWgM8KdeAi_HPZjuM0-eQIhd2LCgclnTHZqCjTLOQdKvuyx62Vhww9CZIBD1QxAY3QgquvRm-hx0wECm-OkzeQRKOFalfoO51bFxutpK-aZ6gGhvtmSgAF3cbb4GTeT7UHvko4nkpV_EqYaFg56Zajg8GWSHBTExXH8hmcpRiwZLX1YqVI");
+  const [themeColor, setThemeColor] = useState("#000000");
   const [activeThumb, setActiveThumb] = useState(0);
 
   const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 25, 200));
@@ -42,8 +44,12 @@ export default function ProposalPreviewPage() {
           <button className={styles.btnIconOnly} title="Share" onClick={() => alert("Share link copied!")}>
             <span className="material-symbols-outlined">share</span>
           </button>
-          <button className={styles.btnIconOnly} title="Print" onClick={() => window.print()}>
-            <span className="material-symbols-outlined">print</span>
+          <button className={styles.btnSettingUpload} onClick={() => {
+            const url = prompt("Enter Logo URL:", logoUrl);
+            if (url) setLogoUrl(url);
+          }}>
+            <span className="material-symbols-outlined">upload</span>
+            Upload Logo
           </button>
           <button className={styles.btnDownload} onClick={() => window.print()}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>download</span>
@@ -165,6 +171,11 @@ export default function ProposalPreviewPage() {
               <div className={styles.brandingBox}>
                 <span className="material-symbols-outlined" style={{ fontSize: 32, color: "var(--color-outline)" }}>add_photo_alternate</span>
                 <span style={{ fontSize: 12, marginTop: 8, color: "var(--color-outline)" }}>Upload Logo</span>
+                <img
+                  alt="Agency Logo"
+                  className={styles.proposalLogo}
+                  src={logoUrl}
+                />
               </div>
             </div>
 
@@ -175,9 +186,15 @@ export default function ProposalPreviewPage() {
                 <div className={styles.colorSwatch} style={{ backgroundColor: "#1A365D" }}></div>
                 <div className={styles.colorSwatch} style={{ backgroundColor: "#D4AF37" }}></div>
                 <div className={styles.colorSwatch} style={{ backgroundColor: "#7C3AED" }}></div>
-                <button className={styles.btnAddColor}>
-                  <span className="material-symbols-outlined" style={{ color: "var(--color-outline)", fontSize: 20 }}>add</span>
-                </button>
+                <label className={styles.colorCircle} style={{ position: 'relative', overflow: 'hidden' }}>
+                  <span className="material-symbols-outlined" style={{ color: "var(--color-outline)" }}>add</span>
+                  <input 
+                    type="color" 
+                    style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+                    value={themeColor}
+                    onChange={(e) => setThemeColor(e.target.value)}
+                  />
+                </label>
               </div>
             </div>
 

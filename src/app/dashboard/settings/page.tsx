@@ -11,6 +11,7 @@ export default function SettingsPage() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("staff");
+  const [avatarUrl, setAvatarUrl] = useState("");
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,6 +35,11 @@ export default function SettingsPage() {
           if (data.displayName && !user.displayName) {
             setDisplayName(data.displayName);
           }
+          if (data.avatarUrl) {
+            setAvatarUrl(data.avatarUrl);
+          }
+        } else if (user.photoURL) {
+          setAvatarUrl(user.photoURL);
         }
       }
       setLoading(false);
@@ -62,13 +68,15 @@ export default function SettingsPage() {
 
       // 1. Update Firebase Auth Profile
       await updateProfile(user, {
-        displayName: displayName
+        displayName: displayName,
+        photoURL: avatarUrl || user.photoURL
       });
 
       // 2. Update Firestore Document
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, {
-        displayName: displayName
+        displayName: displayName,
+        avatarUrl: avatarUrl
       });
 
       setSuccessMsg("Profile updated successfully! Refresh the page to see changes in the sidebar.");
@@ -115,11 +123,14 @@ export default function SettingsPage() {
           <div className={styles.avatarWrapper}>
             {/* Fallback dummy image for now */}
             <img 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyI4Df_EA0qn_sQX-LKgmcvoOz0_dH-FOKtWuPJoKcVBOl0oBs00VV517zAjLO80jbWYMrbFsB0F3Mp7-kHVm3OdRaVU_m14cTdDB1aegWVzzJJZl5y7IwbXEaZoRWnUpbgXtvIm20MZCR9gdJx9ElvW4AfYkogtxGFGkx_tyHCA7kL4hvLRMgnvXJsy5mU_dztGM4am8AFBwqgUL8LJf9F80VcWRCsihhDw1BYLYFKQMuKhhQ4QlwaRvZIc3nzLSpFlZQ08zh19Q" 
+              src={avatarUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuCyI4Df_EA0qn_sQX-LKgmcvoOz0_dH-FOKtWuPJoKcVBOl0oBs00VV517zAjLO80jbWYMrbFsB0F3Mp7-kHVm3OdRaVU_m14cTdDB1aegWVzzJJZl5y7IwbXEaZoRWnUpbgXtvIm20MZCR9gdJx9ElvW4AfYkogtxGFGkx_tyHCA7kL4hvLRMgnvXJsy5mU_dztGM4am8AFBwqgUL8LJf9F80VcWRCsihhDw1BYLYFKQMuKhhQ4QlwaRvZIc3nzLSpFlZQ08zh19Q"} 
               alt="Avatar" 
               className={styles.avatarImage} 
             />
-            <button type="button" className={styles.avatarEditBtn} title="Change Avatar (Coming Soon)">
+            <button type="button" className={styles.avatarEditBtn} onClick={() => {
+              const url = prompt("Enter Image URL for your Avatar:", avatarUrl);
+              if (url !== null) setAvatarUrl(url);
+            }} title="Change Avatar">
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
             </button>
           </div>

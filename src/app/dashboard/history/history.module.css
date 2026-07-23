@@ -1,0 +1,131 @@
+.container {
+  padding: var(--spacing-margin-desktop);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-unit-xl);
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: var(--text-h2-size);
+  font-weight: var(--text-h2-weight);
+  color: var(--color-on-surface);
+}
+
+.subtitle {
+  color: var(--color-on-surface-variant);
+  margin-top: var(--spacing-unit-sm);
+}
+
+.glassCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-unit-xl);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.timelineItem {
+  display: flex;
+  gap: 16px;
+  position: relative;
+}
+
+.timelineLine {
+  position: absolute;
+  top: 32px;
+  bottom: -24px;
+  left: 19px;
+  width: 2px;
+  background-color: var(--color-outline-variant);
+}
+
+.timelineItem:last-child .timelineLine {
+  display: none;
+}
+
+.timelineIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-surface-container);
+  color: var(--color-on-surface-variant);
+  z-index: 1;
+}
+
+.iconSuccess {
+  background-color: rgba(52, 211, 153, 0.1);
+  color: #059669;
+}
+
+.iconPrimary {
+  background-color: rgba(0, 105, 81, 0.1);
+  color: var(--color-primary);
+}
+
+.timelineContent {
+  flex: 1;
+  background: var(--color-surface-container-high);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-outline-variant);
+}
+
+.timelineHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.actionTitle {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-on-surface);
+}
+
+.time {
+  font-size: 12px;
+  color: var(--color-outline);
+}
+
+.actionDesc {
+  color: var(--color-on-surface-variant);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.filterBox {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.filterBtn {
+  background: transparent;
+  border: 1px solid var(--color-outline);
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.filterBtn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
