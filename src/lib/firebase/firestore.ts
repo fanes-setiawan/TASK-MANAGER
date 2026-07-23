@@ -60,3 +60,23 @@ export async function saveProject(project: ProjectData, userId: string) {
   
   return docRef.id;
 }
+
+export async function getProjects(userId?: string) {
+  const { collection, getDocs, query, orderBy, where } = await import("firebase/firestore");
+  const projectsRef = collection(db, "projects");
+  
+  let q;
+  if (userId) {
+    q = query(projectsRef, where("createdBy", "==", userId), orderBy("createdAt", "desc"));
+  } else {
+    q = query(projectsRef, orderBy("createdAt", "desc"));
+  }
+  
+  const snapshot = await getDocs(q);
+  const projects: ProjectData[] = [];
+  snapshot.forEach(doc => {
+    projects.push({ id: doc.id, ...doc.data() } as ProjectData);
+  });
+  
+  return projects;
+}

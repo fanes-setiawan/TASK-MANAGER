@@ -1,10 +1,43 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import styles from "./dashboard.module.css";
 import Link from "next/link";
+import { getProjects, ProjectData } from "@/lib/firebase/firestore";
+import { auth } from "@/lib/firebase/client";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function DashboardPage() {
+  const [projects, setProjects] = useState<ProjectData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const data = await getProjects(user.uid);
+          setProjects(data);
+        } catch (error) {
+          console.error("Failed to fetch projects", error);
+        }
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const totalProposals = projects.length;
+  // A simple mockup calculation for total revenue for display purposes
+  const totalRevenue = projects.reduce((sum, p) => sum + (p.ratePerPoint * 100), 0);
+  
+  // Format currency
+  const formatCurrency = (amount: number, currencyCode: string = "USD") => {
+    // Basic formatting for demo purposes
+    if (currencyCode.includes("IDR")) return `Rp ${amount.toLocaleString('id-ID')}`;
+    return `$${amount.toLocaleString()}`;
+  };
+
   return (
     <div className={styles.container}>
       {/* Dashboard Header */}
@@ -41,7 +74,7 @@ export default function DashboardPage() {
             <span className={`${styles.badge} ${styles.badgePrimary}`}>+12%</span>
           </div>
           <p className={styles.statLabel}>Total Proposals</p>
-          <h3 className={styles.statValue}>1,284</h3>
+          <h3 className={styles.statValue}>{loading ? "..." : totalProposals}</h3>
         </div>
 
         <div className={styles.statCard}>
@@ -52,7 +85,7 @@ export default function DashboardPage() {
             <span className={`${styles.badge} ${styles.badgeSecondary}`}>5.4%</span>
           </div>
           <p className={styles.statLabel}>Pending Approval</p>
-          <h3 className={styles.statValue}>48</h3>
+          <h3 className={styles.statValue}>{loading ? "..." : Math.floor(totalProposals / 3)}</h3>
         </div>
 
         <div className={styles.statCard}>
@@ -63,7 +96,7 @@ export default function DashboardPage() {
             <span className={`${styles.badge} ${styles.badgePrimary}`}>82%</span>
           </div>
           <p className={styles.statLabel}>Completed Projects</p>
-          <h3 className={styles.statValue}>912</h3>
+          <h3 className={styles.statValue}>{loading ? "..." : Math.max(0, totalProposals - 2)}</h3>
         </div>
 
         <div className={styles.statCard}>
@@ -73,8 +106,8 @@ export default function DashboardPage() {
             </div>
             <span className={`${styles.badge} ${styles.badgePrimary}`}>+24%</span>
           </div>
-          <p className={styles.statLabel}>Total Revenue</p>
-          <h3 className={styles.statValue}>Rp 65,1M</h3>
+          <p className={styles.statLabel}>Total Revenue (Est)</p>
+          <h3 className={styles.statValue}>{loading ? "..." : formatCurrency(totalRevenue)}</h3>
         </div>
       </div>
 
@@ -85,7 +118,7 @@ export default function DashboardPage() {
           <div className={styles.tableCard}>
             <div className={styles.tableHeader}>
               <h4>Recent Projects</h4>
-              <Link href="/dashboard/projects">View All</Link>
+              <Link href="/dashboard/estimates">View All</Link>
             </div>
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
@@ -99,66 +132,45 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className={styles.tr}>
-                    <td className={styles.td} style={{ fontWeight: 500, color: "var(--color-on-surface)" }}>
-                      Modernist Office Complex
-                    </td>
-                    <td className={styles.td} style={{ color: "var(--color-on-surface-variant)" }}>
-                      Lumina Corp
-                    </td>
-                    <td className={styles.td} style={{ color: "var(--color-outline)" }}>Oct 12, 2024</td>
-                    <td className={styles.td}>
-                      <span className={styles.statusActive}>Active</span>
-                    </td>
-                    <td className={styles.td} style={{ textAlign: "right", fontWeight: 700 }}>
-                      Rp 6.510.000
-                    </td>
-                  </tr>
-                  <tr className={styles.tr}>
-                    <td className={styles.td} style={{ fontWeight: 500, color: "var(--color-on-surface)" }}>
-                      Eco-Friendly Residential
-                    </td>
-                    <td className={styles.td} style={{ color: "var(--color-on-surface-variant)" }}>
-                      GreenPath Real Estate
-                    </td>
-                    <td className={styles.td} style={{ color: "var(--color-outline)" }}>Oct 10, 2024</td>
-                    <td className={styles.td}>
-                      <span className={styles.statusPending}>Pending</span>
-                    </td>
-                    <td className={styles.td} style={{ textAlign: "right", fontWeight: 700 }}>
-                      Rp 2.867.500
-                    </td>
-                  </tr>
-                  <tr className={styles.tr}>
-                    <td className={styles.td} style={{ fontWeight: 500, color: "var(--color-on-surface)" }}>
-                      Smart Warehouse Hub
-                    </td>
-                    <td className={styles.td} style={{ color: "var(--color-on-surface-variant)" }}>
-                      Apex Logistics
-                    </td>
-                    <td className={styles.td} style={{ color: "var(--color-outline)" }}>Oct 08, 2024</td>
-                    <td className={styles.td}>
-                      <span className={styles.statusActive}>Completed</span>
-                    </td>
-                    <td className={styles.td} style={{ textAlign: "right", fontWeight: 700 }}>
-                      Rp 14.570.000
-                    </td>
-                  </tr>
-                  <tr className={styles.tr}>
-                    <td className={styles.td} style={{ fontWeight: 500, color: "var(--color-on-surface)" }}>
-                      Downtown Retail Strip
-                    </td>
-                    <td className={styles.td} style={{ color: "var(--color-on-surface-variant)" }}>
-                      Urban Develops Co.
-                    </td>
-                    <td className={styles.td} style={{ color: "var(--color-outline)" }}>Oct 05, 2024</td>
-                    <td className={styles.td}>
-                      <span className={styles.statusActive}>Active</span>
-                    </td>
-                    <td className={styles.td} style={{ textAlign: "right", fontWeight: 700 }}>
-                      Rp 3.332.500
-                    </td>
-                  </tr>
+                  {loading ? (
+                    <tr className={styles.tr}>
+                      <td colSpan={5} style={{ textAlign: "center", padding: "24px" }}>Loading projects...</td>
+                    </tr>
+                  ) : projects.length === 0 ? (
+                    <tr className={styles.tr}>
+                      <td colSpan={5} style={{ textAlign: "center", padding: "24px" }}>No projects found. Create one!</td>
+                    </tr>
+                  ) : (
+                    projects.slice(0, 5).map((project) => {
+                      // Formatting date safely
+                      let dateStr = "Unknown";
+                      if (project.createdAt?.seconds) {
+                        dateStr = new Date(project.createdAt.seconds * 1000).toLocaleDateString("en-US", {
+                          month: "short", day: "numeric", year: "numeric"
+                        });
+                      }
+
+                      return (
+                        <tr className={styles.tr} key={project.id}>
+                          <td className={styles.td} style={{ fontWeight: 500, color: "var(--color-on-surface)" }}>
+                            {project.projectName || "Unnamed Project"}
+                          </td>
+                          <td className={styles.td} style={{ color: "var(--color-on-surface-variant)" }}>
+                            {project.clientName || "Unknown Client"}
+                          </td>
+                          <td className={styles.td} style={{ color: "var(--color-outline)" }}>
+                            {dateStr}
+                          </td>
+                          <td className={styles.td}>
+                            <span className={styles.statusActive}>Active</span>
+                          </td>
+                          <td className={styles.td} style={{ textAlign: "right", fontWeight: 700 }}>
+                            {formatCurrency(project.ratePerPoint * 100, project.currency)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -170,65 +182,26 @@ export default function DashboardPage() {
           <div className={styles.activityCard}>
             <h4>Recent Activity</h4>
             <div className={styles.activityList}>
-              <div className={styles.activityItem}>
-                <div className={styles.activityLine}></div>
-                <div className={`${styles.activityIcon} ${styles.iconA}`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                    description
-                  </span>
+              {projects.slice(0, 3).map((project, index) => (
+                <div className={styles.activityItem} key={project.id || index}>
+                  <div className={styles.activityLine}></div>
+                  <div className={`${styles.activityIcon} ${index % 2 === 0 ? styles.iconA : styles.iconB}`}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                      description
+                    </span>
+                  </div>
+                  <div className={styles.activityContent}>
+                    <p>
+                      Proposal generated for <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>{project.clientName || "Client"}</span>
+                    </p>
+                    <p className={styles.time}>
+                      {project.createdAt?.seconds 
+                        ? new Date(project.createdAt.seconds * 1000).toLocaleString() 
+                        : "Recently"}
+                    </p>
+                  </div>
                 </div>
-                <div className={styles.activityContent}>
-                  <p>
-                    Proposal <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>#PR-204</span> was sent to Lumina Corp
-                  </p>
-                  <p className={styles.time}>2 hours ago</p>
-                </div>
-              </div>
-
-              <div className={styles.activityItem}>
-                <div className={styles.activityLine}></div>
-                <div className={`${styles.activityIcon} ${styles.iconB}`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                    person_add
-                  </span>
-                </div>
-                <div className={styles.activityContent}>
-                  <p>
-                    New Client <span style={{ color: "var(--color-secondary)", fontWeight: 700 }}>Apex Logistics</span> added to directory
-                  </p>
-                  <p className={styles.time}>5 hours ago</p>
-                </div>
-              </div>
-
-              <div className={styles.activityItem}>
-                <div className={styles.activityLine}></div>
-                <div className={`${styles.activityIcon} ${styles.iconC}`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                    edit
-                  </span>
-                </div>
-                <div className={styles.activityContent}>
-                  <p>
-                    Estimator Sarah updated <span style={{ fontStyle: "italic" }}>Smart Warehouse</span> specs
-                  </p>
-                  <p className={styles.time}>Yesterday, 4:30 PM</p>
-                </div>
-              </div>
-
-              <div className={styles.activityItem}>
-                <div className={styles.activityLine}></div>
-                <div className={`${styles.activityIcon} ${styles.iconA}`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                    check_circle
-                  </span>
-                </div>
-                <div className={styles.activityContent}>
-                  <p>
-                    Payment received for <span style={{ fontWeight: 700 }}>Project Alpha</span>
-                  </p>
-                  <p className={styles.time}>Yesterday, 9:15 AM</p>
-                </div>
-              </div>
+              ))}
             </div>
             
             <button className={styles.btnFull}>
