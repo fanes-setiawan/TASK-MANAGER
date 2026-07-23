@@ -92,6 +92,15 @@ export default function DashboardLayout({
             <span className="material-symbols-outlined">description</span>
             <span className={styles.navLabel}>Estimates</span>
           </Link>
+          <Link
+            href="/dashboard/settings"
+            className={`${styles.navItem} ${
+              pathname === "/dashboard/settings" ? styles.active : ""
+            }`}
+          >
+            <span className="material-symbols-outlined">settings</span>
+            <span className={styles.navLabel}>Settings</span>
+          </Link>
           {/* Other nav items removed as requested by user to simplify features */}
         </nav>
 
