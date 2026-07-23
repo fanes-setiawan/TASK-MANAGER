@@ -19,6 +19,9 @@ export default function EstimatesPage() {
   const [editName, setEditName] = useState("");
   const [editComplexity, setEditComplexity] = useState("Medium");
   const [editPoints, setEditPoints] = useState<number>(0);
+  const [editTasks, setEditTasks] = useState<{name: string, price: number}[]>([]);
+  const [newTaskName, setNewTaskName] = useState("");
+  const [newTaskPrice, setNewTaskPrice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -84,6 +87,9 @@ export default function EstimatesPage() {
     setEditName(mod.name || "");
     setEditComplexity(mod.complexity || "Medium");
     setEditPoints(mod.points || 0);
+    setEditTasks(mod.tasks || []);
+    setNewTaskName("");
+    setNewTaskPrice("");
     setIsModalOpen(true);
   };
 
@@ -96,7 +102,8 @@ export default function EstimatesPage() {
       ...updatedModules[editingIndex],
       name: editName,
       complexity: editComplexity,
-      points: editPoints
+      points: editPoints,
+      tasks: editTasks
     };
 
     const newConfigJson = JSON.stringify({ modules: updatedModules });
@@ -397,6 +404,77 @@ export default function EstimatesPage() {
                   onChange={(e) => setEditPoints(Number(e.target.value))}
                   min={1}
                 />
+              </div>
+
+              <div className={styles.formGroup} style={{ marginTop: "8px", paddingTop: "16px", borderTop: "1px dashed var(--color-outline-variant)" }}>
+                <label className={styles.label}>Sub-tasks Breakdown (Optional)</label>
+                {editTasks.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
+                    {editTasks.map((t, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--color-surface-container-lowest)', borderRadius: '6px', border: '1px solid var(--color-outline-variant)', alignItems: 'center' }}>
+                        <span style={{ fontSize: '14px', color: 'var(--color-on-surface)' }}>{t.name}</span>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--color-primary)' }}>{formatCurrency(t.price)}</span>
+                          <button 
+                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', padding: 0 }}
+                            onClick={() => {
+                              const newT = [...editTasks];
+                              newT.splice(i, 1);
+                              setEditTasks(newT);
+                              if (newT.length > 0) {
+                                const sum = newT.reduce((acc, curr) => acc + curr.price, 0);
+                                setEditPoints(Math.round((sum / project!.ratePerPoint) * 10) / 10);
+                              }
+                            }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-error)' }}>delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 4px', fontWeight: 'bold', fontSize: '14px' }}>
+                      <span>Total Sub-tasks:</span>
+                      <span style={{ color: 'var(--color-primary)' }}>{formatCurrency(editTasks.reduce((a, c) => a + c.price, 0))}</span>
+                    </div>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input 
+                    type="text" 
+                    className={styles.input} 
+                    style={{ flex: 1, padding: '8px 12px' }}
+                    placeholder="e.g. Setup Database"
+                    value={newTaskName}
+                    onChange={e => setNewTaskName(e.target.value)}
+                  />
+                  <input 
+                    type="number" 
+                    className={styles.input} 
+                    style={{ width: '120px', padding: '8px 12px' }}
+                    placeholder="Price"
+                    value={newTaskPrice}
+                    onChange={e => setNewTaskPrice(e.target.value)}
+                  />
+                  <button 
+                    type="button" 
+                    className={styles.btnPrimary}
+                    style={{ padding: '8px 12px' }}
+                    onClick={() => {
+                      if (!newTaskName || !newTaskPrice) return;
+                      const newT = [...editTasks, { name: newTaskName, price: Number(newTaskPrice) }];
+                      setEditTasks(newT);
+                      setNewTaskName("");
+                      setNewTaskPrice("");
+                      // Auto-calculate points based on total price
+                      const sum = newT.reduce((acc, curr) => acc + curr.price, 0);
+                      if (project) {
+                        setEditPoints(Math.round((sum / project.ratePerPoint) * 10) / 10);
+                      }
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
+                  </button>
+                </div>
               </div>
             </div>
             
