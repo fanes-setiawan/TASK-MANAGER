@@ -61,7 +61,11 @@ export default function EstimatesPage() {
   const totalCost = totalPoints * project.ratePerPoint;
   
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: project.currency.substring(0, 3) || 'USD' }).format(amount);
+    const currency = project.currency || 'IDR';
+    if (currency.includes('IDR')) {
+      return `Rp ${amount.toLocaleString('id-ID')}`;
+    }
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.substring(0, 3) }).format(amount);
   };
 
   return (

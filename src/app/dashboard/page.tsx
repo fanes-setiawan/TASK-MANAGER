@@ -3,11 +3,13 @@
 import React, { useEffect, useState } from "react";
 import styles from "./dashboard.module.css";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getProjects, ProjectData } from "@/lib/firebase/firestore";
 import { auth } from "@/lib/firebase/client";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +34,7 @@ export default function DashboardPage() {
   const totalRevenue = projects.reduce((sum, p) => sum + (p.ratePerPoint * 100), 0);
   
   // Format currency
-  const formatCurrency = (amount: number, currencyCode: string = "USD") => {
+  const formatCurrency = (amount: number, currencyCode: string = "IDR") => {
     // Basic formatting for demo purposes
     if (currencyCode.includes("IDR")) return `Rp ${amount.toLocaleString('id-ID')}`;
     return `$${amount.toLocaleString()}`;
@@ -151,7 +153,12 @@ export default function DashboardPage() {
                       }
 
                       return (
-                        <tr className={styles.tr} key={project.id}>
+                        <tr 
+                          className={styles.tr} 
+                          key={project.id} 
+                          onClick={() => router.push('/dashboard/estimates')}
+                          style={{ cursor: "pointer" }}
+                        >
                           <td className={styles.td} style={{ fontWeight: 500, color: "var(--color-on-surface)" }}>
                             {project.projectName || "Unnamed Project"}
                           </td>
