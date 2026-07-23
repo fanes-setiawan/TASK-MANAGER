@@ -93,6 +93,33 @@ export default function DashboardLayout({
             <span className={styles.navLabel}>Estimates</span>
           </Link>
           <Link
+            href="/dashboard/clients"
+            className={`${styles.navItem} ${
+              pathname === "/dashboard/clients" ? styles.active : ""
+            }`}
+          >
+            <span className="material-symbols-outlined">group</span>
+            <span className={styles.navLabel}>Clients</span>
+          </Link>
+          <Link
+            href="/dashboard/history"
+            className={`${styles.navItem} ${
+              pathname === "/dashboard/history" ? styles.active : ""
+            }`}
+          >
+            <span className="material-symbols-outlined">history</span>
+            <span className={styles.navLabel}>History</span>
+          </Link>
+          <Link
+            href="/dashboard/templates"
+            className={`${styles.navItem} ${
+              pathname === "/dashboard/templates" ? styles.active : ""
+            }`}
+          >
+            <span className="material-symbols-outlined">auto_awesome_motion</span>
+            <span className={styles.navLabel}>Templates</span>
+          </Link>
+          <Link
             href="/dashboard/settings"
             className={`${styles.navItem} ${
               pathname === "/dashboard/settings" ? styles.active : ""
@@ -101,7 +128,6 @@ export default function DashboardLayout({
             <span className="material-symbols-outlined">settings</span>
             <span className={styles.navLabel}>Settings</span>
           </Link>
-          {/* Other nav items removed as requested by user to simplify features */}
         </nav>
 
         <div className={styles.bottomSection}>
