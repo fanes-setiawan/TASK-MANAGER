@@ -137,25 +137,21 @@ export default function EstimatesPage() {
         <div className={styles.titleArea}>
           <div className={styles.badgeRow}>
             <span className={styles.badge}>Report #{project.id?.slice(0, 6).toUpperCase()}</span>
-            <select 
-              value={project.id} 
-              onChange={(e) => {
-                const selected = projectsList.find(p => p.id === e.target.value);
-                if (selected) setProject(selected);
-              }}
-              style={{
-                background: "transparent",
-                border: "none",
-                fontFamily: "var(--font-label-md)",
-                color: "var(--color-outline)",
-                cursor: "pointer",
-                outline: "none"
-              }}
-            >
-              {projectsList.map(p => (
-                <option key={p.id} value={p.id}>• {p.projectName || "Unnamed Project"}</option>
-              ))}
-            </select>
+            <div className={styles.selectWrapper}>
+              <select 
+                className={styles.projectSelect}
+                value={project.id} 
+                onChange={(e) => {
+                  const selected = projectsList.find(p => p.id === e.target.value);
+                  if (selected) setProject(selected);
+                }}
+              >
+                {projectsList.map(p => (
+                  <option key={p.id} value={p.id}>{p.projectName || "Unnamed Project"}</option>
+                ))}
+              </select>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)', pointerEvents: 'none' }}>expand_more</span>
+            </div>
           </div>
           <h2 className={styles.pageTitle}>Cost Breakdown Report</h2>
           <p className={styles.pageDesc}>Detailed fiscal analysis for {project.clientName || "the client"}.</p>
