@@ -293,65 +293,18 @@ export default function EstimatesPage() {
                       <tr className={styles.tr}>
                         <td colSpan={5} style={{ padding: 0 }}>
                           <div style={{ padding: "24px", background: "var(--color-surface-container-lowest)", borderBottom: "1px solid var(--color-outline-variant)" }}>
-                            <div style={{ display: "flex", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
-                              {/* Left side: Module Basic Info */}
-                              <div style={{ flex: 1, minWidth: "250px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                                <h4 style={{ margin: 0, fontFamily: "var(--font-headline-sm)", color: "var(--color-on-surface)" }}>Module Configuration</h4>
-                                
-                                <div className={styles.formGroup}>
-                                  <label className={styles.label}>Module Name</label>
-                                  <input 
-                                    type="text" 
-                                    className={styles.input} 
-                                    value={editName}
-                                    onChange={(e) => setEditName(e.target.value)}
-                                    placeholder="e.g. Authentication System"
-                                  />
-                                </div>
-                                
-                                <div className={styles.formGroup}>
-                                  <label className={styles.label}>Complexity</label>
-                                  <select 
-                                    className={styles.select} 
-                                    value={editComplexity}
-                                    onChange={(e) => setEditComplexity(e.target.value)}
-                                  >
-                                    <option value="Simple">Simple</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Complex">Complex</option>
-                                  </select>
-                                </div>
-                                
-                                <div className={styles.formGroup}>
-                                  <label className={styles.label}>Base Module Cost</label>
-                                  <input 
-                                    type="number" 
-                                    className={styles.input} 
-                                    value={editCost}
-                                    onChange={(e) => setEditCost(Number(e.target.value))}
-                                    disabled={editTasks.length > 0}
-                                    min={0}
-                                  />
-                                  {editTasks.length > 0 && (
-                                    <span style={{ fontSize: "12px", color: "var(--color-on-surface-variant)", marginTop: "4px" }}>
-                                      * Cost is auto-calculated from sub-tasks below.
-                                    </span>
-                                  )}
-                                </div>
-                                
+                            <div style={{ display: "flex", flexDirection: "column", gap: "16px", background: "white", padding: "20px", borderRadius: "12px", border: "1px solid var(--color-outline-variant)" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <h4 style={{ margin: 0, fontFamily: "var(--font-headline-sm)", color: "var(--color-on-surface)" }}>Sub-tasks Breakdown</h4>
                                 <button 
                                   className={styles.btnPrimary} 
                                   onClick={handleSaveModule} 
                                   disabled={isSaving}
-                                  style={{ marginTop: "8px", alignSelf: "flex-start" }}
+                                  style={{ padding: "8px 16px", fontSize: "14px" }}
                                 >
                                   {isSaving ? "Saving..." : "Save Changes"}
                                 </button>
                               </div>
-                              
-                              {/* Right side: Sub-tasks Breakdown */}
-                              <div style={{ flex: 1, minWidth: "300px", display: "flex", flexDirection: "column", gap: "16px", background: "white", padding: "20px", borderRadius: "12px", border: "1px solid var(--color-outline-variant)" }}>
-                                <h4 style={{ margin: 0, fontFamily: "var(--font-headline-sm)", color: "var(--color-on-surface)" }}>Sub-tasks Breakdown</h4>
                                 
                                 {editTasks.length > 0 ? (
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
@@ -445,7 +398,6 @@ export default function EstimatesPage() {
                                     <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
                                   </button>
                                 </div>
-                              </div>
                             </div>
                           </div>
                         </td>
