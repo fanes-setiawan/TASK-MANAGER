@@ -264,13 +264,7 @@ export default function NewProjectPage() {
             )}
           </div>
 
-          <div className={styles.exportBanner} style={{ marginTop: "auto" }}>
-            <div className={styles.exportBannerContent}>
-              <p className={styles.exportTitle}>Export as PDF/PPTX</p>
-              <p className={styles.exportDesc}>Ready for executive presentation with high-fidelity charts.</p>
-              <button className={styles.btnUpgrade} onClick={() => alert("Pro features coming soon!")}>Upgrade to Pro</button>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
