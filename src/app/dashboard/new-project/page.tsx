@@ -67,6 +67,43 @@ export default function NewProjectPage() {
     reader.readAsText(file);
   };
 
+  const fillDummyData = () => {
+    setFormData({
+      projectName: "E-Commerce Mobile App",
+      clientName: "Bapak Budi Santoso",
+      company: "PT Maju Jaya Abadi",
+      email: "budi.santoso@majujaya.co.id",
+      phone: "081234567890",
+      currency: "IDR (Rp)",
+      ratePerPoint: 250000,
+    });
+    setConfigJson(`{
+  "project_id": "MJA-2026-001",
+  "modules": [
+    { 
+      "name": "Authentication System",
+      "complexity": "Medium",
+      "price": 1500000,
+      "tasks": [
+        { "name": "Login/Register API", "price": 500000 },
+        { "name": "Google OAuth", "price": 500000 },
+        { "name": "JWT Session UI", "price": 500000 }
+      ]
+    },
+    { 
+      "name": "Product Catalog",
+      "complexity": "Complex",
+      "price": 3000000
+    },
+    { 
+      "name": "Shopping Cart",
+      "complexity": "Medium",
+      "price": 1000000
+    }
+  ]
+}`);
+  };
+
   const handleGenerate = async () => {
     if (jsonError) {
       alert("Please fix JSON errors before saving.");
@@ -98,11 +135,16 @@ export default function NewProjectPage() {
         
         {/* Project Information Form */}
         <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <span className="material-symbols-outlined" style={{ color: "var(--color-primary)", fontVariationSettings: "'FILL' 1" }}>
-              info
-            </span>
-            <h3 className={styles.cardTitle}>Project Information</h3>
+          <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 className={styles.cardTitle}>Project Information</h2>
+            <button 
+              className={styles.btnSecondary} 
+              onClick={fillDummyData}
+              style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '4px' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>magic_button</span>
+              Auto-Fill
+            </button>
           </div>
           
           <div className={styles.formGrid}>
