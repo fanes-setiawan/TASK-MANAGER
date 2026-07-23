@@ -1,16 +1,48 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import styles from "./new-project.module.css";
 import { useRouter } from "next/navigation";
+import { auth } from "@/lib/firebase/client";
+import { saveProject } from "@/lib/firebase/firestore";
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    projectName: "",
+    clientName: "",
+    company: "",
+    email: "",
+    phone: "",
+    currency: "USD ($)",
+    ratePerPoint: 1200,
+  });
 
-  const handleGenerate = () => {
-    // In a real app, you would save the data to Firestore here
-    // For now, we simulate processing and route to the preview
-    router.push("/dashboard/proposal-preview");
+  const configJson = `{
+  "project_id": "CE-2024-001",
+  "modules": [
+    { "name": "Authentication System", "points": 12, "complexity": "medium" }
+  ]
+}`;
+
+  const handleGenerate = async () => {
+    try {
+      setLoading(true);
+      const user = auth.currentUser;
+      if (!user) throw new Error("User not logged in");
+
+      await saveProject({
+        ...formData,
+        configJson
+      }, user.uid);
+      
+      router.push("/dashboard/proposal-preview");
+    } catch (error) {
+      console.error(error);
+      alert("Error saving project");
+      setLoading(false);
+    }
   };
   return (
     <div className={styles.container}>
@@ -29,29 +61,29 @@ export default function NewProjectPage() {
           <div className={styles.formGrid}>
             <div className={styles.inputGroup}>
               <label className={styles.label}>Project Name</label>
-              <input className={styles.input} type="text" placeholder="e.g. Fintech Mobile App v3" />
+              <input className={styles.input} type="text" placeholder="e.g. Fintech Mobile App v3" value={formData.projectName} onChange={e => setFormData({...formData, projectName: e.target.value})} />
             </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>Client Name</label>
-              <input className={styles.input} type="text" placeholder="e.g. Acme Corp" />
+              <input className={styles.input} type="text" placeholder="e.g. Acme Corp" value={formData.clientName} onChange={e => setFormData({...formData, clientName: e.target.value})} />
             </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>Company</label>
-              <input className={styles.input} type="text" placeholder="Entity name" />
+              <input className={styles.input} type="text" placeholder="Entity name" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
             </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>Email Address</label>
-              <input className={styles.input} type="email" placeholder="contact@client.com" />
+              <input className={styles.input} type="email" placeholder="contact@client.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
             </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>Phone Number</label>
-              <input className={styles.input} type="tel" placeholder="+1 (555) 000-0000" />
+              <input className={styles.input} type="tel" placeholder="+1 (555) 000-0000" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
             </div>
             
             <div className={styles.twoCols}>
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Currency</label>
-                <select className={styles.input}>
+                <select className={styles.input} value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})}>
                   <option>USD ($)</option>
                   <option>EUR (€)</option>
                   <option>GBP (£)</option>
@@ -60,7 +92,7 @@ export default function NewProjectPage() {
               </div>
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Rate/Point</label>
-                <input className={styles.input} type="number" defaultValue={1200} />
+                <input className={styles.input} type="number" value={formData.ratePerPoint} onChange={e => setFormData({...formData, ratePerPoint: Number(e.target.value)})} />
               </div>
             </div>
           </div>
@@ -125,9 +157,9 @@ export default function NewProjectPage() {
             <span className="material-symbols-outlined">visibility</span>
             Preview
           </button>
-          <button className={styles.btnPrimary} onClick={handleGenerate}>
+          <button className={styles.btnPrimary} onClick={handleGenerate} disabled={loading}>
             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-            Generate Proposal
+            {loading ? "Saving..." : "Generate Proposal"}
           </button>
         </div>
 

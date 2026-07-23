@@ -33,3 +33,30 @@ export async function saveUserRoleAfterLogin(user: User): Promise<UserProfile> {
     return newUser;
   }
 }
+
+export interface ProjectData {
+  id?: string;
+  projectName: string;
+  clientName: string;
+  company: string;
+  email: string;
+  phone: string;
+  currency: string;
+  ratePerPoint: number;
+  configJson: string;
+  createdAt?: any;
+  createdBy?: string;
+}
+
+export async function saveProject(project: ProjectData, userId: string) {
+  const { collection, addDoc } = await import("firebase/firestore");
+  const projectsRef = collection(db, "projects");
+  
+  const docRef = await addDoc(projectsRef, {
+    ...project,
+    createdBy: userId,
+    createdAt: serverTimestamp(),
+  });
+  
+  return docRef.id;
+}
