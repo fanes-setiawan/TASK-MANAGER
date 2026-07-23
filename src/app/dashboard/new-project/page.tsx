@@ -26,7 +26,7 @@ export default function NewProjectPage() {
     company: "",
     email: "",
     phone: "",
-    currency: "USD ($)",
+    currency: "IDR (Rp)",
     ratePerPoint: 1200,
   });
 
@@ -131,9 +131,6 @@ export default function NewProjectPage() {
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Currency</label>
                 <select className={styles.input} value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})}>
-                  <option>USD ($)</option>
-                  <option>EUR (€)</option>
-                  <option>GBP (£)</option>
                   <option>IDR (Rp)</option>
                 </select>
               </div>
