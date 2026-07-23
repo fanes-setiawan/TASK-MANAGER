@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import styles from "./estimates.module.css";
 import Link from "next/link";
 import { auth, db } from "@/lib/firebase/client";
@@ -22,6 +22,20 @@ export default function EstimatesPage() {
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskPrice, setNewTaskPrice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Dropdown State
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: any) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -137,20 +151,49 @@ export default function EstimatesPage() {
         <div className={styles.titleArea}>
           <div className={styles.badgeRow}>
             <span className={styles.badge}>Report #{project.id?.slice(0, 6).toUpperCase()}</span>
-            <div className={styles.selectWrapper}>
-              <select 
-                className={styles.projectSelect}
-                value={project.id} 
-                onChange={(e) => {
-                  const selected = projectsList.find(p => p.id === e.target.value);
-                  if (selected) setProject(selected);
-                }}
-              >
-                {projectsList.map(p => (
-                  <option key={p.id} value={p.id}>{p.projectName || "Unnamed Project"}</option>
-                ))}
-              </select>
-              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)', pointerEvents: 'none' }}>expand_more</span>
+            <div 
+              className={styles.selectWrapper} 
+              style={{ cursor: 'pointer', padding: '6px 16px 6px 12px', minWidth: '260px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} 
+              ref={dropdownRef} 
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--color-surface-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)', fontSize: '20px' }}>work</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-on-surface)', lineHeight: '1.2' }}>{project.projectName || "Unnamed Project"}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--color-on-surface-variant)', lineHeight: '1.4' }}>{project.clientName || "Unknown Client"}</span>
+                </div>
+              </div>
+              <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--color-primary)', transition: 'transform 0.2s', transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>expand_more</span>
+              
+              {isDropdownOpen && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, width: '100%', backgroundColor: 'white', border: '1px solid var(--color-outline-variant)', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', zIndex: 50, maxHeight: '300px', overflowY: 'auto', padding: '8px 0', cursor: 'default' }} onClick={(e) => e.stopPropagation()}>
+                  <div style={{ padding: '4px 16px 8px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-outline)', letterSpacing: '0.05em' }}>Switch Project</div>
+                  {projectsList.map(p => (
+                    <div 
+                      key={p.id} 
+                      style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: p.id === project.id ? 'var(--color-surface-container-low)' : 'transparent', transition: 'background-color 0.15s' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-container)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = p.id === project.id ? 'var(--color-surface-container-low)' : 'transparent'}
+                      onClick={() => {
+                        setProject(p);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span className="material-symbols-outlined" style={{ color: p.id === project.id ? 'var(--color-primary)' : 'var(--color-outline)', fontSize: '20px' }}>{p.id === project.id ? 'folder_special' : 'folder'}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '13px', fontWeight: p.id === project.id ? 700 : 500, color: p.id === project.id ? 'var(--color-primary)' : 'var(--color-on-surface)', lineHeight: '1.2' }}>{p.projectName || "Unnamed Project"}</span>
+                          <span style={{ fontSize: '11px', color: 'var(--color-on-surface-variant)' }}>{p.clientName || "Unknown Client"}</span>
+                        </div>
+                      </div>
+                      {p.id === project.id && <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)' }}>check</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <h2 className={styles.pageTitle}>Cost Breakdown Report</h2>

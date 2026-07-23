@@ -67,54 +67,48 @@ export default function DashboardLayout({
         <nav className={styles.nav}>
           <Link
             href="/dashboard"
-            className={`${styles.navItem} ${
-              pathname === "/dashboard" ? styles.active : ""
-            }`}
+            className={`${styles.navItem} ${pathname === "/dashboard" ? styles.active : ""
+              }`}
           >
             <span className="material-symbols-outlined">dashboard</span>
             <span className={styles.navLabel}>Dashboard</span>
           </Link>
           <Link
             href="/dashboard/new-project"
-            className={`${styles.navItem} ${
-              pathname === "/dashboard/new-project" ? styles.active : ""
-            }`}
+            className={`${styles.navItem} ${pathname === "/dashboard/new-project" ? styles.active : ""
+              }`}
           >
             <span className="material-symbols-outlined">add_box</span>
             <span className={styles.navLabel}>New Project</span>
           </Link>
           <Link
             href="/dashboard/estimates"
-            className={`${styles.navItem} ${
-              pathname === "/dashboard/estimates" ? styles.active : ""
-            }`}
+            className={`${styles.navItem} ${pathname === "/dashboard/estimates" ? styles.active : ""
+              }`}
           >
             <span className="material-symbols-outlined">description</span>
             <span className={styles.navLabel}>Estimates</span>
           </Link>
           <Link
             href="/dashboard/clients"
-            className={`${styles.navItem} ${
-              pathname === "/dashboard/clients" ? styles.active : ""
-            }`}
+            className={`${styles.navItem} ${pathname === "/dashboard/clients" ? styles.active : ""
+              }`}
           >
             <span className="material-symbols-outlined">group</span>
             <span className={styles.navLabel}>Clients</span>
           </Link>
           <Link
             href="/dashboard/history"
-            className={`${styles.navItem} ${
-              pathname === "/dashboard/history" ? styles.active : ""
-            }`}
+            className={`${styles.navItem} ${pathname === "/dashboard/history" ? styles.active : ""
+              }`}
           >
             <span className="material-symbols-outlined">history</span>
             <span className={styles.navLabel}>History</span>
           </Link>
           <Link
             href="/dashboard/templates"
-            className={`${styles.navItem} ${
-              pathname === "/dashboard/templates" ? styles.active : ""
-            }`}
+            className={`${styles.navItem} ${pathname === "/dashboard/templates" ? styles.active : ""
+              }`}
           >
             <span className="material-symbols-outlined">auto_awesome_motion</span>
             <span className={styles.navLabel}>Templates</span>
@@ -180,8 +174,8 @@ export default function DashboardLayout({
                   {userProfile?.role === "admin"
                     ? "Administrator"
                     : userProfile?.role === "manager"
-                    ? "Manager"
-                    : "Staff"}
+                      ? "Manager"
+                      : "Staff"}
                 </p>
               </div>
             </div>
@@ -209,7 +203,7 @@ export default function DashboardLayout({
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAYxl62mvvaeKBMqiPv_xjWNJzn8AdapjWlfPMNMhCGQVzO059qxdGliakroZemwD6hYRC0dttMr5lZdIfj7k9a-qTbXWgM8KdeAi_HPZjuM0-eQIhd2LCgclnTHZqCjTLOQdKvuyx62Vhww9CZIBD1QxAY3QgquvRm-hx0wECm-OkzeQRKOFalfoO51bFxutpK-aZ6gGhvtmSgAF3cbb4GTeT7UHvko4nkpV_EqYaFg56Zajg8GWSHBTExXH8hmcpRiwZLX1YqVI"
             />
             <span style={{ fontSize: "var(--text-label-sm-size)", color: "var(--color-on-surface-variant)" }}>
-              © 2024. All rights reserved.
+              © 2026. All rights reserved.
             </span>
           </div>
           <div style={{ display: "flex", gap: "var(--spacing-unit-lg)", alignItems: "center" }}>

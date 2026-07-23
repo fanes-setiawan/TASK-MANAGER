@@ -1,11 +1,9 @@
 .container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px); /* Assuming 64px top bar from layout */
+  flex: 1;
   overflow: hidden;
   background-color: var(--color-background);
-  margin: calc(var(--spacing-gutter) * -1); /* Pull out to fill mainContent */
-  margin-bottom: 0;
 }
 
 .topToolbar {
@@ -251,8 +249,9 @@
   overflow-y: auto;
   padding: var(--spacing-unit-xl);
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  justify-content: flex-start;
+  align-items: center;
+  flex-direction: column;
 }
 
 .pdfPage {
@@ -449,6 +448,8 @@
   border: 2px dashed var(--color-outline-variant);
   border-radius: 12px;
   padding: 24px;
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
