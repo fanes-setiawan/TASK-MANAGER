@@ -9,16 +9,18 @@ import { onAuthStateChanged } from "firebase/auth";
 
 export default function EstimatesPage() {
   const [project, setProject] = useState<ProjectData | null>(null);
+  const [projectsList, setProjectsList] = useState<ProjectData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const projects = await getProjects(user.uid);
-          if (projects.length > 0) {
-            // Get the most recent project
-            setProject(projects[0]);
+          const fetchedProjects = await getProjects(user.uid);
+          setProjectsList(fetchedProjects);
+          if (fetchedProjects.length > 0) {
+            // Get the most recent project initially
+            setProject(fetchedProjects[0]);
           }
         } catch (error) {
           console.error("Failed to fetch projects", error);
@@ -75,7 +77,25 @@ export default function EstimatesPage() {
         <div className={styles.titleArea}>
           <div className={styles.badgeRow}>
             <span className={styles.badge}>Report #{project.id?.slice(0, 6).toUpperCase()}</span>
-            <span className={styles.subtitle}>• {project.projectName || "Unnamed Project"}</span>
+            <select 
+              value={project.id} 
+              onChange={(e) => {
+                const selected = projectsList.find(p => p.id === e.target.value);
+                if (selected) setProject(selected);
+              }}
+              style={{
+                background: "transparent",
+                border: "none",
+                fontFamily: "var(--font-label-md)",
+                color: "var(--color-outline)",
+                cursor: "pointer",
+                outline: "none"
+              }}
+            >
+              {projectsList.map(p => (
+                <option key={p.id} value={p.id}>• {p.projectName || "Unnamed Project"}</option>
+              ))}
+            </select>
           </div>
           <h2 className={styles.pageTitle}>Cost Breakdown Report</h2>
           <p className={styles.pageDesc}>Detailed fiscal analysis for {project.clientName || "the client"}.</p>
