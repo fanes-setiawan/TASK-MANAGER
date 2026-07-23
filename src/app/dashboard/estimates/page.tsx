@@ -18,7 +18,7 @@ export default function EstimatesPage() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editComplexity, setEditComplexity] = useState("Medium");
-  const [editPoints, setEditPoints] = useState<number>(0);
+  const [editCost, setEditCost] = useState<number>(0);
   const [editTasks, setEditTasks] = useState<{name: string, price: number}[]>([]);
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskPrice, setNewTaskPrice] = useState("");
@@ -71,8 +71,13 @@ export default function EstimatesPage() {
     console.error("Failed to parse configJson", e);
   }
 
-  const totalPoints = modules.reduce((sum, mod) => sum + (mod.points || 0), 0);
-  const totalCost = totalPoints * project.ratePerPoint;
+  const totalCost = modules.reduce((sum, mod) => {
+    return sum + (mod.price !== undefined ? mod.price : (mod.points || 0) * project.ratePerPoint);
+  }, 0);
+  const totalDays = modules.reduce((sum, mod) => {
+    const cost = mod.price !== undefined ? mod.price : (mod.points || 0) * project.ratePerPoint;
+    return sum + Math.ceil((cost / project.ratePerPoint * 2) / 8);
+  }, 0);
   
   const formatCurrency = (amount: number) => {
     const currency = project.currency || 'IDR';
@@ -86,7 +91,7 @@ export default function EstimatesPage() {
     setEditingIndex(idx);
     setEditName(mod.name || "");
     setEditComplexity(mod.complexity || "Medium");
-    setEditPoints(mod.points || 0);
+    setEditCost(mod.price !== undefined ? mod.price : (mod.points || 0) * project.ratePerPoint);
     setEditTasks(mod.tasks || []);
     setNewTaskName("");
     setNewTaskPrice("");
@@ -102,7 +107,7 @@ export default function EstimatesPage() {
       ...updatedModules[editingIndex],
       name: editName,
       complexity: editComplexity,
-      points: editPoints,
+      price: editCost,
       tasks: editTasks
     };
 
@@ -181,23 +186,23 @@ export default function EstimatesPage() {
           </div>
         </div>
 
-        {/* Story Points */}
+        {/* Total Scope */}
         <div className={`${styles.glassCard} ${styles.statCard}`}>
           <div className={styles.statHeader}>
-            <span className={styles.statLabel}>Total Scope</span>
-            <span className="material-symbols-outlined" style={{ color: "var(--color-secondary)" }}>poker_chip</span>
+            <span className={styles.statLabel}>Total Modules</span>
+            <span className="material-symbols-outlined" style={{ color: "var(--color-secondary)" }}>view_module</span>
           </div>
-          <p className={styles.statValue}>{totalPoints} <span className={styles.statUnit}>pts</span></p>
+          <p className={styles.statValue}>{modules.length} <span className={styles.statUnit}>items</span></p>
           <div className={styles.statTrendRow}>
-            <span className={`material-symbols-outlined ${styles.trendNeutral}`} style={{ fontSize: 16 }}>schedule</span>
-            <span className={`${styles.trendText} ${styles.trendNeutral}`}>From {modules.length} modules</span>
+            <span className={`material-symbols-outlined ${styles.trendNeutral}`} style={{ fontSize: 16 }}>list</span>
+            <span className={`${styles.trendText} ${styles.trendNeutral}`}>Counted from list</span>
           </div>
         </div>
 
-        {/* Price / Point */}
+        {/* Price / Point (Now Average Cost) */}
         <div className={`${styles.glassCard} ${styles.statCard}`}>
           <div className={styles.statHeader}>
-            <span className={styles.statLabel}>Price per Point</span>
+            <span className={styles.statLabel}>Average Cost/Module</span>
             <span className="material-symbols-outlined" style={{ color: "var(--color-primary)" }}>analytics</span>
           </div>
           <p className={styles.statValue}>{formatCurrency(project.ratePerPoint)}</p>
@@ -213,8 +218,8 @@ export default function EstimatesPage() {
             <span className={styles.statLabel}>Est. Duration</span>
             <span className="material-symbols-outlined" style={{ color: "var(--color-secondary)" }}>calendar_today</span>
           </div>
-          {/* Rough estimate: 10 points = 1 week */}
-          <p className={styles.statValue}>{Math.ceil(totalPoints / 10)} <span className={styles.statUnit}>weeks</span></p>
+          {/* Rough estimate */}
+          <p className={styles.statValue}>{totalDays} <span className={styles.statUnit}>days</span></p>
           <div className={styles.statTrendRow}>
             <span className={`material-symbols-outlined ${styles.trendUp}`} style={{ fontSize: 16 }}>check_circle</span>
             <span className={`${styles.trendText} ${styles.trendUp}`}>Calculated Estimate</span>
@@ -233,7 +238,6 @@ export default function EstimatesPage() {
               <tr className={styles.tr}>
                 <th className={styles.th}>Module Name</th>
                 <th className={styles.th}>Complexity</th>
-                <th className={styles.th} style={{ textAlign: "center" }}>Pts</th>
                 <th className={styles.th} style={{ textAlign: "center" }}>Est. Days</th>
                 <th className={styles.th} style={{ textAlign: "right" }}>Cost</th>
                 <th className={styles.th} style={{ textAlign: "right" }}>Weight</th>
@@ -241,11 +245,9 @@ export default function EstimatesPage() {
             </thead>
             <tbody>
               {modules.map((mod, idx) => {
-                const pts = mod.points || 0;
-                const hours = pts * 2; // 1 pt = 2 hours
-                const days = Math.ceil(hours / 8); // 8 hours = 1 day
-                const cost = pts * project.ratePerPoint;
-                const weight = totalPoints > 0 ? Math.round((pts / totalPoints) * 100) : 0;
+                const cost = mod.price !== undefined ? mod.price : (mod.points || 0) * project.ratePerPoint;
+                const days = Math.ceil((cost / project.ratePerPoint * 2) / 8);
+                const weight = totalCost > 0 ? Math.round((cost / totalCost) * 100) : 0;
                 
                 return (
                   <tr 
@@ -256,7 +258,6 @@ export default function EstimatesPage() {
                   >
                     <td className={`${styles.td} ${styles.tdBold}`}>{mod.name || "Unnamed Module"}</td>
                     <td className={styles.td} style={{ textTransform: "capitalize" }}>{mod.complexity || "Medium"}</td>
-                    <td className={styles.td} style={{ textAlign: "center" }}>{pts}</td>
                     <td className={styles.td} style={{ textAlign: "center" }}>{days}</td>
                     <td className={`${styles.td} ${styles.tdCost}`} style={{ textAlign: "right" }}>{formatCurrency(cost)}</td>
                     <td className={styles.td}>
@@ -282,8 +283,7 @@ export default function EstimatesPage() {
             <tfoot className={styles.tfoot}>
               <tr className={styles.tr}>
                 <td className={styles.td} colSpan={2} style={{ color: "var(--color-on-surface)" }}>Total Estimates</td>
-                <td className={styles.td} style={{ textAlign: "center" }}>{totalPoints}</td>
-                <td className={styles.td} style={{ textAlign: "center" }}>{Math.ceil((totalPoints * 2) / 8)}</td>
+                <td className={styles.td} style={{ textAlign: "center" }}>{totalDays}</td>
                 <td className={styles.td} style={{ textAlign: "right", color: "var(--color-primary)" }}>{formatCurrency(totalCost)}</td>
                 <td className={styles.td} style={{ textAlign: "right" }}>100%</td>
               </tr>
@@ -318,7 +318,7 @@ export default function EstimatesPage() {
                     </span>
                   </div>
                   <span className={styles.legendPercent}>
-                    {totalPoints > 0 ? Math.round(((mod.points || 0) / totalPoints) * 100) : 0}%
+                    {totalCost > 0 ? Math.round(((mod.price !== undefined ? mod.price : (mod.points || 0) * project.ratePerPoint) / totalCost) * 100) : 0}%
                   </span>
                 </div>
               ))}
@@ -396,13 +396,14 @@ export default function EstimatesPage() {
               </div>
               
               <div className={styles.formGroup}>
-                <label className={styles.label}>Story Points (Pts)</label>
+                <label className={styles.label}>Module Cost</label>
                 <input 
                   type="number" 
                   className={styles.input} 
-                  value={editPoints}
-                  onChange={(e) => setEditPoints(Number(e.target.value))}
-                  min={1}
+                  value={editCost}
+                  onChange={(e) => setEditCost(Number(e.target.value))}
+                  disabled={editTasks.length > 0}
+                  min={0}
                 />
               </div>
 
@@ -423,7 +424,9 @@ export default function EstimatesPage() {
                               setEditTasks(newT);
                               if (newT.length > 0) {
                                 const sum = newT.reduce((acc, curr) => acc + curr.price, 0);
-                                setEditPoints(Math.round((sum / project!.ratePerPoint) * 10) / 10);
+                                setEditCost(sum);
+                              } else {
+                                setEditCost(0);
                               }
                             }}
                           >
@@ -467,9 +470,7 @@ export default function EstimatesPage() {
                       setNewTaskPrice("");
                       // Auto-calculate points based on total price
                       const sum = newT.reduce((acc, curr) => acc + curr.price, 0);
-                      if (project) {
-                        setEditPoints(Math.round((sum / project.ratePerPoint) * 10) / 10);
-                      }
+                      setEditCost(sum);
                     }}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
