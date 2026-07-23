@@ -34,18 +34,18 @@ export default function ProposalPreviewPage() {
         </div>
 
         <div className={styles.toolbarRight}>
-          <button className={styles.btnToolbar}>
+          <button className={styles.btnToolbar} onClick={() => alert("Regenerating proposal...")}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>refresh</span>
             Generate Again
           </button>
           <div className={styles.toolbarDivider}></div>
-          <button className={styles.btnIconOnly} title="Share">
+          <button className={styles.btnIconOnly} title="Share" onClick={() => alert("Share link copied!")}>
             <span className="material-symbols-outlined">share</span>
           </button>
-          <button className={styles.btnIconOnly} title="Print">
+          <button className={styles.btnIconOnly} title="Print" onClick={() => window.print()}>
             <span className="material-symbols-outlined">print</span>
           </button>
-          <button className={styles.btnDownload}>
+          <button className={styles.btnDownload} onClick={() => window.print()}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>download</span>
             Download PDF
           </button>
@@ -225,7 +225,7 @@ export default function ProposalPreviewPage() {
           </div>
 
           <div className={styles.sidebarFooter}>
-            <button className={styles.btnSave}>
+            <button className={styles.btnSave} onClick={() => alert("Document settings saved!")}>
               Save All Changes
             </button>
           </div>

@@ -108,11 +108,14 @@ export default function NewProjectPage() {
               <span className={styles.editorFileName}>scope_configuration.json</span>
             </div>
             <div className={styles.editorActions}>
-              <button className={styles.btnUpload}>
+              <button className={styles.btnUpload} onClick={() => alert("JSON upload feature coming soon!")}>
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>upload</span>
                 Upload JSON
               </button>
-              <button className={styles.btnIcon}>
+              <button className={styles.btnIcon} onClick={() => {
+                navigator.clipboard.writeText(configJson);
+                alert("JSON copied to clipboard!");
+              }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>content_copy</span>
               </button>
             </div>
@@ -153,7 +156,7 @@ export default function NewProjectPage() {
 
         {/* Buttons */}
         <div className={styles.actionRow}>
-          <button className={styles.btnSecondary}>
+          <button className={styles.btnSecondary} onClick={() => router.push('/dashboard/proposal-preview')}>
             <span className="material-symbols-outlined">visibility</span>
             Preview
           </button>
@@ -246,7 +249,7 @@ export default function NewProjectPage() {
             <div className={styles.exportBannerContent}>
               <p className={styles.exportTitle}>Export as PDF/PPTX</p>
               <p className={styles.exportDesc}>Ready for executive presentation with high-fidelity charts.</p>
-              <button className={styles.btnUpgrade}>Upgrade to Pro</button>
+              <button className={styles.btnUpgrade} onClick={() => alert("Pro features coming soon!")}>Upgrade to Pro</button>
             </div>
           </div>
         </div>

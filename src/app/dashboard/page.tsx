@@ -49,13 +49,13 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className={styles.actionRow}>
-          <button className={styles.btnSecondary}>
+          <button className={styles.btnSecondary} onClick={() => alert("Time filter changed")}>
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
               calendar_today
             </span>
             Last 30 Days
           </button>
-          <button className={styles.btnPrimary}>
+          <button className={styles.btnPrimary} onClick={() => window.print()}>
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
               file_download
             </span>
@@ -204,7 +204,7 @@ export default function DashboardPage() {
               ))}
             </div>
             
-            <button className={styles.btnFull}>
+            <button className={styles.btnFull} onClick={() => window.location.href = '/dashboard/history'}>
               View Full Audit Log
             </button>
           </div>

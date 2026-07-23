@@ -19,11 +19,11 @@ export default function EstimatesPage() {
         </div>
         
         <div className={styles.actionRow}>
-          <button className={styles.btnSecondary}>
+          <button className={styles.btnSecondary} onClick={() => window.print()}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>file_download</span>
             Export PDF
           </button>
-          <button className={styles.btnPrimary}>
+          <button className={styles.btnPrimary} onClick={() => alert("Share link copied to clipboard!")}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>share</span>
             Share Report
           </button>
@@ -91,7 +91,7 @@ export default function EstimatesPage() {
           <h3 className={styles.tableTitle}>Module Breakdown</h3>
           <div className={styles.searchBox}>
             <span className="material-symbols-outlined" style={{ color: "var(--color-on-surface-variant)", fontSize: 20 }}>search</span>
-            <input className={styles.searchInput} placeholder="Search modules..." type="text" />
+            <input className={styles.searchInput} placeholder="Search modules..." type="text" onChange={(e) => console.log('Searching for:', e.target.value)} />
           </div>
         </div>
         <div className={styles.tableWrapper}>

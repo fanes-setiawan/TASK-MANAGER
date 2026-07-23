@@ -131,7 +131,7 @@ export default function DashboardLayout({
         </nav>
 
         <div className={styles.bottomSection}>
-          <button className={styles.btnPrimary}>
+          <button className={styles.btnPrimary} onClick={() => router.push('/dashboard/new-project')}>
             <span className="material-symbols-outlined">add</span>
             Generate Proposal
           </button>
@@ -165,15 +165,15 @@ export default function DashboardLayout({
             />
           </div>
           <div className={styles.headerRight}>
-            <button className={styles.iconButton}>
+            <button className={styles.iconButton} onClick={() => alert("No new notifications")}>
               <span className="material-symbols-outlined">notifications</span>
               <span className={styles.badge}></span>
             </button>
-            <button className={styles.iconButton}>
+            <button className={styles.iconButton} onClick={() => router.push('/dashboard/settings')}>
               <span className="material-symbols-outlined">settings</span>
             </button>
             <div className={styles.divider}></div>
-            <div className={styles.userProfile}>
+            <div className={styles.userProfile} onClick={() => router.push('/dashboard/settings')}>
               <div className={styles.avatar}>
                 <img
                   alt="User avatar"
