@@ -119,15 +119,7 @@ export default function DashboardLayout({
             <span className="material-symbols-outlined">auto_awesome_motion</span>
             <span className={styles.navLabel}>Templates</span>
           </Link>
-          <Link
-            href="/dashboard/settings"
-            className={`${styles.navItem} ${
-              pathname === "/dashboard/settings" ? styles.active : ""
-            }`}
-          >
-            <span className="material-symbols-outlined">settings</span>
-            <span className={styles.navLabel}>Settings</span>
-          </Link>
+
         </nav>
 
         <div className={styles.bottomSection}>
