@@ -14,8 +14,7 @@ export default function EstimatesPage() {
   const [loading, setLoading] = useState(true);
 
   // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editComplexity, setEditComplexity] = useState("Medium");
   const [editCost, setEditCost] = useState<number>(0);
@@ -88,23 +87,26 @@ export default function EstimatesPage() {
   };
 
   const handleRowClick = (idx: number, mod: any) => {
-    setEditingIndex(idx);
+    if (expandedRow === idx) {
+      setExpandedRow(null);
+      return;
+    }
+    setExpandedRow(idx);
     setEditName(mod.name || "");
     setEditComplexity(mod.complexity || "Medium");
     setEditCost(mod.price !== undefined ? mod.price : (mod.points || 0) * project.ratePerPoint);
     setEditTasks(mod.tasks || []);
     setNewTaskName("");
     setNewTaskPrice("");
-    setIsModalOpen(true);
   };
 
   const handleSaveModule = async () => {
-    if (editingIndex === null || !project || !project.id) return;
+    if (expandedRow === null || !project || !project.id) return;
     setIsSaving(true);
     
     const updatedModules = [...modules];
-    updatedModules[editingIndex] = {
-      ...updatedModules[editingIndex],
+    updatedModules[expandedRow] = {
+      ...updatedModules[expandedRow],
       name: editName,
       complexity: editComplexity,
       price: editCost,
@@ -119,7 +121,7 @@ export default function EstimatesPage() {
       
       // Update local state
       setProject({ ...project, configJson: newConfigJson });
-      setIsModalOpen(false);
+      setExpandedRow(null);
     } catch (error) {
       console.error("Error updating module:", error);
       alert("Failed to save module.");
@@ -249,26 +251,207 @@ export default function EstimatesPage() {
                 const days = Math.ceil((cost / project.ratePerPoint * 2) / 8);
                 const weight = totalCost > 0 ? Math.round((cost / totalCost) * 100) : 0;
                 
+                const isExpanded = expandedRow === idx;
+                
                 return (
-                  <tr 
-                    className={styles.tr} 
-                    key={idx}
-                    onClick={() => handleRowClick(idx, mod)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <td className={`${styles.td} ${styles.tdBold}`}>{mod.name || "Unnamed Module"}</td>
-                    <td className={styles.td} style={{ textTransform: "capitalize" }}>{mod.complexity || "Medium"}</td>
-                    <td className={styles.td} style={{ textAlign: "center" }}>{days}</td>
-                    <td className={`${styles.td} ${styles.tdCost}`} style={{ textAlign: "right" }}>{formatCurrency(cost)}</td>
-                    <td className={styles.td}>
-                      <div className={styles.weightBar}>
-                        <div className={styles.barTrack}>
-                          <div className={styles.barFill} style={{ width: `${weight}%` }}></div>
+                  <React.Fragment key={idx}>
+                    <tr 
+                      className={styles.tr} 
+                      onClick={() => handleRowClick(idx, mod)}
+                      style={{ cursor: "pointer", backgroundColor: isExpanded ? "var(--color-surface-container)" : undefined }}
+                    >
+                      <td className={`${styles.td} ${styles.tdBold}`}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span 
+                            className="material-symbols-outlined" 
+                            style={{ 
+                              fontSize: '20px', 
+                              transition: 'transform 0.2s', 
+                              transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                              color: 'var(--color-on-surface-variant)'
+                            }}
+                          >
+                            chevron_right
+                          </span>
+                          {mod.name || "Unnamed Module"}
                         </div>
-                        <span>{weight}%</span>
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                      <td className={styles.td} style={{ textTransform: "capitalize" }}>{mod.complexity || "Medium"}</td>
+                      <td className={styles.td} style={{ textAlign: "center" }}>{days}</td>
+                      <td className={`${styles.td} ${styles.tdCost}`} style={{ textAlign: "right" }}>{formatCurrency(cost)}</td>
+                      <td className={styles.td}>
+                        <div className={styles.weightBar}>
+                          <div className={styles.barTrack}>
+                            <div className={styles.barFill} style={{ width: `${weight}%` }}></div>
+                          </div>
+                          <span>{weight}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                    
+                    {isExpanded && (
+                      <tr className={styles.tr}>
+                        <td colSpan={5} style={{ padding: 0 }}>
+                          <div style={{ padding: "24px", background: "var(--color-surface-container-lowest)", borderBottom: "1px solid var(--color-outline-variant)" }}>
+                            <div style={{ display: "flex", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
+                              {/* Left side: Module Basic Info */}
+                              <div style={{ flex: 1, minWidth: "250px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                                <h4 style={{ margin: 0, fontFamily: "var(--font-headline-sm)", color: "var(--color-on-surface)" }}>Module Configuration</h4>
+                                
+                                <div className={styles.formGroup}>
+                                  <label className={styles.label}>Module Name</label>
+                                  <input 
+                                    type="text" 
+                                    className={styles.input} 
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                    placeholder="e.g. Authentication System"
+                                  />
+                                </div>
+                                
+                                <div className={styles.formGroup}>
+                                  <label className={styles.label}>Complexity</label>
+                                  <select 
+                                    className={styles.select} 
+                                    value={editComplexity}
+                                    onChange={(e) => setEditComplexity(e.target.value)}
+                                  >
+                                    <option value="Simple">Simple</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Complex">Complex</option>
+                                  </select>
+                                </div>
+                                
+                                <div className={styles.formGroup}>
+                                  <label className={styles.label}>Base Module Cost</label>
+                                  <input 
+                                    type="number" 
+                                    className={styles.input} 
+                                    value={editCost}
+                                    onChange={(e) => setEditCost(Number(e.target.value))}
+                                    disabled={editTasks.length > 0}
+                                    min={0}
+                                  />
+                                  {editTasks.length > 0 && (
+                                    <span style={{ fontSize: "12px", color: "var(--color-on-surface-variant)", marginTop: "4px" }}>
+                                      * Cost is auto-calculated from sub-tasks below.
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <button 
+                                  className={styles.btnPrimary} 
+                                  onClick={handleSaveModule} 
+                                  disabled={isSaving}
+                                  style={{ marginTop: "8px", alignSelf: "flex-start" }}
+                                >
+                                  {isSaving ? "Saving..." : "Save Changes"}
+                                </button>
+                              </div>
+                              
+                              {/* Right side: Sub-tasks Breakdown */}
+                              <div style={{ flex: 1, minWidth: "300px", display: "flex", flexDirection: "column", gap: "16px", background: "white", padding: "20px", borderRadius: "12px", border: "1px solid var(--color-outline-variant)" }}>
+                                <h4 style={{ margin: 0, fontFamily: "var(--font-headline-sm)", color: "var(--color-on-surface)" }}>Sub-tasks Breakdown</h4>
+                                
+                                {editTasks.length > 0 ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
+                                    {editTasks.map((t, i) => (
+                                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--color-surface-container-lowest)', borderRadius: '6px', border: '1px solid var(--color-outline-variant)', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '14px', color: 'var(--color-on-surface)' }}>{t.name}</span>
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                          <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--color-primary)' }}>{formatCurrency(t.price)}</span>
+                                          <button 
+                                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', padding: 0 }}
+                                            onClick={() => {
+                                              const newT = [...editTasks];
+                                              newT.splice(i, 1);
+                                              setEditTasks(newT);
+                                              if (newT.length > 0) {
+                                                const sum = newT.reduce((acc, curr) => acc + curr.price, 0);
+                                                setEditCost(sum);
+                                              } else {
+                                                setEditCost(0);
+                                              }
+                                            }}
+                                          >
+                                            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-error)' }}>delete</span>
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 4px 4px 4px', fontWeight: 'bold', fontSize: '15px', borderTop: '1px dashed var(--color-outline-variant)' }}>
+                                      <span>Total Tasks Cost:</span>
+                                      <span style={{ color: 'var(--color-primary)' }}>{formatCurrency(editTasks.reduce((a, c) => a + c.price, 0))}</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div style={{ padding: "20px", textAlign: "center", border: "1px dashed var(--color-outline-variant)", borderRadius: "8px", color: "var(--color-on-surface-variant)" }}>
+                                    No sub-tasks yet. Breakdown your module into smaller chunks.
+                                  </div>
+                                )}
+                                
+                                <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                                  <input 
+                                    type="text" 
+                                    className={styles.input} 
+                                    style={{ flex: 1, padding: '10px 12px' }}
+                                    placeholder="e.g. API Integration"
+                                    value={newTaskName}
+                                    onChange={e => setNewTaskName(e.target.value)}
+                                    onKeyDown={e => {
+                                      if (e.key === "Enter" && newTaskName && newTaskPrice) {
+                                        const newT = [...editTasks, { name: newTaskName, price: Number(newTaskPrice) }];
+                                        setEditTasks(newT);
+                                        setNewTaskName("");
+                                        setNewTaskPrice("");
+                                        const sum = newT.reduce((acc, curr) => acc + curr.price, 0);
+                                        setEditCost(sum);
+                                      }
+                                    }}
+                                  />
+                                  <input 
+                                    type="number" 
+                                    className={styles.input} 
+                                    style={{ width: '120px', padding: '10px 12px' }}
+                                    placeholder="Price"
+                                    value={newTaskPrice}
+                                    onChange={e => setNewTaskPrice(e.target.value)}
+                                    onKeyDown={e => {
+                                      if (e.key === "Enter" && newTaskName && newTaskPrice) {
+                                        const newT = [...editTasks, { name: newTaskName, price: Number(newTaskPrice) }];
+                                        setEditTasks(newT);
+                                        setNewTaskName("");
+                                        setNewTaskPrice("");
+                                        const sum = newT.reduce((acc, curr) => acc + curr.price, 0);
+                                        setEditCost(sum);
+                                      }
+                                    }}
+                                  />
+                                  <button 
+                                    type="button" 
+                                    className={styles.btnSecondary}
+                                    style={{ padding: '8px 12px' }}
+                                    onClick={() => {
+                                      if (!newTaskName || !newTaskPrice) return;
+                                      const newT = [...editTasks, { name: newTaskName, price: Number(newTaskPrice) }];
+                                      setEditTasks(newT);
+                                      setNewTaskName("");
+                                      setNewTaskPrice("");
+                                      // Auto-calculate points based on total price
+                                      const sum = newT.reduce((acc, curr) => acc + curr.price, 0);
+                                      setEditCost(sum);
+                                    }}
+                                  >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
               
@@ -359,137 +542,6 @@ export default function EstimatesPage() {
 
       </div>
 
-      {/* Edit Module Modal */}
-      {isModalOpen && (
-        <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Edit Module</h3>
-              <button className={styles.closeBtn} onClick={() => setIsModalOpen(false)}>
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            
-            <div className={styles.modalBody}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Module Name</label>
-                <input 
-                  type="text" 
-                  className={styles.input} 
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="e.g. Authentication System"
-                />
-              </div>
-              
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Complexity</label>
-                <select 
-                  className={styles.select} 
-                  value={editComplexity}
-                  onChange={(e) => setEditComplexity(e.target.value)}
-                >
-                  <option value="Simple">Simple</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Complex">Complex</option>
-                </select>
-              </div>
-              
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Module Cost</label>
-                <input 
-                  type="number" 
-                  className={styles.input} 
-                  value={editCost}
-                  onChange={(e) => setEditCost(Number(e.target.value))}
-                  disabled={editTasks.length > 0}
-                  min={0}
-                />
-              </div>
-
-              <div className={styles.formGroup} style={{ marginTop: "8px", paddingTop: "16px", borderTop: "1px dashed var(--color-outline-variant)" }}>
-                <label className={styles.label}>Sub-tasks Breakdown (Optional)</label>
-                {editTasks.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
-                    {editTasks.map((t, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--color-surface-container-lowest)', borderRadius: '6px', border: '1px solid var(--color-outline-variant)', alignItems: 'center' }}>
-                        <span style={{ fontSize: '14px', color: 'var(--color-on-surface)' }}>{t.name}</span>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                          <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--color-primary)' }}>{formatCurrency(t.price)}</span>
-                          <button 
-                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', padding: 0 }}
-                            onClick={() => {
-                              const newT = [...editTasks];
-                              newT.splice(i, 1);
-                              setEditTasks(newT);
-                              if (newT.length > 0) {
-                                const sum = newT.reduce((acc, curr) => acc + curr.price, 0);
-                                setEditCost(sum);
-                              } else {
-                                setEditCost(0);
-                              }
-                            }}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-error)' }}>delete</span>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 4px', fontWeight: 'bold', fontSize: '14px' }}>
-                      <span>Total Sub-tasks:</span>
-                      <span style={{ color: 'var(--color-primary)' }}>{formatCurrency(editTasks.reduce((a, c) => a + c.price, 0))}</span>
-                    </div>
-                  </div>
-                )}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input 
-                    type="text" 
-                    className={styles.input} 
-                    style={{ flex: 1, padding: '8px 12px' }}
-                    placeholder="e.g. Setup Database"
-                    value={newTaskName}
-                    onChange={e => setNewTaskName(e.target.value)}
-                  />
-                  <input 
-                    type="number" 
-                    className={styles.input} 
-                    style={{ width: '120px', padding: '8px 12px' }}
-                    placeholder="Price"
-                    value={newTaskPrice}
-                    onChange={e => setNewTaskPrice(e.target.value)}
-                  />
-                  <button 
-                    type="button" 
-                    className={styles.btnPrimary}
-                    style={{ padding: '8px 12px' }}
-                    onClick={() => {
-                      if (!newTaskName || !newTaskPrice) return;
-                      const newT = [...editTasks, { name: newTaskName, price: Number(newTaskPrice) }];
-                      setEditTasks(newT);
-                      setNewTaskName("");
-                      setNewTaskPrice("");
-                      // Auto-calculate points based on total price
-                      const sum = newT.reduce((acc, curr) => acc + curr.price, 0);
-                      setEditCost(sum);
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <div className={styles.modalFooter}>
-              <button className={styles.btnSecondary} onClick={() => setIsModalOpen(false)} disabled={isSaving}>
-                Cancel
-              </button>
-              <button className={styles.btnPrimary} onClick={handleSaveModule} disabled={isSaving}>
-                {isSaving ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
