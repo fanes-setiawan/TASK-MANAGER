@@ -10,6 +10,7 @@ export interface UserProfile {
   displayName: string | null;
   role: UserRole;
   createdAt: any;
+  avatarUrl?: string;
 }
 
 export async function saveUserRoleAfterLogin(user: User): Promise<UserProfile> {
