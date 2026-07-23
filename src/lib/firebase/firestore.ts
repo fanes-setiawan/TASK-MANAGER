@@ -62,20 +62,27 @@ export async function saveProject(project: ProjectData, userId: string) {
 }
 
 export async function getProjects(userId?: string) {
-  const { collection, getDocs, query, orderBy, where } = await import("firebase/firestore");
+  const { collection, getDocs, query, where } = await import("firebase/firestore");
   const projectsRef = collection(db, "projects");
   
   let q;
   if (userId) {
-    q = query(projectsRef, where("createdBy", "==", userId), orderBy("createdAt", "desc"));
+    q = query(projectsRef, where("createdBy", "==", userId));
   } else {
-    q = query(projectsRef, orderBy("createdAt", "desc"));
+    q = query(projectsRef);
   }
   
   const snapshot = await getDocs(q);
   const projects: ProjectData[] = [];
   snapshot.forEach(doc => {
     projects.push({ id: doc.id, ...doc.data() } as ProjectData);
+  });
+  
+  // Sort by createdAt descending in JS to avoid Firebase composite index requirement
+  projects.sort((a, b) => {
+    const timeA = a.createdAt?.seconds || 0;
+    const timeB = b.createdAt?.seconds || 0;
+    return timeB - timeA;
   });
   
   return projects;
