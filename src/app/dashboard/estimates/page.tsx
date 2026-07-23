@@ -181,7 +181,7 @@ export default function EstimatesPage() {
                 <th className={styles.th}>Module Name</th>
                 <th className={styles.th}>Complexity</th>
                 <th className={styles.th} style={{ textAlign: "center" }}>Pts</th>
-                <th className={styles.th} style={{ textAlign: "center" }}>Est. Hours</th>
+                <th className={styles.th} style={{ textAlign: "center" }}>Est. Days</th>
                 <th className={styles.th} style={{ textAlign: "right" }}>Cost</th>
                 <th className={styles.th} style={{ textAlign: "right" }}>Weight</th>
               </tr>
@@ -189,16 +189,22 @@ export default function EstimatesPage() {
             <tbody>
               {modules.map((mod, idx) => {
                 const pts = mod.points || 0;
-                const hours = pts * 2; // Assuming 1 pt = 2 hours for demo
+                const hours = pts * 2; // 1 pt = 2 hours
+                const days = Math.ceil(hours / 8); // 8 hours = 1 day
                 const cost = pts * project.ratePerPoint;
                 const weight = totalPoints > 0 ? Math.round((pts / totalPoints) * 100) : 0;
                 
                 return (
-                  <tr className={styles.tr} key={idx}>
+                  <tr 
+                    className={styles.tr} 
+                    key={idx}
+                    onClick={() => alert(`Fitur Detail & Edit untuk modul "${mod.name}" akan hadir di update Task Manager berikutnya!`)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <td className={`${styles.td} ${styles.tdBold}`}>{mod.name || "Unnamed Module"}</td>
                     <td className={styles.td} style={{ textTransform: "capitalize" }}>{mod.complexity || "Medium"}</td>
                     <td className={styles.td} style={{ textAlign: "center" }}>{pts}</td>
-                    <td className={styles.td} style={{ textAlign: "center" }}>{hours}</td>
+                    <td className={styles.td} style={{ textAlign: "center" }}>{days}</td>
                     <td className={`${styles.td} ${styles.tdCost}`} style={{ textAlign: "right" }}>{formatCurrency(cost)}</td>
                     <td className={styles.td}>
                       <div className={styles.weightBar}>
@@ -224,7 +230,7 @@ export default function EstimatesPage() {
               <tr className={styles.tr}>
                 <td className={styles.td} colSpan={2} style={{ color: "var(--color-on-surface)" }}>Total Estimates</td>
                 <td className={styles.td} style={{ textAlign: "center" }}>{totalPoints}</td>
-                <td className={styles.td} style={{ textAlign: "center" }}>{totalPoints * 2}</td>
+                <td className={styles.td} style={{ textAlign: "center" }}>{Math.ceil((totalPoints * 2) / 8)}</td>
                 <td className={styles.td} style={{ textAlign: "right", color: "var(--color-primary)" }}>{formatCurrency(totalCost)}</td>
                 <td className={styles.td} style={{ textAlign: "right" }}>100%</td>
               </tr>
