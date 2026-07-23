@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import styles from "./new-project.module.css";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase/client";
+import { auth, db } from "@/lib/firebase/client";
 import { saveProject } from "@/lib/firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 const defaultJson = `{
   "project_id": "CE-2024-001",
@@ -32,6 +34,26 @@ export default function NewProjectPage() {
 
   const [configJson, setConfigJson] = useState(defaultJson);
   const [jsonError, setJsonError] = useState(false);
+  const [savedClients, setSavedClients] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const q = query(collection(db, "clients"), where("createdBy", "==", user.uid));
+          const snapshot = await getDocs(q);
+          const data: any[] = [];
+          snapshot.forEach((doc) => {
+            data.push({ id: doc.id, ...doc.data() });
+          });
+          setSavedClients(data);
+        } catch (error) {
+          console.error("Failed to load clients", error);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Parse JSON and compute stats
   const parsedData = useMemo(() => {
@@ -67,42 +89,7 @@ export default function NewProjectPage() {
     reader.readAsText(file);
   };
 
-  const fillDummyData = () => {
-    setFormData({
-      projectName: "E-Commerce Mobile App",
-      clientName: "Bapak Budi Santoso",
-      company: "PT Maju Jaya Abadi",
-      email: "budi.santoso@majujaya.co.id",
-      phone: "081234567890",
-      currency: "IDR (Rp)",
-      ratePerPoint: 250000,
-    });
-    setConfigJson(`{
-  "project_id": "MJA-2026-001",
-  "modules": [
-    { 
-      "name": "Authentication System",
-      "complexity": "Medium",
-      "price": 1500000,
-      "tasks": [
-        { "name": "Login/Register API", "price": 500000 },
-        { "name": "Google OAuth", "price": 500000 },
-        { "name": "JWT Session UI", "price": 500000 }
-      ]
-    },
-    { 
-      "name": "Product Catalog",
-      "complexity": "Complex",
-      "price": 3000000
-    },
-    { 
-      "name": "Shopping Cart",
-      "complexity": "Medium",
-      "price": 1000000
-    }
-  ]
-}`);
-  };
+
 
   const handleGenerate = async () => {
     if (jsonError) {
@@ -137,14 +124,29 @@ export default function NewProjectPage() {
         <div className={styles.card}>
           <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 className={styles.cardTitle}>Project Information</h2>
-            <button 
-              className={styles.btnSecondary} 
-              onClick={fillDummyData}
-              style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '4px' }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>magic_button</span>
-              Auto-Fill
-            </button>
+            {savedClients.length > 0 && (
+              <select 
+                className={styles.input} 
+                style={{ width: '200px', fontSize: '13px', padding: '6px 12px' }}
+                onChange={(e) => {
+                  const client = savedClients.find(c => c.id === e.target.value);
+                  if (client) {
+                    setFormData({
+                      ...formData,
+                      clientName: client.name || "",
+                      company: client.company || "",
+                      email: client.email || "",
+                      phone: client.phone || "",
+                    });
+                  }
+                }}
+              >
+                <option value="">-- Auto-fill from Client --</option>
+                {savedClients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            )}
           </div>
           
           <div className={styles.formGrid}>
