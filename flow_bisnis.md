@@ -139,3 +139,18 @@ Dokumen ini menjelaskan rancangan alur kerja menyeluruh (End-to-End Workflow) un
 7. Anda menekan **Download PDF** lalu mengirimkannya ke WhatsApp mereka. 
 8. Seminggu kemudian, Anda bisa mengevaluasi beban biaya di halaman **Estimates**. 
 9. **Selesai**. Data tersimpan rapi selamanya di *database*.
+
+---
+
+## 10. Roadmap Masa Depan: Eksekusi Proyek (Task Manager)
+*Pengembangan lebih lanjut agar aplikasi tidak hanya berhenti setelah proposal dikirim, melainkan digunakan untuk mengawal berjalannya proyek.*
+
+**Konsep Hirarki Data & Harga:**
+- **Project**: Menjadi payung utama (*container*) yang memiliki Total Budget (Akumulasi dari Task).
+  - **Task (Modul Utama)**: Mengambil dari nama modul di JSON (contoh: "Autentikasi"). Memiliki harga turunan dari Sub-task.
+    - **Sub-task (Rincian Teknis)**: Inilah level paling bawah tempat **harga dan poin** sebenarnya berada (contoh: "Setup Google Sign-in: 5 points / Rp 500.000").
+    
+**Fitur & Interaksi yang direncanakan:**
+- **Auto-Breakdown**: Saat JSON Estimasi di-*generate*, sistem otomatis membuat kumpulan draf *Tasks* dan *Sub-tasks* di *database* agar pengguna tidak perlu mengetik ulang spesifikasi proyek.
+- **Kanban Board**: Papan drag-and-drop (*To-do, In Progress, Done*) di dalam detail proyek untuk menggeser *Sub-tasks*.
+- **Progress & Invoicing**: Ketika sebuah *Sub-task* bernilai Rp 500.000 digeser ke kolom "Done", persentase penyelesaian proyek naik, dan harga tersebut masuk ke dalam kalkulasi *Invoice* (tagihan) bulan ini.

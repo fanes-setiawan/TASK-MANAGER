@@ -61,6 +61,16 @@ export async function saveProject(project: ProjectData, userId: string) {
   return docRef.id;
 }
 
+export async function getProjectById(projectId: string): Promise<ProjectData | null> {
+  const { doc, getDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", projectId);
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as ProjectData;
+  }
+  return null;
+}
+
 export async function getProjects(userId?: string) {
   const { collection, getDocs, query, where } = await import("firebase/firestore");
   const projectsRef = collection(db, "projects");

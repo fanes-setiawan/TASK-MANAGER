@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styles from "./settings.module.css";
 import { auth, db } from "@/lib/firebase/client";
 import { updateProfile } from "firebase/auth";
@@ -12,6 +12,8 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("staff");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -55,6 +57,55 @@ export default function SettingsPage() {
 
     return () => unsubscribe();
   }, []);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingAvatar(true);
+    
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const base64Data = reader.result as string;
+        
+        let oldPublicId = undefined;
+        if (avatarUrl && avatarUrl.includes("res.cloudinary.com")) {
+          const parts = avatarUrl.split("/");
+          const filename = parts[parts.length - 1];
+          const folder = parts[parts.length - 2];
+          if (folder === "task_manager_avatars") {
+             oldPublicId = `${folder}/${filename.split(".")[0]}`;
+          }
+        }
+
+        const res = await fetch("/api/avatar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: base64Data, oldPublicId })
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+        
+        setAvatarUrl(data.url);
+        
+        // Auto save changes immediately for avatar
+        const user = auth.currentUser;
+        if (user) {
+          await updateProfile(user, { photoURL: data.url });
+          const userRef = doc(db, "users", user.uid);
+          await updateDoc(userRef, { avatarUrl: data.url });
+          setSuccessMsg("Avatar updated successfully!");
+        }
+      } catch (err: any) {
+        setErrorMsg(err.message || "Failed to upload image");
+      } finally {
+        setUploadingAvatar(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,11 +179,21 @@ export default function SettingsPage() {
               className={styles.avatarImage} 
             />
             <button type="button" className={styles.avatarEditBtn} onClick={() => {
-              const url = prompt("Enter Image URL for your Avatar:", avatarUrl);
-              if (url !== null) setAvatarUrl(url);
-            }} title="Change Avatar">
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
+              fileInputRef.current?.click();
+            }} title="Change Avatar" disabled={uploadingAvatar}>
+              {uploadingAvatar ? (
+                <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}>refresh</span>
+              ) : (
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
+              )}
             </button>
+            <input 
+              type="file" 
+              accept="image/*" 
+              hidden 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+            />
           </div>
           <div className={styles.profileInfo}>
             <h3 className={styles.profileName}>{displayName || "User"}</h3>

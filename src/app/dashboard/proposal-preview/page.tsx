@@ -1,10 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import styles from "./proposal-preview.module.css";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
+import { getProjectById, ProjectData } from "@/lib/firebase/firestore";
 
-export default function ProposalPreviewPage() {
+function ProposalPreviewContent() {
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get("projectId");
+  const [projectData, setProjectData] = useState<ProjectData | null>(null);
+  const [loading, setLoading] = useState(!!projectId);
   const [zoomLevel, setZoomLevel] = useState(125);
   const [logoUrl, setLogoUrl] = useState("https://lh3.googleusercontent.com/aida-public/AB6AXuCAYxl62mvvaeKBMqiPv_xjWNJzn8AdapjWlfPMNMhCGQVzO059qxdGliakroZemwD6hYRC0dttMr5lZdIfj7k9a-qTbXWgM8KdeAi_HPZjuM0-eQIhd2LCgclnTHZqCjTLOQdKvuyx62Vhww9CZIBD1QxAY3QgquvRm-hx0wECm-OkzeQRKOFalfoO51bFxutpK-aZ6gGhvtmSgAF3cbb4GTeT7UHvko4nkpV_EqYaFg56Zajg8GWSHBTExXH8hmcpRiwZLX1YqVI");
   const [themeColor, setThemeColor] = useState("#000000");
@@ -13,6 +19,36 @@ export default function ProposalPreviewPage() {
   const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 25, 200));
   const handleZoomOut = () => setZoomLevel((prev) => Math.max(prev - 25, 50));
 
+  useEffect(() => {
+    if (projectId) {
+      getProjectById(projectId).then((data) => {
+        setProjectData(data);
+        setLoading(false);
+      });
+    }
+  }, [projectId]);
+
+  // Derived calculations
+  let modules: any[] = [];
+  let totalPoints = 0;
+  let totalCost = 0;
+  if (projectData && projectData.configJson) {
+    try {
+      const parsed = JSON.parse(projectData.configJson);
+      modules = Array.isArray(parsed.modules) ? parsed.modules : [];
+      totalPoints = modules.reduce((sum, mod) => sum + (mod.points || 0), 0);
+      totalCost = totalPoints * (projectData.ratePerPoint || 0);
+    } catch (e) {
+      console.error("Failed to parse configJson");
+    }
+  }
+
+  const formatCurrency = (val: number, currency = "IDR (Rp)") => {
+    return currency.includes("Rp") || currency.includes("IDR")
+      ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val)
+      : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+  };
+
   return (
     <div className={styles.container}>
       {/* Top Toolbar */}
@@ -20,8 +56,8 @@ export default function ProposalPreviewPage() {
         <div className={styles.toolbarLeft}>
           <span className={`material-symbols-outlined ${styles.docIcon}`}>description</span>
           <div className={styles.docTitleBox}>
-            <span className={styles.docTitle}>Project_Alpha_Proposal_v2.pdf</span>
-            <span className={styles.docSubtitle}>Draft • Last saved 2m ago</span>
+            <span className={styles.docTitle}>{projectData ? `${projectData.projectName.replace(/\s+/g, '_')}_Proposal.pdf` : 'Loading...'}</span>
+            <span className={styles.docSubtitle}>{projectData ? 'Auto-generated' : 'Draft'}</span>
           </div>
         </div>
 
@@ -112,50 +148,59 @@ export default function ProposalPreviewPage() {
 
         {/* Center Canvas: PDF Preview */}
         <div className={styles.centerCanvas}>
-          <div className={styles.pdfPage} style={{ transform: `scale(${zoomLevel / 100})` }}>
-            <div className={styles.pdfAccent}></div>
-            <div className={styles.pdfContent}>
-              
-              <div className={styles.pdfHeader}>
-                <div className={styles.pdfLogo}>
-                  {/* Using a placeholder for the logo since we don't have the exact image */}
-                  <span className="material-symbols-outlined" style={{ color: "white", fontSize: 32 }}>business</span>
-                </div>
-                <div className={styles.pdfHeaderRight}>
-                  <h3>Confidential Proposal</h3>
-                  <p>Ref: CE-2024-0892</p>
-                </div>
-              </div>
-
-              <div className={styles.pdfTitleArea}>
-                <h1>Project Cost Estimation</h1>
-                <p>Enterprise Modernization Initiative</p>
-                <div className={styles.pdfDivider}></div>
-              </div>
-
-              <div className={styles.pdfImage}>
-                {/* Fallback to a solid color if image is missing, or use a realistic placeholder */}
-                <div style={{ width: "100%", height: "100%", backgroundColor: "var(--color-surface-container-high)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                   <span className="material-symbols-outlined" style={{ fontSize: 64, color: "var(--color-outline-variant)" }}>domain</span>
-                </div>
-                <div className={styles.pdfImageOverlay}></div>
-              </div>
-
-              <div className={styles.pdfFooter}>
-                <div className={styles.pdfFooterCol}>
-                  <h4>Prepared For</h4>
-                  <h5>Global Dynamics Corp</h5>
-                  <p>Attn: Sarah Jenkins, COO</p>
-                </div>
-                <div className={styles.pdfFooterCol} style={{ textAlign: "right" }}>
-                  <h4>Estimated Date</h4>
-                  <h5>October 24, 2024</h5>
-                  <p>Validity: 30 Days</p>
-                </div>
-              </div>
-
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+              <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite', fontSize: 32 }}>refresh</span>
             </div>
-          </div>
+          ) : !projectData ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--color-on-surface-variant)' }}>
+              Project not found.
+            </div>
+          ) : (
+            <div className={styles.pdfPage} style={{ transform: `scale(${zoomLevel / 100})` }}>
+              <div className={styles.pdfAccent} style={{ backgroundColor: themeColor }}></div>
+              <div className={styles.pdfContent}>
+                
+                <div className={styles.pdfHeader}>
+                  <div className={styles.pdfLogo}>
+                    <img src={logoUrl} alt="Logo" style={{ maxHeight: 60, maxWidth: 200, objectFit: 'contain' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+                  </div>
+                  <div className={styles.pdfHeaderRight}>
+                    <h3>Confidential Proposal</h3>
+                    <p>Ref: {projectData.id?.toUpperCase().slice(0, 8) || 'N/A'}</p>
+                  </div>
+                </div>
+
+                <div className={styles.pdfTitleArea}>
+                  <h1 style={{ color: themeColor }}>Project Cost Estimation</h1>
+                  <p>{projectData.projectName}</p>
+                  <div className={styles.pdfDivider} style={{ backgroundColor: themeColor }}></div>
+                </div>
+
+                <div className={styles.pdfImage}>
+                  {/* Fallback to a solid color if image is missing, or use a realistic placeholder */}
+                  <div style={{ width: "100%", height: "100%", backgroundColor: `${themeColor}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                     <span className="material-symbols-outlined" style={{ fontSize: 64, color: themeColor }}>domain</span>
+                  </div>
+                  <div className={styles.pdfImageOverlay} style={{ background: `linear-gradient(to right, ${themeColor} 0%, transparent 100%)` }}></div>
+                </div>
+
+                <div className={styles.pdfFooter}>
+                  <div className={styles.pdfFooterCol}>
+                    <h4 style={{ color: themeColor }}>Prepared For</h4>
+                    <h5>{projectData.clientName}</h5>
+                    <p>{projectData.company}</p>
+                  </div>
+                  <div className={styles.pdfFooterCol} style={{ textAlign: "right" }}>
+                    <h4 style={{ color: themeColor }}>Estimated Date</h4>
+                    <h5>{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</h5>
+                    <p>Validity: 30 Days</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Sidebar: Properties */}
@@ -201,11 +246,11 @@ export default function ProposalPreviewPage() {
             <div className={styles.propGroup} style={{ marginTop: 8 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
                 <label className={styles.propLabel}>Project Title</label>
-                <input className={styles.inputField} type="text" defaultValue="Enterprise Modernization Initiative" />
+                <input className={styles.inputField} type="text" value={projectData?.projectName || ""} readOnly />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
                 <label className={styles.propLabel}>Client Name</label>
-                <input className={styles.inputField} type="text" defaultValue="Global Dynamics Corp" />
+                <input className={styles.inputField} type="text" value={projectData?.clientName || ""} readOnly />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label className={styles.propLabel}>Proposal Template</label>
@@ -250,5 +295,13 @@ export default function ProposalPreviewPage() {
 
       </main>
     </div>
+  );
+}
+
+export default function ProposalPreviewPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading proposal...</div>}>
+      <ProposalPreviewContent />
+    </Suspense>
   );
 }

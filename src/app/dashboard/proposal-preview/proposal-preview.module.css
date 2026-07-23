@@ -601,3 +601,46 @@
 .btnSave:hover {
   background-color: black;
 }
+
+/* --- Print Styles --- */
+@media print {
+  /* Hide all UI elements except the document */
+  .topToolbar, 
+  .sidebarLeft, 
+  .sidebarRight {
+    display: none !important;
+  }
+  
+  .container {
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    background-color: white !important;
+  }
+  
+  .mainWorkspace {
+    overflow: visible !important;
+    display: block !important;
+  }
+  
+  .centerCanvas {
+    padding: 0 !important;
+    background-color: white !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+  
+  .pdfPage {
+    max-width: none !important;
+    width: 100% !important;
+    height: auto !important;
+    box-shadow: none !important;
+    transform: none !important;
+    aspect-ratio: auto !important;
+  }
+  
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+}

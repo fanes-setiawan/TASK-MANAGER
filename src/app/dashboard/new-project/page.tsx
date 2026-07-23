@@ -102,12 +102,12 @@ export default function NewProjectPage() {
       const user = auth.currentUser;
       if (!user) throw new Error("User not logged in");
 
-      await saveProject({
+      const projectId = await saveProject({
         ...formData,
         configJson
       }, user.uid);
       
-      router.push("/dashboard/proposal-preview");
+      router.push(`/dashboard/proposal-preview?projectId=${projectId}`);
     } catch (error) {
       console.error(error);
       alert("Error saving project");
