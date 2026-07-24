@@ -52,32 +52,22 @@ export default function ClientsPage() {
     try {
       const q = query(
         collection(db, "clients"),
-        where("createdBy", "==", uid),
-        orderBy("createdAt", "desc")
+        where("createdBy", "==", uid)
       );
       const snapshot = await getDocs(q);
       const data: ClientData[] = [];
       snapshot.forEach((docSnap) => {
         data.push({ id: docSnap.id, ...docSnap.data() } as ClientData);
       });
-      // Sort manually just in case index is missing (though query has orderBy, it might fail without index)
-      // Actually we'll just handle it safely
+      // Sort manually to avoid Firebase Index requirement
+      data.sort((a, b) => {
+        const timeA = a.createdAt?.seconds || 0;
+        const timeB = b.createdAt?.seconds || 0;
+        return timeB - timeA;
+      });
       setClients(data);
     } catch (error: any) {
       console.error("Fetch clients error:", error);
-      // Fallback if index is missing:
-      if (error.message.includes("index")) {
-        const fallbackQ = query(collection(db, "clients"), where("createdBy", "==", uid));
-        const snap = await getDocs(fallbackQ);
-        const data: ClientData[] = [];
-        snap.forEach(d => data.push({ id: d.id, ...d.data() } as ClientData));
-        data.sort((a, b) => {
-          const timeA = a.createdAt?.seconds || 0;
-          const timeB = b.createdAt?.seconds || 0;
-          return timeB - timeA;
-        });
-        setClients(data);
-      }
     } finally {
       setLoading(false);
     }
