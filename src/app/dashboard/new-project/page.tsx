@@ -212,7 +212,15 @@ export default function NewProjectPage() {
               </div>
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Rate/Point</label>
-                <input className={styles.input} type="number" value={formData.ratePerPoint} onChange={e => setFormData({...formData, ratePerPoint: Number(e.target.value)})} />
+                <input 
+                  className={styles.input} 
+                  type="text" 
+                  value={formData.ratePerPoint ? formData.ratePerPoint.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ""} 
+                  onChange={e => {
+                    const rawValue = e.target.value.replace(/\D/g, "");
+                    setFormData({...formData, ratePerPoint: Number(rawValue)});
+                  }} 
+                />
               </div>
             </div>
           </div>

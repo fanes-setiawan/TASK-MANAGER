@@ -102,7 +102,7 @@ export default function DashboardLayout({
           </div>
           <div>
             <h1 className={styles.title}>Task Manager</h1>
-            <p className={styles.subtitle}>Enterprise Tier</p>
+            <p className={styles.subtitle}>Catat Proyek Anda</p>
           </div>
         </div>
 

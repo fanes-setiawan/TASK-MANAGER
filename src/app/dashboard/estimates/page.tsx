@@ -404,12 +404,15 @@ export default function EstimatesPage() {
                                     }}
                                   />
                                   <input 
-                                    type="number" 
+                                    type="text" 
                                     className={styles.input} 
                                     style={{ width: '120px', padding: '10px 12px' }}
                                     placeholder="Price"
-                                    value={newTaskPrice}
-                                    onChange={e => setNewTaskPrice(e.target.value)}
+                                    value={newTaskPrice ? newTaskPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ""}
+                                    onChange={e => {
+                                      const rawValue = e.target.value.replace(/\D/g, "");
+                                      setNewTaskPrice(rawValue);
+                                    }}
                                     onKeyDown={e => {
                                       if (e.key === "Enter" && newTaskName && newTaskPrice) {
                                         const newT = [...editTasks, { name: newTaskName, price: Number(newTaskPrice) }];
