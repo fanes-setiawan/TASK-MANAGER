@@ -18,7 +18,7 @@ function ProposalPreviewContent() {
   const [isDraft, setIsDraft] = useState(false);
   const [showPageNumbers, setShowPageNumbers] = useState(false);
   const [showToc, setShowToc] = useState(false);
-  
+
   const [customProjectName, setCustomProjectName] = useState("");
   const [customClientName, setCustomClientName] = useState("");
 
@@ -78,7 +78,7 @@ function ProposalPreviewContent() {
   pages.push(currentPage);
 
   let globalModIdx = 0;
-  
+
   modules.forEach((mod: any) => {
     const subCount = mod.subtasks && Array.isArray(mod.subtasks) ? mod.subtasks.length : 0;
     const modHeight = ROW_HEIGHT + (subCount * ROW_HEIGHT);
@@ -89,7 +89,7 @@ function ProposalPreviewContent() {
       currentPage = { items: [], hasHeader: false, heightUsed: 0, isLast: false };
       pages.push(currentPage);
     }
-    
+
     // Calculate cost
     let modCost = 0;
     if (mod.subtasks && Array.isArray(mod.subtasks)) {
@@ -162,11 +162,11 @@ function ProposalPreviewContent() {
             <span className={styles.sidebarTitle}>Thumbnails</span>
             <span className="material-symbols-outlined" style={{ color: "var(--color-outline)", fontSize: 18 }}>grid_view</span>
           </div>
-          
+
           <div className={styles.thumbnailList}>
             {pages.map((_, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className={`${styles.thumbnailItem} ${activeThumb === index ? styles.thumbActive : styles.thumbInactive}`}
                 onClick={() => setActiveThumb(index)}
               >
@@ -205,10 +205,10 @@ function ProposalPreviewContent() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 64, alignItems: 'center' }}>
               {pages.map((page, pageIdx) => (
-                <div 
-                  key={pageIdx} 
-                  className={styles.pdfPage} 
-                  style={{ 
+                <div
+                  key={pageIdx}
+                  className={styles.pdfPage}
+                  style={{
                     zoom: zoomLevel / 100,
                   }}
                 >
@@ -217,10 +217,10 @@ function ProposalPreviewContent() {
                       <div style={{ transform: 'rotate(-45deg)', fontSize: 120, fontWeight: 900, color: 'rgba(0,0,0,0.05)', letterSpacing: 20 }}>DRAFT</div>
                     </div>
                   )}
-                  
+
                   <div className={styles.pdfAccent} style={{ backgroundColor: themeColor }}></div>
                   <div className={styles.pdfContent}>
-                    
+
                     {page.hasHeader && (
                       <>
                         {/* Header Row */}
@@ -238,17 +238,11 @@ function ProposalPreviewContent() {
                           </div>
                         </div>
 
-                        <div className={styles.pdfTitleArea}>
-                          <h1>Penawaran Harga</h1>
-                          <p>Rincian Tugas & Estimasi Biaya</p>
-                        </div>
-                        
-                        <div className={styles.pdfDivider} style={{ backgroundColor: themeColor }}></div>
 
                         {/* Info Grid */}
                         <div className={styles.pdfInfoGrid}>
                           <div className={styles.pdfInfoCol}>
-                            <h4 style={{ color: themeColor }}><span className="material-symbols-outlined">person</span> Client Information</h4>
+                            <h4 style={{ color: themeColor }}><span className="material-symbols-outlined">person</span>Information</h4>
                             <h5>{customClientName}</h5>
                             {projectData?.company && <div className={styles.pdfInfoRow}><span className="material-symbols-outlined">badge</span> {customClientName}</div>}
                             {projectData?.email && <div className={styles.pdfInfoRow}><span className="material-symbols-outlined">mail</span> {projectData.email}</div>}
@@ -295,7 +289,7 @@ function ProposalPreviewContent() {
                                     {formatCurrency(mod.modCost, projectData?.currency)}
                                   </td>
                                 </tr>
-                                
+
                                 {/* Subtasks Rows */}
                                 {mod.subtasks && Array.isArray(mod.subtasks) && mod.subtasks.map((sub: any, subIdx: number) => {
                                   const subCost = (sub.points || 0) * (projectData?.ratePerPoint || 0);
@@ -345,8 +339,8 @@ function ProposalPreviewContent() {
                         {/* Footer Banner */}
                         <div className={styles.pdfBanner} style={{ backgroundColor: themeColor }}>
                           <div className={styles.pdfBannerCenter}>
-                            <div><span className="material-symbols-outlined">language</span> taskmanager.app</div>
-                            <div><span className="material-symbols-outlined">mail</span> support@taskmanager.app</div>
+                            <div><span className="material-symbols-outlined">language</span> task-manager.fanes.online</div>
+                            <div><span className="material-symbols-outlined">mail</span> support@task-manager.fanes.online</div>
                             <div><span className="material-symbols-outlined">call</span> 021-1234-5678</div>
                           </div>
                           <div className={styles.pdfBannerRight}>
@@ -374,9 +368,9 @@ function ProposalPreviewContent() {
           <div className={styles.sidebarHeader}>
             <span className={styles.sidebarTitle}>DOCUMENT SETTINGS</span>
           </div>
-          
+
           <div className={styles.propertiesList}>
-            
+
             <div className={styles.propGroup}>
               <label className={styles.propLabel}>Cover Logo</label>
               <div className={styles.brandingBox} onClick={() => {
@@ -402,8 +396,8 @@ function ProposalPreviewContent() {
                 <div className={`${styles.colorSwatch} ${themeColor === "#7C3AED" ? styles.colorActive : ""}`} style={{ backgroundColor: "#7C3AED" }} onClick={() => setThemeColor("#7C3AED")}></div>
                 <label className={styles.colorCircle} style={{ position: 'relative', overflow: 'hidden' }}>
                   <span className="material-symbols-outlined" style={{ color: "var(--color-outline)" }}>add</span>
-                  <input 
-                    type="color" 
+                  <input
+                    type="color"
                     style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
                     value={themeColor}
                     onChange={(e) => setThemeColor(e.target.value)}
