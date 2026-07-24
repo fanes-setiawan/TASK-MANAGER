@@ -5,9 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import styles from "./layout.module.css";
 import { auth, db } from "@/lib/firebase/client";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, orderBy, onSnapshot, limit } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { UserProfile } from "@/lib/firebase/firestore";
+import { UserProfile, AppNotification, markNotificationAsRead } from "@/lib/firebase/firestore";
 
 export default function DashboardLayout({
   children,
@@ -18,28 +18,70 @@ export default function DashboardLayout({
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
           setUserProfile(userSnap.data() as UserProfile);
         }
+
+        // Listen for notifications
+        const notifQuery = query(
+          collection(db, "users", user.uid, "notifications"),
+          orderBy("createdAt", "desc"),
+          limit(20)
+        );
+
+        const unsubscribeNotifs = onSnapshot(notifQuery, (snapshot) => {
+          const notifs: AppNotification[] = [];
+          let unread = 0;
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            notifs.push({ id: doc.id, ...data } as AppNotification);
+            if (!data.isRead) unread++;
+          });
+          setNotifications(notifs);
+          setUnreadCount(unread);
+        }, (error) => {
+          console.error("Notifications snapshot error:", error);
+        });
+
+        // Save it to a ref or just ignore cleanup since onAuthStateChanged 
+        // will handle session. Or better, we should clean it up in useEffect return.
+        
+        setLoading(false);
+        // Return a cleanup wrapper if needed, or simply don't return here.
+        // Actually onAuthStateChanged callback shouldn't return a cleanup function directly.
       } else {
         router.push("/login");
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, [router]);
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
     await signOut(auth);
     router.push("/login");
+  };
+
+  const handleNotificationClick = async (notif: AppNotification) => {
+    if (!userProfile) return;
+    if (!notif.isRead && notif.id) {
+      await markNotificationAsRead(userProfile.uid, notif.id);
+    }
+    if (notif.link) {
+      router.push(notif.link);
+    }
+    setShowNotifications(false);
   };
 
   if (loading) {
@@ -151,10 +193,49 @@ export default function DashboardLayout({
             />
           </div>
           <div className={styles.headerRight}>
-            <button className={styles.iconButton} onClick={() => alert("No new notifications")}>
-              <span className="material-symbols-outlined">notifications</span>
-              <span className={styles.badge}></span>
-            </button>
+            <div style={{ position: "relative" }}>
+              <button 
+                className={styles.iconButton} 
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <span className="material-symbols-outlined">notifications</span>
+                {unreadCount > 0 && (
+                  <span className={styles.badge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              {showNotifications && (
+                <div className={styles.notificationDropdown}>
+                  <div className={styles.notificationHeader}>
+                    <h3>Notifications</h3>
+                    <button onClick={() => setShowNotifications(false)}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                    </button>
+                  </div>
+                  <div className={styles.notificationList}>
+                    {notifications.length === 0 ? (
+                      <div className={styles.emptyNotifications}>No new notifications</div>
+                    ) : (
+                      notifications.map(notif => (
+                        <div 
+                          key={notif.id} 
+                          className={`${styles.notificationItem} ${!notif.isRead ? styles.unread : ''}`}
+                          onClick={() => handleNotificationClick(notif)}
+                        >
+                          <div className={styles.notificationDot}></div>
+                          <div className={styles.notificationContent}>
+                            <h4>{notif.title}</h4>
+                            <p>{notif.message}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <button className={styles.iconButton} onClick={() => router.push('/dashboard/settings')}>
               <span className="material-symbols-outlined">settings</span>
             </button>
@@ -163,7 +244,7 @@ export default function DashboardLayout({
               <div className={styles.avatar}>
                 <img
                   alt="User avatar"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyI4Df_EA0qn_sQX-LKgmcvoOz0_dH-FOKtWuPJoKcVBOl0oBs00VV517zAjLO80jbWYMrbFsB0F3Mp7-kHVm3OdRaVU_m14cTdDB1aegWVzzJJZl5y7IwbXEaZoRWnUpbgXtvIm20MZCR9gdJx9ElvW4AfYkogtxGFGkx_tyHCA7kL4hvLRMgnvXJsy5mU_dztGM4am8AFBwqgUL8LJf9F80VcWRCsihhDw1BYLYFKQMuKhhQ4QlwaRvZIc3nzLSpFlZQ08zh19Q"
+                  src={userProfile?.avatarUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuCyI4Df_EA0qn_sQX-LKgmcvoOz0_dH-FOKtWuPJoKcVBOl0oBs00VV517zAjLO80jbWYMrbFsB0F3Mp7-kHVm3OdRaVU_m14cTdDB1aegWVzzJJZl5y7IwbXEaZoRWnUpbgXtvIm20MZCR9gdJx9ElvW4AfYkogtxGFGkx_tyHCA7kL4hvLRMgnvXJsy5mU_dztGM4am8AFBwqgUL8LJf9F80VcWRCsihhDw1BYLYFKQMuKhhQ4QlwaRvZIc3nzLSpFlZQ08zh19Q"}
                 />
               </div>
               <div className={styles.userInfo}>

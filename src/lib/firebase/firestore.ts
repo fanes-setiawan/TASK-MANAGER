@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc, updateDoc } from "firebase/firestore";
 import { db } from "./client";
 import { User } from "firebase/auth";
 
@@ -11,6 +11,16 @@ export interface UserProfile {
   role: UserRole;
   createdAt: any;
   avatarUrl?: string;
+}
+
+export interface AppNotification {
+  id?: string;
+  userId: string; // The user who should receive this
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: any;
+  link?: string; // Optional URL to navigate to when clicked
 }
 
 export async function saveUserRoleAfterLogin(user: User): Promise<UserProfile> {
@@ -98,3 +108,25 @@ export async function getProjects(userId?: string) {
   
   return projects;
 }
+
+// --- Notification Helpers ---
+export async function addNotification(userId: string, title: string, message: string, link?: string) {
+  const notifRef = collection(db, "users", userId, "notifications");
+  await addDoc(notifRef, {
+    userId,
+    title,
+    message,
+    isRead: false,
+    createdAt: serverTimestamp(),
+    link: link || null,
+  });
+}
+
+export async function markNotificationAsRead(userId: string, notificationId: string) {
+  const notifRef = doc(db, "users", userId, "notifications", notificationId);
+  await updateDoc(notifRef, {
+    isRead: true
+  });
+}
+
+

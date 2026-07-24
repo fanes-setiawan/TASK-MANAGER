@@ -31,10 +31,8 @@ export async function POST(request: Request) {
     // Upload the new image, compress it and scale it to max 256x256
     const uploadResponse = await cloudinary.uploader.upload(image, {
       folder: "task_manager_avatars",
-      format: "auto",      // f_auto
-      quality: "auto",     // q_auto
       transformation: [
-        { width: 256, height: 256, crop: "fill", gravity: "face" }
+        { width: 256, height: 256, crop: "fill", gravity: "face", fetch_format: "auto", quality: "auto" }
       ],
     });
 

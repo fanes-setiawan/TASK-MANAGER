@@ -1,19 +1,33 @@
 "use client";
+// Trigger recompile
 
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import styles from "./new-project.module.css";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase/client";
-import { saveProject } from "@/lib/firebase/firestore";
+import { saveProject, addNotification } from "@/lib/firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 
 const defaultJson = `{
-  "project_id": "CE-2024-001",
+  "project_id": "TM-2024-0524-001",
   "modules": [
-    { "name": "Authentication System", "points": 12, "complexity": "medium" },
-    { "name": "Payment Gateway Integration", "points": 8, "complexity": "high" },
-    { "name": "User Dashboard", "points": 24, "complexity": "low" }
+    {
+      "name": "Auth",
+      "subtasks": [
+        { "name": "Handle Token", "desc": "Mengelola token autentikasi user", "points": 3 },
+        { "name": "Login", "desc": "Fitur login untuk user", "points": 2.5 },
+        { "name": "Register", "desc": "Fitur register user baru", "points": 3.5 }
+      ]
+    },
+    {
+      "name": "Home",
+      "subtasks": [
+        { "name": "Dashboard", "desc": "Halaman dashboard utama", "points": 4 },
+        { "name": "Summary Card", "desc": "Menampilkan ringkasan data penting", "points": 2.5 },
+        { "name": "Recent Activity", "desc": "Menampilkan aktivitas terbaru", "points": 2.5 }
+      ]
+    }
   ]
 }`;
 
@@ -62,7 +76,18 @@ export default function NewProjectPage() {
       setJsonError(false);
       
       const modules = Array.isArray(data.modules) ? data.modules : [];
-      const totalPoints = modules.reduce((sum: number, mod: any) => sum + (mod.points || 0), 0);
+      
+      let totalPoints = 0;
+      modules.forEach((mod: any) => {
+        if (mod.subtasks && Array.isArray(mod.subtasks)) {
+          mod.subtasks.forEach((sub: any) => {
+            totalPoints += (sub.points || 0);
+          });
+        } else {
+          totalPoints += (mod.points || 0); // fallback for flat lists
+        }
+      });
+      
       const totalCost = totalPoints * formData.ratePerPoint;
       
       return {
@@ -106,6 +131,13 @@ export default function NewProjectPage() {
         ...formData,
         configJson
       }, user.uid);
+      
+      await addNotification(
+        user.uid,
+        "Proposal Generated",
+        `Your proposal for ${formData.projectName || "a new project"} is ready.`,
+        `/dashboard/proposal-preview?projectId=${projectId}`
+      );
       
       router.push(`/dashboard/proposal-preview?projectId=${projectId}`);
     } catch (error) {

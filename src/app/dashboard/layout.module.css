@@ -213,12 +213,124 @@
 
 .badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 2px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  background-color: var(--color-error);
+  color: white;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid var(--color-surface);
+}
+
+/* --- Notifications Dropdown --- */
+.notificationDropdown {
+  position: absolute;
+  top: 100%;
+  right: -60px;
+  width: 320px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  margin-top: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.notificationHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-outline-variant);
+  background: var(--color-surface-variant);
+}
+
+.notificationHeader h3 {
+  margin: 0;
+  font-size: var(--text-title-sm-size);
+  color: var(--color-on-surface);
+  font-weight: 600;
+}
+
+.notificationHeader button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notificationList {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.emptyNotifications {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--color-on-surface-variant);
+  font-size: var(--text-body-sm-size);
+}
+
+.notificationItem {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-outline-variant);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  background: var(--color-surface);
+}
+
+.notificationItem:hover {
+  background: var(--color-surface-variant);
+}
+
+.notificationItem.unread {
+  background: rgba(var(--color-primary-rgb), 0.05);
+}
+
+.notificationItem:last-child {
+  border-bottom: none;
+}
+
+.notificationDot {
   width: 8px;
   height: 8px;
-  background-color: var(--color-error);
   border-radius: 50%;
+  background: transparent;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.notificationItem.unread .notificationDot {
+  background: var(--color-primary);
+}
+
+.notificationContent h4 {
+  margin: 0 0 4px 0;
+  font-size: var(--text-label-md-size);
+  color: var(--color-on-surface);
+  font-weight: 600;
+}
+
+.notificationContent p {
+  margin: 0;
+  font-size: var(--text-body-sm-size);
+  color: var(--color-on-surface-variant);
+  line-height: 1.4;
 }
 
 .divider {
