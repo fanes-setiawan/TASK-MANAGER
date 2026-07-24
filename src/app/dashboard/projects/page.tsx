@@ -149,7 +149,7 @@ export default function ProjectsPage() {
             <div 
               className={styles.card} 
               key={project.id}
-              style={{ animationDelay: \`\${index * 0.1}s\` }}
+              style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className={styles.cardHeader}>
                 <div className={styles.projectInfo}>
@@ -163,7 +163,7 @@ export default function ProjectsPage() {
                   <button className={styles.iconBtn} onClick={() => openEditModal(project)} title="Edit">
                     <span className="material-symbols-outlined">edit</span>
                   </button>
-                  <button className={\`\${styles.iconBtn} \${styles.delete}\`} onClick={() => confirmDelete(project)} title="Delete">
+                  <button className={`${styles.iconBtn} ${styles.delete}`} onClick={() => confirmDelete(project)} title="Delete">
                     <span className="material-symbols-outlined">delete</span>
                   </button>
                 </div>
@@ -189,7 +189,7 @@ export default function ProjectsPage() {
               <div className={styles.cardFooter}>
                 <div className={styles.statusWrapper}>
                   <select 
-                    className={\`\${styles.statusSelect} \${getStatusClass(project.status)}\`}
+                    className={`${styles.statusSelect} ${getStatusClass(project.status)}`}
                     value={project.status || "Active"}
                     onChange={(e) => handleStatusChange(project.id!, e.target.value)}
                   >
@@ -199,10 +199,10 @@ export default function ProjectsPage() {
                     <option value="Paid">Paid</option>
                     <option value="Cancelled">Cancelled</option>
                   </select>
-                  <span className={\`material-symbols-outlined \${styles.statusIcon}\`}>expand_more</span>
+                  <span className={`material-symbols-outlined ${styles.statusIcon}`}>expand_more</span>
                 </div>
                 
-                <Link href={\`/dashboard/proposal-preview?projectId=\${project.id}\`}>
+                <Link href={`/dashboard/proposal-preview?projectId=${project.id}`}>
                   <button className={styles.iconBtn} title="View Proposal" style={{ color: 'var(--color-primary)' }}>
                     <span className="material-symbols-outlined">description</span>
                   </button>
