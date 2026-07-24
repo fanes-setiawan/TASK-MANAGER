@@ -64,7 +64,45 @@ export default function EstimatesPage() {
   if (!project) {
     return (
       <div className={styles.container}>
-        <div style={{ textAlign: "center", padding: "80px 20px" }}>
+        <div style={{ textAlign: "center", padding: "80px 20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <svg viewBox="0 0 200 200" width="200" height="200" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: "24px" }}>
+            <defs>
+              <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="var(--color-primary)" />
+                <stop offset="100%" stopColor="#0a8760" />
+              </linearGradient>
+            </defs>
+            <style>
+              {`
+                @keyframes floatUpDown {
+                  0%, 100% { transform: translateY(0); }
+                  50% { transform: translateY(-15px); }
+                }
+                .floatingItem {
+                  animation: floatUpDown 4s ease-in-out infinite;
+                  transform-origin: center;
+                }
+              `}
+            </style>
+            <circle cx="100" cy="100" r="80" fill="#d1fae5" opacity="0.3" />
+            
+            <g className="floatingItem">
+              {/* Folder Back */}
+              <path d="M 40,80 L 160,80 C 170,80 175,85 175,95 L 175,150 C 175,160 170,165 160,165 L 40,165 C 30,165 25,160 25,150 L 25,95 C 25,85 30,80 40,80 Z" fill="#999" opacity="0.2" />
+              
+              {/* Document */}
+              <rect x="55" y="50" width="90" height="110" rx="8" fill="white" stroke="var(--color-outline-variant)" strokeWidth="2" />
+              <line x1="70" y1="70" x2="130" y2="70" stroke="var(--color-outline)" strokeWidth="4" strokeLinecap="round" />
+              <line x1="70" y1="90" x2="110" y2="90" stroke="var(--color-outline)" strokeWidth="4" strokeLinecap="round" />
+              <line x1="70" y1="110" x2="130" y2="110" stroke="var(--color-outline)" strokeWidth="4" strokeLinecap="round" />
+              
+              {/* Folder Front */}
+              <path d="M 30,95 L 170,95 C 180,95 185,100 185,110 L 175,165 C 172,175 165,180 155,180 L 45,180 C 35,180 28,175 25,165 L 15,110 C 15,100 20,95 30,95 Z" fill="url(#primaryGradient)" />
+              
+              {/* Folder Tag */}
+              <path d="M 40,80 L 70,80 L 85,95 L 40,95 Z" fill="url(#primaryGradient)" opacity="0.8" />
+            </g>
+          </svg>
           <h2>No projects found</h2>
           <p style={{ color: "var(--color-on-surface-variant)", marginTop: 8 }}>Create a project first to see its cost breakdown.</p>
           <Link href="/dashboard/new-project">
