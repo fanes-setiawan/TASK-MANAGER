@@ -223,3 +223,42 @@
   border: 1px solid var(--color-outline);
   cursor: pointer;
 }
+
+/* Global Mobile Fixes injected */
+@media (max-width: 768px) {
+  .tableWrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    margin-bottom: 16px;
+    box-shadow: inset -10px 0 10px -10px rgba(0,0,0,0.1);
+  }
+  .headerRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .actionRow {
+    width: 100%;
+    flex-direction: column;
+  }
+  .actionRow > button {
+    width: 100%;
+    justify-content: center;
+  }
+  .title {
+    font-size: 24px !important;
+  }
+  .container {
+    padding: 16px !important;
+  }
+  .modalContent {
+    width: 95% !important;
+    padding: 16px !important;
+    margin: 16px !important;
+    max-height: 90vh !important;
+  }
+  .inputGroup {
+    width: 100% !important;
+  }
+}

@@ -425,4 +425,7 @@
   .header {
     padding: 0 16px;
   }
+  .userInfo {
+    display: none;
+  }
 }
