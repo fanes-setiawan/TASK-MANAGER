@@ -124,6 +124,14 @@ export default function DashboardLayout({
             <span className={styles.navLabel}>New Project</span>
           </Link>
           <Link
+            href="/dashboard/projects"
+            className={`${styles.navItem} ${pathname === "/dashboard/projects" ? styles.active : ""
+              }`}
+          >
+            <span className="material-symbols-outlined">folder</span>
+            <span className={styles.navLabel}>Projects</span>
+          </Link>
+          <Link
             href="/dashboard/estimates"
             className={`${styles.navItem} ${pathname === "/dashboard/estimates" ? styles.active : ""
               }`}

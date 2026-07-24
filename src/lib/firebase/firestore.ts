@@ -57,6 +57,7 @@ export interface ProjectData {
   configJson: string;
   createdAt?: any;
   createdBy?: string;
+  status?: string;
 }
 
 export async function saveProject(project: ProjectData, userId: string) {
@@ -129,4 +130,20 @@ export async function markNotificationAsRead(userId: string, notificationId: str
   });
 }
 
+export async function deleteProject(projectId: string) {
+  const { doc, deleteDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", projectId);
+  await deleteDoc(docRef);
+}
 
+export async function updateProjectStatus(projectId: string, status: string) {
+  const { doc, updateDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", projectId);
+  await updateDoc(docRef, { status });
+}
+
+export async function updateProject(projectId: string, project: Partial<ProjectData>) {
+  const { doc, updateDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", projectId);
+  await updateDoc(docRef, project);
+}
