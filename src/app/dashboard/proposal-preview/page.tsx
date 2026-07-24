@@ -203,10 +203,27 @@ function ProposalPreviewContent() {
               Project not found.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 64 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 64, alignItems: 'center' }}>
               {pages.map((page, pageIdx) => (
-                <div key={pageIdx} className={styles.pdfPage} style={{ transform: `scale(${zoomLevel / 100})`, marginBottom: zoomLevel > 100 ? `${(zoomLevel - 100) * 5}px` : 0 }}>
-                  {isDraft && (
+                <div 
+                  key={pageIdx} 
+                  style={{ 
+                    width: 794 * (zoomLevel / 100), 
+                    height: 1123 * (zoomLevel / 100),
+                    position: 'relative'
+                  }}
+                >
+                  <div 
+                    className={styles.pdfPage} 
+                    style={{ 
+                      transform: `scale(${zoomLevel / 100})`, 
+                      transformOrigin: 'top left',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0
+                    }}
+                  >
+                    {isDraft && (
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
                       <div style={{ transform: 'rotate(-45deg)', fontSize: 120, fontWeight: 900, color: 'rgba(0,0,0,0.05)', letterSpacing: 20 }}>DRAFT</div>
                     </div>
@@ -269,16 +286,14 @@ function ProposalPreviewContent() {
                     {page.items.length > 0 && (
                       <div className={styles.pdfTableArea} style={{ marginTop: page.hasHeader ? 0 : 24 }}>
                         <table className={styles.pdfTable}>
-                          {page.hasHeader && (
-                            <thead>
-                              <tr>
-                                <th style={{ width: '5%' }}>No.</th>
-                                <th style={{ width: '35%' }}>Task / Module</th>
-                                <th style={{ width: '40%' }}>Description</th>
-                                <th style={{ width: '20%', textAlign: 'right' }}>Cost</th>
-                              </tr>
-                            </thead>
-                          )}
+                          <thead style={{ backgroundColor: themeColor }}>
+                            <tr>
+                              <th style={{ width: '8%' }}>No.</th>
+                              <th style={{ width: '25%' }}>Task</th>
+                              <th style={{ width: '45%' }}>Deskripsi</th>
+                              <th style={{ width: '22%', textAlign: 'right' }}>Harga</th>
+                            </tr>
+                          </thead>
                           <tbody>
                             {page.items.map((mod: any, i: number) => (
                               <React.Fragment key={mod.globalModIdx}>
@@ -361,8 +376,9 @@ function ProposalPreviewContent() {
 
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
+          </div>
           )}
         </div>
 
