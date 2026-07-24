@@ -21,6 +21,7 @@ export default function DashboardLayout({
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
@@ -90,8 +91,14 @@ export default function DashboardLayout({
 
   return (
     <div className={styles.container}>
+      {/* Mobile Overlay */}
+      <div 
+        className={`${styles.overlay} ${isMobileMenuOpen ? styles.overlayOpen : ""}`} 
+        onClick={() => setIsMobileMenuOpen(false)}
+      ></div>
+
       {/* SideNavBar */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${isMobileMenuOpen ? styles.sidebarOpen : ""}`}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logoBox}>
             <img
@@ -190,6 +197,12 @@ export default function DashboardLayout({
       <main className={styles.mainContent}>
         {/* TopAppBar */}
         <header className={styles.header}>
+          <button 
+            className={`${styles.iconButton} ${styles.mobileMenuBtn}`} 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <span className="material-symbols-outlined">menu</span>
+          </button>
           <div className={styles.searchBox}>
             <span className={`material-symbols-outlined ${styles.searchIcon}`}>
               search
