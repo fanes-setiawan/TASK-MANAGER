@@ -11,7 +11,7 @@ function ProposalPreviewContent() {
   const projectId = searchParams.get("projectId");
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [loading, setLoading] = useState(!!projectId);
-  const [zoomLevel, setZoomLevel] = useState(125);
+  const [zoomLevel, setZoomLevel] = useState(100);
   const [logoUrl, setLogoUrl] = useState("https://lh3.googleusercontent.com/aida-public/AB6AXuCAYxl62mvvaeKBMqiPv_xjWNJzn8AdapjWlfPMNMhCGQVzO059qxdGliakroZemwD6hYRC0dttMr5lZdIfj7k9a-qTbXWgM8KdeAi_HPZjuM0-eQIhd2LCgclnTHZqCjTLOQdKvuyx62Vhww9CZIBD1QxAY3QgquvRm-hx0wECm-OkzeQRKOFalfoO51bFxutpK-aZ6gGhvtmSgAF3cbb4GTeT7UHvko4nkpV_EqYaFg56Zajg8GWSHBTExXH8hmcpRiwZLX1YqVI");
   const [themeColor, setThemeColor] = useState("#000000");
   const [activeThumb, setActiveThumb] = useState(0);

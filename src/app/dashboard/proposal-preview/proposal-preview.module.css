@@ -163,7 +163,7 @@
 
 /* Left Sidebar - Thumbnails */
 .sidebarLeft {
-  width: 220px;
+  width: 160px;
   border-right: 1px solid var(--color-outline-variant);
   background-color: white;
   display: flex;
