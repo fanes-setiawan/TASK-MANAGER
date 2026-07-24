@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import styles from "./clients.module.css";
 import { auth, db } from "@/lib/firebase/client";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp, query, where, orderBy } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, query, where, orderBy } from "firebase/firestore";
 
 interface ClientData {
   id: string;
@@ -21,8 +22,11 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
+  const router = useRouter();
+
   // Modal State
   const [showModal, setShowModal] = useState(false);
+  const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -84,12 +88,19 @@ export default function ClientsPage() {
     if (!userId) return;
     setSaving(true);
     try {
-      await addDoc(collection(db, "clients"), {
-        ...formData,
-        createdBy: userId,
-        createdAt: serverTimestamp()
-      });
+      if (editingClientId) {
+        await updateDoc(doc(db, "clients", editingClientId), {
+          ...formData
+        });
+      } else {
+        await addDoc(collection(db, "clients"), {
+          ...formData,
+          createdBy: userId,
+          createdAt: serverTimestamp()
+        });
+      }
       setShowModal(false);
+      setEditingClientId(null);
       setFormData({ name: "", company: "", email: "", phone: "", status: "active" });
       await fetchClients(userId);
     } catch (error) {
@@ -98,6 +109,18 @@ export default function ClientsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEditClick = (client: ClientData) => {
+    setEditingClientId(client.id);
+    setFormData({
+      name: client.name,
+      company: client.company || "",
+      email: client.email || "",
+      phone: client.phone || "",
+      status: client.status
+    });
+    setShowModal(true);
   };
 
   const handleDeleteClient = async (id: string) => {
@@ -119,7 +142,11 @@ export default function ClientsPage() {
           <p className={styles.subtitle}>Manage your client contacts and information.</p>
         </div>
         <div className={styles.actionRow}>
-          <button className={styles.btnPrimary} onClick={() => setShowModal(true)}>
+          <button className={styles.btnPrimary} onClick={() => {
+            setEditingClientId(null);
+            setFormData({ name: "", company: "", email: "", phone: "", status: "active" });
+            setShowModal(true);
+          }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>person_add</span>
             Add Client
           </button>
@@ -177,7 +204,12 @@ export default function ClientsPage() {
                 </tr>
               ) : (
                 clients.map((client) => (
-                  <tr className={styles.tr} key={client.id}>
+                  <tr 
+                    className={styles.tr} 
+                    key={client.id}
+                    onClick={() => router.push(`/dashboard/projects`)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <td className={`${styles.td} ${styles.tdBold}`}>{client.name}</td>
                     <td className={styles.td}>{client.company || "-"}</td>
                     <td className={styles.td}>{client.email || "-"}</td>
@@ -191,10 +223,22 @@ export default function ClientsPage() {
                       </span>
                     </td>
                     <td className={styles.td} style={{ textAlign: "right" }}>
-                      <button className={styles.btnIcon} onClick={() => alert("Edit client coming soon")}>
+                      <button 
+                        className={styles.btnIcon} 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditClick(client);
+                        }}
+                      >
                         <span className="material-symbols-outlined" style={{ fontSize: 20 }}>edit</span>
                       </button>
-                      <button className={`${styles.btnIcon} ${styles.btnDelete}`} onClick={() => handleDeleteClient(client.id)}>
+                      <button 
+                        className={`${styles.btnIcon} ${styles.btnDelete}`} 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClient(client.id);
+                        }}
+                      >
                         <span className="material-symbols-outlined" style={{ fontSize: 20 }}>delete</span>
                       </button>
                     </td>
@@ -210,7 +254,9 @@ export default function ClientsPage() {
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
-              <h3 className={styles.title} style={{ fontSize: "1.25rem" }}>Add New Client</h3>
+              <h3 className={styles.title} style={{ fontSize: "1.25rem" }}>
+                {editingClientId ? "Edit Client" : "Add New Client"}
+              </h3>
               <button className={styles.btnIcon} onClick={() => setShowModal(false)}>
                 <span className="material-symbols-outlined">close</span>
               </button>
