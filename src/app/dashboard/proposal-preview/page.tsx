@@ -207,23 +207,12 @@ function ProposalPreviewContent() {
               {pages.map((page, pageIdx) => (
                 <div 
                   key={pageIdx} 
+                  className={styles.pdfPage} 
                   style={{ 
-                    width: 794 * (zoomLevel / 100), 
-                    height: 1123 * (zoomLevel / 100),
-                    position: 'relative'
+                    zoom: zoomLevel / 100,
                   }}
                 >
-                  <div 
-                    className={styles.pdfPage} 
-                    style={{ 
-                      transform: `scale(${zoomLevel / 100})`, 
-                      transformOrigin: 'top left',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0
-                    }}
-                  >
-                    {isDraft && (
+                  {isDraft && (
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
                       <div style={{ transform: 'rotate(-45deg)', fontSize: 120, fontWeight: 900, color: 'rgba(0,0,0,0.05)', letterSpacing: 20 }}>DRAFT</div>
                     </div>
@@ -376,9 +365,8 @@ function ProposalPreviewContent() {
 
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
           )}
         </div>
 
