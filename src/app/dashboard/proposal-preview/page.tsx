@@ -240,8 +240,8 @@ function ProposalPreviewContent() {
                         </div>
 
                         <div className={styles.pdfTitleArea}>
-                          <h1>Project Proposal</h1>
-                          <p>Task List & Cost Estimation</p>
+                          <h1>Penawaran Harga</h1>
+                          <p>Rincian Tugas & Estimasi Biaya</p>
                         </div>
                         
                         <div className={styles.pdfDivider} style={{ backgroundColor: themeColor }}></div>

@@ -584,15 +584,14 @@
 
 .pdfTitleArea h1 {
   margin: 0;
-  font-size: 36px;
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 700;
   color: #111;
-  letter-spacing: -0.5px;
 }
 
 .pdfTitleArea p {
   margin: 4px 0 0 0;
-  font-size: 18px;
+  font-size: 14px;
   color: #666;
 }
 
