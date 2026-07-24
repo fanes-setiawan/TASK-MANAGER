@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import styles from "./projects.module.css";
 import Link from "next/link";
 import { getProjects, deleteProject, updateProjectStatus, updateProject, ProjectData } from "@/lib/firebase/firestore";
@@ -11,6 +11,13 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Filter & Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All");
+
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   // Modals state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<ProjectData | null>(null);
@@ -42,15 +49,37 @@ export default function ProjectsPage() {
     return () => unsubscribe();
   }, []);
 
+  // Filter & Group Logic
+  const filteredProjects = useMemo(() => {
+    return projects.filter(p => {
+      const matchesSearch = 
+        (p.projectName || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (p.clientName || "").toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const pStatus = p.status || "Active";
+      const matchesStatus = filterStatus === "All" || pStatus === filterStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [projects, searchQuery, filterStatus]);
+
+  const groupedProjects = useMemo(() => {
+    const groups: Record<string, ProjectData[]> = {};
+    filteredProjects.forEach(p => {
+      const client = p.clientName || "Unknown Client";
+      if (!groups[client]) groups[client] = [];
+      groups[client].push(p);
+    });
+    return groups;
+  }, [filteredProjects]);
+
   const handleStatusChange = async (projectId: string, newStatus: string) => {
-    // Optimistic UI update
     setProjects(projects.map(p => p.id === projectId ? { ...p, status: newStatus } : p));
     try {
       await updateProjectStatus(projectId, newStatus);
     } catch (error) {
       console.error("Error updating status:", error);
       alert("Failed to update status.");
-      // Revert on error
       if (auth.currentUser) fetchProjects(auth.currentUser.uid);
     }
   };
@@ -65,10 +94,32 @@ export default function ProjectsPage() {
     try {
       await deleteProject(projectToDelete.id);
       setProjects(projects.filter(p => p.id !== projectToDelete.id));
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        if (projectToDelete.id) next.delete(projectToDelete.id);
+        return next;
+      });
       setDeleteModalOpen(false);
     } catch (error) {
       console.error("Error deleting:", error);
       alert("Failed to delete project.");
+    }
+  };
+
+  const executeBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    const confirm = window.confirm(`Are you sure you want to delete ${selectedIds.size} projects?`);
+    if (!confirm) return;
+
+    try {
+      for (const id of Array.from(selectedIds)) {
+        await deleteProject(id);
+      }
+      setProjects(projects.filter(p => p.id && !selectedIds.has(p.id)));
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error("Error in bulk delete:", error);
+      alert("Failed to delete some projects.");
     }
   };
 
@@ -96,6 +147,15 @@ export default function ProjectsPage() {
       console.error("Error updating project:", error);
       alert("Failed to update project.");
     }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const getStatusClass = (status: string | undefined) => {
@@ -126,6 +186,44 @@ export default function ProjectsPage() {
         </div>
       </div>
 
+      {!loading && projects.length > 0 && (
+        <div className={styles.controlsRow}>
+          <div className={styles.filtersGroup}>
+            <input 
+              type="text" 
+              className={styles.searchInput} 
+              placeholder="Search projects or clients..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            <select 
+              className={styles.filterSelect}
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Completed">Completed</option>
+              <option value="Pending Payment">Pending Payment</option>
+              <option value="Paid">Paid</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+          
+          {selectedIds.size > 0 && (
+            <div className={styles.bulkActionRow}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                {selectedIds.size} Selected
+              </span>
+              <button className={styles.btnBulkDelete} onClick={executeBulkDelete}>
+                <span className="material-symbols-outlined">delete</span>
+                Delete Selected
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
       ) : projects.length === 0 ? (
@@ -143,74 +241,99 @@ export default function ProjectsPage() {
             <button className={styles.btnPrimary}>Create Project</button>
           </Link>
         </div>
-      ) : (
-        <div className={styles.grid}>
-          {projects.map((project, index) => (
-            <div 
-              className={styles.card} 
-              key={project.id}
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className={styles.cardHeader}>
-                <div className={styles.projectInfo}>
-                  <h3 className={styles.projectName}>{project.projectName || "Unnamed Project"}</h3>
-                  <div className={styles.clientName}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>person</span>
-                    {project.clientName || "Unknown Client"}
-                  </div>
-                </div>
-                <div className={styles.actionButtons}>
-                  <button className={styles.iconBtn} onClick={() => openEditModal(project)} title="Edit">
-                    <span className="material-symbols-outlined">edit</span>
-                  </button>
-                  <button className={`${styles.iconBtn} ${styles.delete}`} onClick={() => confirmDelete(project)} title="Delete">
-                    <span className="material-symbols-outlined">delete</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className={styles.cardBody}>
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Date Created</span>
-                  <span className={styles.infoValue}>
-                    {project.createdAt?.seconds 
-                      ? new Date(project.createdAt.seconds * 1000).toLocaleDateString() 
-                      : "Unknown"}
-                  </span>
-                </div>
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Rate</span>
-                  <span className={styles.infoValue}>
-                    {project.currency.includes("IDR") ? "Rp " : "$"}{project.ratePerPoint.toLocaleString()} / pt
-                  </span>
-                </div>
-              </div>
-
-              <div className={styles.cardFooter}>
-                <div className={styles.statusWrapper}>
-                  <select 
-                    className={`${styles.statusSelect} ${getStatusClass(project.status)}`}
-                    value={project.status || "Active"}
-                    onChange={(e) => handleStatusChange(project.id!, e.target.value)}
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Pending Payment">Pending Payment</option>
-                    <option value="Paid">Paid</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                  <span className={`material-symbols-outlined ${styles.statusIcon}`}>expand_more</span>
-                </div>
-                
-                <Link href={`/dashboard/proposal-preview?projectId=${project.id}`}>
-                  <button className={styles.iconBtn} title="View Proposal" style={{ color: 'var(--color-primary)' }}>
-                    <span className="material-symbols-outlined">description</span>
-                  </button>
-                </Link>
-              </div>
-            </div>
-          ))}
+      ) : Object.keys(groupedProjects).length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-on-surface-variant)' }}>
+          No projects match your filters.
         </div>
+      ) : (
+        Object.entries(groupedProjects).map(([clientName, clientProjects]) => (
+          <div key={clientName} className={styles.clientGroup}>
+            <div className={styles.groupHeader}>
+              <span className="material-symbols-outlined">business</span>
+              {clientName}
+              <span className={styles.groupCount}>{clientProjects.length}</span>
+            </div>
+            <div className={styles.grid}>
+              {clientProjects.map((project, index) => {
+                const isSelected = selectedIds.has(project.id!);
+                return (
+                  <div 
+                    className={`${styles.card} ${isSelected ? styles.cardSelected : ''}`} 
+                    key={project.id}
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    <div className={styles.checkboxWrapper}>
+                      <input 
+                        type="checkbox" 
+                        className={styles.checkbox}
+                        checked={isSelected}
+                        onChange={() => toggleSelect(project.id!)}
+                      />
+                    </div>
+                    
+                    <div className={`${styles.cardHeader} ${styles.cardHeaderWithCheck}`}>
+                      <div className={styles.projectInfo}>
+                        <h3 className={styles.projectName}>{project.projectName || "Unnamed Project"}</h3>
+                        <div className={styles.clientName}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>person</span>
+                          {project.clientName || "Unknown Client"}
+                        </div>
+                      </div>
+                      <div className={styles.actionButtons}>
+                        <button className={styles.iconBtn} onClick={() => openEditModal(project)} title="Edit">
+                          <span className="material-symbols-outlined">edit</span>
+                        </button>
+                        <button className={`${styles.iconBtn} ${styles.delete}`} onClick={() => confirmDelete(project)} title="Delete">
+                          <span className="material-symbols-outlined">delete</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className={styles.cardBody}>
+                      <div className={styles.infoRow}>
+                        <span className={styles.infoLabel}>Date Created</span>
+                        <span className={styles.infoValue}>
+                          {project.createdAt?.seconds 
+                            ? new Date(project.createdAt.seconds * 1000).toLocaleDateString() 
+                            : "Unknown"}
+                        </span>
+                      </div>
+                      <div className={styles.infoRow}>
+                        <span className={styles.infoLabel}>Rate</span>
+                        <span className={styles.infoValue}>
+                          {project.currency.includes("IDR") ? "Rp " : "$"}{project.ratePerPoint.toLocaleString()} / pt
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className={styles.cardFooter}>
+                      <div className={styles.statusWrapper}>
+                        <select 
+                          className={`${styles.statusSelect} ${getStatusClass(project.status)}`}
+                          value={project.status || "Active"}
+                          onChange={(e) => handleStatusChange(project.id!, e.target.value)}
+                        >
+                          <option value="Active">Active</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Pending Payment">Pending Payment</option>
+                          <option value="Paid">Paid</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <span className={`material-symbols-outlined ${styles.statusIcon}`}>expand_more</span>
+                      </div>
+                      
+                      <Link href={`/dashboard/proposal-preview?projectId=${project.id}`}>
+                        <button className={styles.iconBtn} title="View Proposal" style={{ color: 'var(--color-primary)' }}>
+                          <span className="material-symbols-outlined">description</span>
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))
       )}
 
       {/* Delete Confirmation Modal */}
@@ -262,7 +385,6 @@ export default function ProjectsPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

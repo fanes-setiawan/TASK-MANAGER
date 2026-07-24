@@ -418,3 +418,128 @@
   0%, 100% { transform: translateY(0) rotate(0deg); }
   50% { transform: translateY(-20px) rotate(15deg); }
 }
+
+/* Filters & Controls */
+.controlsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filtersGroup {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+}
+
+.searchInput {
+  padding: 10px 16px;
+  border: 1px solid var(--color-outline);
+  border-radius: 8px;
+  outline: none;
+  font-size: 14px;
+  min-width: 250px;
+  transition: all 0.2s;
+}
+
+.searchInput:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(4, 82, 58, 0.1);
+}
+
+.filterSelect {
+  padding: 10px 16px;
+  border: 1px solid var(--color-outline);
+  border-radius: 8px;
+  outline: none;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.bulkActionRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btnBulkDelete {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: #FFEBEE;
+  color: #C62828;
+  border: 1px solid #FFCDD2;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.btnBulkDelete:hover {
+  background-color: #FFCDD2;
+}
+
+/* Grouping */
+.clientGroup {
+  margin-bottom: 32px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.groupHeader {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid var(--color-surface-container);
+  padding-bottom: 8px;
+}
+
+.groupCount {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface-variant);
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+/* Checkbox overlay */
+.cardSelected {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 2px var(--color-primary) !important;
+  background-color: #f7fbf8;
+}
+
+.checkboxWrapper {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.card:hover .checkboxWrapper,
+.cardSelected .checkboxWrapper {
+  opacity: 1;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.cardHeaderWithCheck {
+  padding-left: 28px;
+}
