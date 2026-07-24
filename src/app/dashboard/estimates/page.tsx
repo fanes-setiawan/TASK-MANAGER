@@ -201,10 +201,12 @@ export default function EstimatesPage() {
         </div>
         
         <div className={styles.actionRow}>
-          <button className={styles.btnSecondary} onClick={() => window.print()}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>file_download</span>
-            Export PDF
-          </button>
+          <Link href={`/dashboard/proposal-preview?projectId=${project.id}`}>
+            <button className={styles.btnSecondary}>
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>file_download</span>
+              Export PDF
+            </button>
+          </Link>
           <button className={styles.btnPrimary} onClick={() => alert("Share link copied to clipboard!")}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>share</span>
             Share Report
