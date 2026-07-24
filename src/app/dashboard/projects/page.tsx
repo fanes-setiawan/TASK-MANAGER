@@ -228,11 +228,42 @@ export default function ProjectsPage() {
         <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
       ) : projects.length === 0 ? (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIllustration}>
-            <div className={styles.box1}></div>
-            <div className={styles.box2}></div>
-            <div className={styles.box3}></div>
-          </div>
+          <svg className={styles.svgIllustration} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="var(--color-primary)" />
+                <stop offset="100%" stopColor="#0a8760" />
+              </linearGradient>
+              <linearGradient id="secondaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#d1fae5" />
+                <stop offset="100%" stopColor="#a7f3d0" />
+              </linearGradient>
+            </defs>
+            
+            <circle cx="100" cy="100" r="80" fill="url(#secondaryGradient)" className={styles.svgElement} opacity="0.3" />
+            
+            <g className={styles.svgAnimation}>
+              {/* Folder Back */}
+              <path d="M 40,80 L 160,80 C 170,80 175,85 175,95 L 175,150 C 175,160 170,165 160,165 L 40,165 C 30,165 25,160 25,150 L 25,95 C 25,85 30,80 40,80 Z" fill="#999" opacity="0.2" />
+              
+              {/* Document */}
+              <rect x="55" y="50" width="90" height="110" rx="8" fill="white" stroke="var(--color-outline-variant)" strokeWidth="2" />
+              <line x1="70" y1="70" x2="130" y2="70" stroke="var(--color-outline)" strokeWidth="4" strokeLinecap="round" />
+              <line x1="70" y1="90" x2="110" y2="90" stroke="var(--color-outline)" strokeWidth="4" strokeLinecap="round" />
+              <line x1="70" y1="110" x2="130" y2="110" stroke="var(--color-outline)" strokeWidth="4" strokeLinecap="round" />
+              
+              {/* Folder Front */}
+              <path d="M 30,95 L 170,95 C 180,95 185,100 185,110 L 175,165 C 172,175 165,180 155,180 L 45,180 C 35,180 28,175 25,165 L 15,110 C 15,100 20,95 30,95 Z" fill="url(#primaryGradient)" />
+              
+              {/* Folder Tag */}
+              <path d="M 40,80 L 70,80 L 85,95 L 40,95 Z" fill="url(#primaryGradient)" opacity="0.8" />
+            </g>
+
+            {/* Sparkles */}
+            <circle cx="150" cy="50" r="4" fill="#f59e0b" className={styles.svgElement} />
+            <circle cx="40" cy="140" r="3" fill="#f59e0b" className={styles.svgElement} style={{animationDelay: "1s"}} />
+            <circle cx="170" cy="120" r="2" fill="#f59e0b" className={styles.svgElement} style={{animationDelay: "0.5s"}} />
+          </svg>
           <h3>No Projects Yet</h3>
           <p style={{ color: 'var(--color-on-surface-variant)', marginBottom: '24px' }}>
             Get started by creating your first project proposal.
@@ -242,8 +273,19 @@ export default function ProjectsPage() {
           </Link>
         </div>
       ) : Object.keys(groupedProjects).length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-on-surface-variant)' }}>
-          No projects match your filters.
+        <div className={styles.emptyState}>
+          <svg className={styles.svgIllustration} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="100" cy="100" r="70" fill="none" stroke="var(--color-outline-variant)" strokeWidth="8" strokeDasharray="10 10" className={styles.svgRotate} />
+            <g className={styles.svgAnimation}>
+              <circle cx="90" cy="90" r="40" fill="none" stroke="var(--color-primary)" strokeWidth="12" />
+              <line x1="120" y1="120" x2="160" y2="160" stroke="var(--color-primary)" strokeWidth="16" strokeLinecap="round" />
+              <circle cx="90" cy="90" r="20" fill="var(--color-secondary-container)" />
+            </g>
+          </svg>
+          <h3>No Match Found</h3>
+          <p style={{ color: 'var(--color-on-surface-variant)' }}>
+            Try adjusting your search or filters.
+          </p>
         </div>
       ) : (
         Object.entries(groupedProjects).map(([clientName, clientProjects]) => (

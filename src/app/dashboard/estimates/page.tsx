@@ -379,8 +379,26 @@ export default function EstimatesPage() {
                                     </div>
                                   </div>
                                 ) : (
-                                  <div style={{ padding: "20px", textAlign: "center", border: "1px dashed var(--color-outline-variant)", borderRadius: "8px", color: "var(--color-on-surface-variant)" }}>
-                                    No sub-tasks yet. Breakdown your module into smaller chunks.
+                                  <div style={{ padding: "30px", textAlign: "center", border: "1px dashed var(--color-outline-variant)", borderRadius: "8px", color: "var(--color-on-surface-variant)", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
+                                    <svg viewBox="0 0 100 100" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+                                      <style>
+                                        {`
+                                          @keyframes dash {
+                                            to { stroke-dashoffset: 0; }
+                                          }
+                                          .animatedLine {
+                                            stroke-dasharray: 100;
+                                            stroke-dashoffset: 100;
+                                            animation: dash 2s ease-out forwards infinite alternate;
+                                          }
+                                        `}
+                                      </style>
+                                      <rect x="20" y="20" width="60" height="60" rx="8" fill="var(--color-surface-container)" />
+                                      <line x1="30" y1="40" x2="70" y2="40" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" className="animatedLine" />
+                                      <line x1="30" y1="55" x2="60" y2="55" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" className="animatedLine" style={{ animationDelay: "0.5s" }} />
+                                      <line x1="30" y1="70" x2="50" y2="70" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" className="animatedLine" style={{ animationDelay: "1s" }} />
+                                    </svg>
+                                    <span>No sub-tasks yet. Breakdown your module into smaller chunks.</span>
                                   </div>
                                 )}
                                 

@@ -543,3 +543,88 @@
 .cardHeaderWithCheck {
   padding-left: 28px;
 }
+/* Media Queries for Mobile Responsiveness & Premium Animations */
+
+@media (max-width: 768px) {
+  .controlsRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .filtersGroup {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .searchInput {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filterSelect {
+    width: 100%;
+  }
+
+  .headerRow {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modalContent {
+    width: 95%;
+    padding: 24px;
+  }
+}
+
+/* Glassmorphism overlays and soft shadow improvements */
+.card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Empty State SVG Animation */
+.svgIllustration {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 24px;
+}
+
+.svgAnimation {
+  animation: floatUpDown 4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.svgElement {
+  animation: pulseOpacity 3s ease-in-out infinite;
+}
+
+.svgRotate {
+  animation: spinSlow 12s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes floatUpDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes pulseOpacity {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
