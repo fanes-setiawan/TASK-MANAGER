@@ -261,4 +261,13 @@
   .inputGroup {
     width: 100% !important;
   }
+  .table {
+    min-width: 800px;
+  }
+  .glassCard {
+    padding: 16px 0 !important;
+  }
+  .tableWrapper {
+    padding: 0 16px;
+  }
 }
