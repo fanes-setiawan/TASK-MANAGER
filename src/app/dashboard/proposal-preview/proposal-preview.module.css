@@ -549,32 +549,29 @@
   display: flex;
   gap: 16px;
   background: #f7fbf8;
-  padding: 12px 20px;
-  border-radius: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
 }
 
 .pdfMetaItem {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .pdfMetaItem .material-symbols-outlined {
   color: var(--color-primary);
-  font-size: 20px;
+  font-size: 16px;
 }
 
 .pdfMetaLabel {
-  font-size: 11px;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  display: none;
 }
 
 .pdfMetaValue {
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
 }
 
 /* Title Area */

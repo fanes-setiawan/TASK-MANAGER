@@ -231,9 +231,8 @@ function ProposalPreviewContent() {
                           <div className={styles.pdfMetaBox}>
                             <div className={styles.pdfMetaItem}>
                               <span className="material-symbols-outlined">calendar_today</span>
-                              <div>
-                                <div className={styles.pdfMetaLabel}>Proposal Date</div>
-                                <div className={styles.pdfMetaValue}>{new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                              <div className={styles.pdfMetaValue}>
+                                {new Date().toLocaleString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                               </div>
                             </div>
                           </div>
