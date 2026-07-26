@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useRef } from "react";
 import styles from "./proposal-preview.module.css";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { getProjectById, ProjectData } from "@/lib/firebase/firestore";
+import { getProjectById, ProjectData, saveUserLogo, getSavedLogos, deleteSavedLogo, SavedLogo } from "@/lib/firebase/firestore";
+import { auth } from "@/lib/firebase/client";
 
 function ProposalPreviewContent() {
   const searchParams = useSearchParams();
@@ -16,8 +17,57 @@ function ProposalPreviewContent() {
   const [themeColor, setThemeColor] = useState("#000000");
   const [activeThumb, setActiveThumb] = useState(0);
   const [isDraft, setIsDraft] = useState(false);
+  const [watermarkText, setWatermarkText] = useState("DRAFT");
+  const [watermarkSize, setWatermarkSize] = useState(120);
   const [showPageNumbers, setShowPageNumbers] = useState(false);
   const [showToc, setShowToc] = useState(false);
+
+  const [savedLogos, setSavedLogos] = useState<SavedLogo[]>([]);
+
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const base64Data = reader.result as string;
+        let oldPublicId = undefined;
+        if (logoUrl && logoUrl.includes("res.cloudinary.com") && logoUrl.includes("task_manager_logos")) {
+          const parts = logoUrl.split("/");
+          const filename = parts[parts.length - 1];
+          const folder = parts[parts.length - 2];
+          oldPublicId = `${folder}/${filename.split(".")[0]}`;
+        }
+
+        const res = await fetch("/api/upload-logo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: base64Data, oldPublicId })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+
+        setLogoUrl(data.url);
+        const user = auth.currentUser;
+        if (user) {
+          const newLogoId = await saveUserLogo(user.uid, data.url, data.publicId);
+          setSavedLogos(prev => [{ id: newLogoId, url: data.url, publicId: data.publicId }, ...prev]);
+        }
+      } catch (err: any) {
+        alert(err.message || "Failed to upload logo");
+      } finally {
+        setUploadingLogo(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const [customProjectName, setCustomProjectName] = useState("");
   const [customClientName, setCustomClientName] = useState("");
@@ -34,7 +84,41 @@ function ProposalPreviewContent() {
         setLoading(false);
       });
     }
+
+    const fetchLogos = async (user: any) => {
+      if (user) {
+        const logos = await getSavedLogos(user.uid);
+        setSavedLogos(logos);
+      }
+    };
+    const unsubscribe = auth.onAuthStateChanged(fetchLogos);
+    return () => unsubscribe();
   }, [projectId]);
+
+  const handleDeleteLogo = async (e: React.MouseEvent, logo: SavedLogo) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this logo?")) return;
+
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      if (logo.publicId) {
+        await fetch("/api/delete-logo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ publicId: logo.publicId })
+        });
+      }
+
+      if (logo.id) {
+        await deleteSavedLogo(user.uid, logo);
+        setSavedLogos(prev => prev.filter(l => l.id !== logo.id));
+      }
+    } catch (err: any) {
+      alert("Failed to delete logo: " + err.message);
+    }
+  };
 
   // Derived calculations
   let modules: any[] = [];
@@ -141,12 +225,11 @@ function ProposalPreviewContent() {
           <button className={styles.btnIconOnly} title="Share" onClick={() => alert("Share link copied!")}>
             <span className="material-symbols-outlined">share</span>
           </button>
-          <button className={styles.btnSettingUpload} onClick={() => {
-            const url = prompt("Enter Logo URL:", logoUrl);
-            if (url) setLogoUrl(url);
-          }}>
-            <span className="material-symbols-outlined">upload</span>
-            Upload Logo
+          <button className={styles.btnSettingUpload} onClick={() => fileInputRef.current?.click()} disabled={uploadingLogo}>
+            <span className="material-symbols-outlined">
+              {uploadingLogo ? 'hourglass_empty' : 'upload'}
+            </span>
+            {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
           </button>
           <button className={styles.btnDownload} onClick={() => window.print()}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>download</span>
@@ -212,9 +295,9 @@ function ProposalPreviewContent() {
                     zoom: zoomLevel / 100,
                   }}
                 >
-                  {isDraft && (
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
-                      <div style={{ transform: 'rotate(-45deg)', fontSize: 120, fontWeight: 900, color: 'rgba(0,0,0,0.05)', letterSpacing: 20 }}>DRAFT</div>
+                  {isDraft && watermarkText && (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
+                      <div style={{ transform: 'rotate(-45deg)', fontSize: watermarkSize, fontWeight: 900, color: 'rgba(0,0,0,0.05)', letterSpacing: 20, whiteSpace: 'nowrap' }}>{watermarkText}</div>
                     </div>
                   )}
 
@@ -340,8 +423,8 @@ function ProposalPreviewContent() {
                         <div className={styles.pdfBanner} style={{ backgroundColor: themeColor }}>
                           <div className={styles.pdfBannerCenter}>
                             <div><span className="material-symbols-outlined">language</span> task-manager.fanes.online</div>
-                            <div><span className="material-symbols-outlined">mail</span> support@task-manager.fanes.online</div>
-                            <div><span className="material-symbols-outlined">call</span> 021-1234-5678</div>
+                            <div><span className="material-symbols-outlined">mail</span> fanessetiawan.1401@gmail.com</div>
+                            <div><span className="material-symbols-outlined">call</span> +62 882 2540 9824</div>
                           </div>
                           <div className={styles.pdfBannerRight}>
                             <span className="material-symbols-outlined" style={{ fontSize: 64, opacity: 0.8 }}>assignment_turned_in</span>
@@ -368,23 +451,42 @@ function ProposalPreviewContent() {
           <div className={styles.sidebarHeader}>
             <span className={styles.sidebarTitle}>DOCUMENT SETTINGS</span>
           </div>
+          <input type="file" hidden ref={fileInputRef} onChange={handleLogoUpload} accept="image/*" />
 
           <div className={styles.propertiesList}>
 
             <div className={styles.propGroup}>
               <label className={styles.propLabel}>Cover Logo</label>
-              <div className={styles.brandingBox} onClick={() => {
-                const url = prompt("Enter Logo URL:", logoUrl);
-                if (url) setLogoUrl(url);
-              }} style={{ cursor: 'pointer' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 32, color: "var(--color-outline)" }}>add_photo_alternate</span>
-                <span style={{ fontSize: 12, marginTop: 8, color: "var(--color-outline)" }}>Upload Logo</span>
+              <div className={styles.brandingBox} onClick={() => !uploadingLogo && fileInputRef.current?.click()} style={{ cursor: uploadingLogo ? 'wait' : 'pointer' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 32, color: "var(--color-outline)" }}>
+                  {uploadingLogo ? 'hourglass_empty' : 'add_photo_alternate'}
+                </span>
+                <span style={{ fontSize: 12, marginTop: 8, color: "var(--color-outline)" }}>
+                  {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                </span>
                 <img
                   alt="Agency Logo"
                   className={styles.proposalLogo}
                   src={logoUrl}
                 />
               </div>
+
+              {savedLogos.length > 0 && (
+                <div className={styles.galleryList}>
+                  {savedLogos.map((logo) => (
+                    <div
+                      key={logo.id}
+                      className={`${styles.galleryItem} ${logoUrl === logo.url ? styles.galleryItemActive : ""}`}
+                      onClick={() => setLogoUrl(logo.url)}
+                    >
+                      <img src={logo.url} alt="Saved Logo" className={styles.galleryImage} />
+                      <button className={styles.btnDeleteLogo} onClick={(e) => handleDeleteLogo(e, logo)} title="Delete Logo">
+                        <span className="material-symbols-outlined">close</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className={styles.propGroup}>
@@ -440,11 +542,23 @@ function ProposalPreviewContent() {
                 </div>
               </div>
               <div className={styles.toggleRow}>
-                <span className={styles.toggleLabel}>Watermark Draft</span>
+                <span className={styles.toggleLabel}>Show Watermark</span>
                 <div className={`${styles.toggleSwitch} ${isDraft ? styles.on : styles.off}`} onClick={() => setIsDraft(!isDraft)}>
                   <div className={styles.toggleKnob}></div>
                 </div>
               </div>
+              {isDraft && (
+                <>
+                  <div className={styles.propGroup}>
+                    <label className={styles.propLabel}>Watermark Text</label>
+                    <input className={styles.inputField} type="text" value={watermarkText} onChange={(e) => setWatermarkText(e.target.value)} placeholder="e.g. DRAFT" />
+                  </div>
+                  <div className={styles.propGroup}>
+                    <label className={styles.propLabel}>Watermark Size (px)</label>
+                    <input className={styles.inputField} type="number" value={watermarkSize} onChange={(e) => setWatermarkSize(Number(e.target.value))} min={10} max={500} />
+                  </div>
+                </>
+              )}
             </div>
 
           </div>

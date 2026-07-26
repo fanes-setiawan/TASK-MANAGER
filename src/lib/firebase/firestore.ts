@@ -147,3 +147,56 @@ export async function updateProject(projectId: string, project: Partial<ProjectD
   const docRef = doc(db, "projects", projectId);
   await updateDoc(docRef, project);
 }
+
+// --- Logo Helpers ---
+export interface SavedLogo {
+  id: string;
+  url: string;
+  publicId?: string;
+  createdAt?: string;
+}
+
+export async function saveUserLogo(userId: string, url: string, publicId?: string) {
+  const { doc, updateDoc, arrayUnion } = await import("firebase/firestore");
+  const userRef = doc(db, "users", userId);
+  
+  const newLogo: SavedLogo = {
+    id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+    url,
+    publicId: publicId || "",
+    createdAt: new Date().toISOString(),
+  };
+  
+  await updateDoc(userRef, {
+    savedLogos: arrayUnion(newLogo)
+  });
+  
+  return newLogo.id;
+}
+
+export async function getSavedLogos(userId: string): Promise<SavedLogo[]> {
+  const { doc, getDoc } = await import("firebase/firestore");
+  const userRef = doc(db, "users", userId);
+  const userSnap = await getDoc(userRef);
+  
+  if (userSnap.exists()) {
+    const data = userSnap.data();
+    const logos: SavedLogo[] = data.savedLogos || [];
+    logos.sort((a, b) => {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+    return logos;
+  }
+  
+  return [];
+}
+
+export async function deleteSavedLogo(userId: string, logo: SavedLogo) {
+  const { doc, updateDoc, arrayRemove } = await import("firebase/firestore");
+  const userRef = doc(db, "users", userId);
+  await updateDoc(userRef, {
+    savedLogos: arrayRemove(logo)
+  });
+}
