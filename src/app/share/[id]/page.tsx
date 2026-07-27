@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense, useRef } from "react";
-import styles from "./proposal-preview.module.css";
+import styles from "./share.module.css";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { deleteSavedLogo, deleteSavedWatermark, getProjectById, ProjectData, SavedWatermark, saveUserWatermark, SavedLogo, saveUserLogo, getSavedLogos, getSavedWatermarks } from "@/lib/firebase/firestore";
