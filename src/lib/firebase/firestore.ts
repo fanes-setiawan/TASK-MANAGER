@@ -254,3 +254,101 @@ export async function deleteSavedWatermark(userId: string, watermark: SavedWater
     savedWatermarks: arrayRemove(watermark)
   });
 }
+
+// --- Project Tasks (Kanban) ---
+export type TaskStatus = "Not started" | "In Process Administration" | "In progress Dev" | "In Review" | "In Process Maintenance..." | "Done";
+
+export interface ProjectTask {
+  id?: string;
+  projectId: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  createdAt?: any;
+  createdBy?: string;
+}
+
+export async function saveProjectTask(task: ProjectTask, userId?: string) {
+  const { doc, getDoc, updateDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", task.projectId);
+  const docSnap = await getDoc(docRef);
+  
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    const tasks = data.kanbanTasks || [];
+    
+    const newTask = {
+      ...task,
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+      createdBy: userId || "",
+      createdAt: new Date().toISOString()
+    };
+    
+    tasks.push(newTask);
+    await updateDoc(docRef, { kanbanTasks: tasks });
+    return newTask.id;
+  }
+  return null;
+}
+
+export async function getProjectTasks(projectId: string) {
+  const { doc, getDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", projectId);
+  const docSnap = await getDoc(docRef);
+  
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    const tasks: ProjectTask[] = data.kanbanTasks || [];
+    
+    tasks.sort((a, b) => {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeA - timeB;
+    });
+    
+    return tasks;
+  }
+  return [];
+}
+
+export async function updateProjectTaskStatus(projectId: string, taskId: string, newStatus: TaskStatus) {
+  const { doc, getDoc, updateDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", projectId);
+  const docSnap = await getDoc(docRef);
+  
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    const tasks: ProjectTask[] = data.kanbanTasks || [];
+    const updatedTasks = tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t);
+    
+    await updateDoc(docRef, { kanbanTasks: updatedTasks });
+  }
+}
+
+export async function deleteProjectTask(projectId: string, taskId: string) {
+  const { doc, getDoc, updateDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", projectId);
+  const docSnap = await getDoc(docRef);
+  
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    const tasks: ProjectTask[] = data.kanbanTasks || [];
+    const updatedTasks = tasks.filter(t => t.id !== taskId);
+    
+    await updateDoc(docRef, { kanbanTasks: updatedTasks });
+  }
+}
+
+export async function updateProjectTaskFull(projectId: string, taskId: string, updates: Partial<ProjectTask>) {
+  const { doc, getDoc, updateDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", projectId);
+  const docSnap = await getDoc(docRef);
+  
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    const tasks: ProjectTask[] = data.kanbanTasks || [];
+    const updatedTasks = tasks.map(t => t.id === taskId ? { ...t, ...updates } : t);
+    
+    await updateDoc(docRef, { kanbanTasks: updatedTasks });
+  }
+}

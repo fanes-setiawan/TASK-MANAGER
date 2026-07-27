@@ -131,16 +131,17 @@ export default function DashboardPage() {
                     <th className={styles.th}>Date</th>
                     <th className={styles.th}>Status</th>
                     <th className={styles.th} style={{ textAlign: "right" }}>Amount</th>
+                    <th className={styles.th} style={{ textAlign: "center" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr className={styles.tr}>
-                      <td colSpan={5} style={{ textAlign: "center", padding: "24px" }}>Loading projects...</td>
+                      <td colSpan={6} style={{ textAlign: "center", padding: "24px" }}>Loading projects...</td>
                     </tr>
                   ) : projects.length === 0 ? (
                     <tr className={styles.tr}>
-                      <td colSpan={5} style={{ textAlign: "center", padding: "48px 24px" }}>
+                      <td colSpan={6} style={{ textAlign: "center", padding: "48px 24px" }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, position: 'relative', width: 'fit-content', margin: '0 auto' }}>
                           <div style={{ position: 'relative', width: 140, height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <span className="material-symbols-outlined" style={{ fontSize: 100, color: 'var(--color-primary)', opacity: 0.8, animation: 'floatMain 3s ease-in-out infinite', zIndex: 2 }}>folder_open</span>
@@ -208,6 +209,16 @@ export default function DashboardPage() {
                           </td>
                           <td className={styles.td} style={{ textAlign: "right", fontWeight: 700 }}>
                             {formatCurrency(project.ratePerPoint * 100, project.currency)}
+                          </td>
+                          <td className={styles.td} style={{ textAlign: "center" }}>
+                            <button 
+                              className={styles.btnIconOnly} 
+                              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: '8px', background: 'var(--color-surface-container)', color: 'var(--color-primary)' }}
+                              onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/project-board?id=${project.id}`); }}
+                              title="Kanban Board / Notes"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>view_kanban</span>
+                            </button>
                           </td>
                         </tr>
                       );

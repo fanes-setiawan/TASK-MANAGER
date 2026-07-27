@@ -369,6 +369,11 @@ export default function ProjectsPage() {
                           <span className="material-symbols-outlined">description</span>
                         </button>
                       </Link>
+                      <Link href={`/dashboard/project-board?id=${project.id}`}>
+                        <button className={styles.iconBtn} title="Kanban Board / Notes" style={{ color: 'var(--color-primary)' }}>
+                          <span className="material-symbols-outlined">view_kanban</span>
+                        </button>
+                      </Link>
                     </div>
                   </div>
                 );

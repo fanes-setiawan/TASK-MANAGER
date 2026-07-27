@@ -18,6 +18,7 @@ function ProposalPreviewContent() {
   const [activeThumb, setActiveThumb] = useState(0);
   const [isDraft, setIsDraft] = useState(false);
   const [notes, setNotes] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [watermarkType, setWatermarkType] = useState<"text" | "image">("text");
   const [watermarkText, setWatermarkText] = useState("DRAFT");
   const [watermarkImageUrl, setWatermarkImageUrl] = useState("");
@@ -293,21 +294,35 @@ function ProposalPreviewContent() {
         </div>
 
         <div className={styles.toolbarRight}>
-          <button className={styles.btnToolbar} onClick={() => alert("Regenerating proposal...")}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>refresh</span>
-            Generate Again
-          </button>
-          <div className={styles.toolbarDivider}></div>
-          <button className={styles.btnIconOnly} title="Share" onClick={() => alert("Share link copied!")}>
+          <button className={styles.btnIconOnly} title="Share Link" onClick={() => alert("Share link copied!")}>
             <span className="material-symbols-outlined">share</span>
           </button>
-          <button className={styles.btnSettingUpload} onClick={() => fileInputRef.current?.click()} disabled={uploadingLogo}>
-            <span className="material-symbols-outlined">
-              {uploadingLogo ? 'hourglass_empty' : 'upload'}
-            </span>
-            {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
-          </button>
-          <button className={styles.btnDownload} onClick={() => window.print()}>
+          
+          <div className={styles.toolbarDivider}></div>
+          
+          <div style={{ position: 'relative' }}>
+            <button className={styles.btnIconOnly} title="More Options" onClick={() => setMenuOpen(!menuOpen)}>
+              <span className="material-symbols-outlined">more_vert</span>
+            </button>
+            
+            {menuOpen && (
+              <div 
+                style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, backgroundColor: 'white', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: 220, padding: '8px 0', zIndex: 100, border: '1px solid var(--color-outline-variant)', display: 'flex', flexDirection: 'column' }}
+                onClick={() => setMenuOpen(false)}
+              >
+                <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', color: 'var(--color-on-surface)', fontSize: 14, fontFamily: 'var(--font-body-md)' }} onClick={() => alert("Regenerating proposal...")} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-container-low)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--color-on-surface-variant)' }}>refresh</span> 
+                  Generate Again
+                </button>
+                <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: uploadingLogo ? 'wait' : 'pointer', color: 'var(--color-on-surface)', fontSize: 14, fontFamily: 'var(--font-body-md)' }} onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); setMenuOpen(false); }} disabled={uploadingLogo} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-container-low)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--color-on-surface-variant)' }}>{uploadingLogo ? 'hourglass_empty' : 'upload'}</span> 
+                  {uploadingLogo ? 'Uploading...' : 'Upload Cover Logo'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button className={styles.btnDownload} onClick={() => window.print()} style={{ marginLeft: 8 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>download</span>
             Download PDF
           </button>
