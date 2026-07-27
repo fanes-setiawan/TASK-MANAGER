@@ -182,7 +182,8 @@ function SharePreviewContent() {
           setAccessDenied(true);
         }
         setLoading(false);
-      }).catch(() => {
+      }).catch((err) => {
+        console.error("Error fetching project:", err);
         setAccessDenied(true);
         setLoading(false);
       });
