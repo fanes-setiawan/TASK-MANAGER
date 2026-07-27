@@ -59,6 +59,7 @@ export interface ProjectData {
   createdAt?: any;
   createdBy?: string;
   status?: string;
+  boardColumns?: { name: string; color: string }[];
 }
 
 export async function saveProject(project: ProjectData, userId: string) {
@@ -141,6 +142,12 @@ export async function updateProjectStatus(projectId: string, status: string) {
   const { doc, updateDoc } = await import("firebase/firestore");
   const docRef = doc(db, "projects", projectId);
   await updateDoc(docRef, { status });
+}
+
+export async function updateProjectColumns(projectId: string, columns: { name: string; color: string }[]) {
+  const { doc, updateDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", projectId);
+  await updateDoc(docRef, { boardColumns: columns });
 }
 
 export async function updateProject(projectId: string, project: Partial<ProjectData>) {
@@ -256,7 +263,7 @@ export async function deleteSavedWatermark(userId: string, watermark: SavedWater
 }
 
 // --- Project Tasks (Kanban) ---
-export type TaskStatus = "Not started" | "In Process Administration" | "In progress Dev" | "In Review" | "In Process Maintenance..." | "Done";
+export type TaskStatus = string;
 
 export interface ProjectTask {
   id?: string;

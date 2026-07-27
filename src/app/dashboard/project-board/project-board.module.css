@@ -214,6 +214,23 @@
   flex-direction: column;
   animation: slideInRight 0.3s ease-out;
   overflow-y: auto;
+  position: relative;
+}
+
+.resizer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  background-color: transparent;
+  transition: background-color 0.2s;
+  z-index: 10;
+}
+
+.resizer:hover, .resizer:active {
+  background-color: var(--color-primary);
 }
 
 @keyframes slideInRight {
@@ -261,7 +278,7 @@
 
 .formGroupEditor :global(.ql-container) {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: hidden; /* Let ql-editor handle scroll */
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
   font-family: inherit;
@@ -276,6 +293,13 @@
 
 .formGroupEditor :global(.ql-editor) {
   min-height: 200px;
+  max-height: 50vh;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+
+.formGroupEditor :global(.ql-editor) * {
+  max-width: max-content;
 }
 
 .formGroup input,

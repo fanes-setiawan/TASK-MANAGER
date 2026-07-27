@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import "react-quill/dist/quill.snow.css";
+import "react-quill-new/dist/quill.snow.css";
+import BoardSetup from "./BoardSetup";
 
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 import styles from "./project-board.module.css";
 import { 
   ProjectTask, 
@@ -21,23 +22,15 @@ import {
 import { auth } from "@/lib/firebase/client";
 import { onAuthStateChanged } from "firebase/auth";
 
-const STATUSES: TaskStatus[] = [
-  "Not started", 
-  "In Process Administration", 
-  "In progress Dev", 
-  "In Review", 
-  "In Process Maintenance...", 
-  "Done"
+// Legacy fallback columns for old projects that don't have boardColumns
+const LEGACY_COLUMNS = [
+  { name: "Not started", color: "#fca5a5" },
+  { name: "In Process Administration", color: "#93c5fd" },
+  { name: "In progress Dev", color: "#fde047" },
+  { name: "In Review", color: "#f9a8d4" },
+  { name: "In Process Maintenance...", color: "#d8b4fe" },
+  { name: "Done", color: "#86efac" }
 ];
-
-const COLORS: Record<string, string> = {
-  "Not started": "#fca5a5", // red-300
-  "In Process Administration": "#93c5fd", // blue-300
-  "In progress Dev": "#fde047", // yellow-300
-  "In Review": "#f9a8d4", // pink-300
-  "In Process Maintenance...": "#d8b4fe", // purple-300
-  "Done": "#86efac" // green-300
-};
 
 function BoardContent() {
   const router = useRouter();
@@ -56,6 +49,31 @@ function BoardContent() {
   // Modal State
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [drawerWidth, setDrawerWidth] = useState(600);
+  const isResizing = useRef(false);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing.current) return;
+    const newWidth = window.innerWidth - e.clientX;
+    if (newWidth > 300 && newWidth < window.innerWidth - 50) {
+      setDrawerWidth(newWidth);
+    }
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    isResizing.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'default';
+  }, [handleMouseMove]);
+
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+  }, [handleMouseMove, handleMouseUp]);
   const [editingTask, setEditingTask] = useState<ProjectTask | null>(null);
   const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>("Not started");
   const [formData, setFormData] = useState({ title: "", description: "" });
@@ -190,19 +208,51 @@ function BoardContent() {
     }
   };
 
+  const handleSetupComplete = (newColumns: {name: string, color: string}[]) => {
+    if (project) {
+      setProject({ ...project, boardColumns: newColumns });
+    }
+  };
+
   if (loading) {
     return (
       <div className={styles.container} style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite', fontSize: 40, color: 'var(--color-primary)' }}>refresh</span>
+        <p>Loading project board...</p>
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className={styles.container} style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <h2>Project not found</h2>
-        <button className={styles.btnBack} onClick={() => router.push('/dashboard')}>Back to Dashboard</button>
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <button className={styles.btnBack} onClick={() => router.push("/dashboard/projects")}>
+            <span className="material-symbols-outlined">arrow_back</span>
+            Back
+          </button>
+        </div>
+        <p>Project not found.</p>
+      </div>
+    );
+  }
+
+  // Determine active columns
+  const activeColumns = project.boardColumns && project.boardColumns.length > 0 
+    ? project.boardColumns 
+    : LEGACY_COLUMNS;
+
+  const needsSetup = (!project.boardColumns || project.boardColumns.length === 0) && tasks.length === 0;
+
+  if (needsSetup) {
+    return (
+      <div className={styles.container} style={{ padding: 0, overflow: 'auto', display: 'block' }}>
+        <div style={{ padding: '24px 32px' }}>
+          <button className={styles.btnBack} onClick={() => router.push("/dashboard/projects")}>
+            <span className="material-symbols-outlined">arrow_back</span>
+            Back
+          </button>
+        </div>
+        <BoardSetup projectId={projectId as string} onSetupComplete={handleSetupComplete} />
       </div>
     );
   }
@@ -222,7 +272,8 @@ function BoardContent() {
 
       <div className={styles.boardScroll}>
         <div className={styles.board}>
-          {STATUSES.map(status => {
+          {activeColumns.map(col => {
+            const status = col.name;
             const columnTasks = tasks.filter(t => t.status === status);
             return (
               <div 
@@ -234,7 +285,7 @@ function BoardContent() {
               >
                 <div className={styles.columnHeader}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: COLORS[status] }}></div>
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: col.color || "#cbd5e1" }}></div>
                     {status}
                   </div>
                   <span className={styles.taskCount}>{columnTasks.length}</span>
@@ -278,7 +329,12 @@ function BoardContent() {
 
       {showModal && (
         <div className={styles.modalOverlay} onClick={() => !saving && setShowModal(false)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+          <div 
+            className={styles.modal} 
+            onClick={e => e.stopPropagation()}
+            style={{ width: drawerWidth, maxWidth: '100%' }}
+          >
+            <div className={styles.resizer} onMouseDown={startResizing} />
             <h2>{editingTask ? 'Edit Note' : 'Add New Note'}</h2>
             <form onSubmit={handleSaveTask} className={styles.formContainer}>
               <div className={styles.formGroup}>
