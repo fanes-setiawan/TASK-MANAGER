@@ -42,6 +42,7 @@ export default function NewProjectPage() {
     company: "",
     email: "",
     phone: "",
+    address: "",
     currency: "IDR (Rp)",
     ratePerPoint: 1200,
   });
@@ -169,6 +170,7 @@ export default function NewProjectPage() {
                       company: client.company || "",
                       email: client.email || "",
                       phone: client.phone || "",
+                      address: client.address || "",
                     });
                   }
                 }}
@@ -201,6 +203,10 @@ export default function NewProjectPage() {
             <div className={styles.inputGroup}>
               <label className={styles.label}>Phone Number</label>
               <input className={styles.input} type="tel" placeholder="+1 (555) 000-0000" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+            </div>
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>Address</label>
+              <textarea className={styles.input} placeholder="Client Full Address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} style={{ minHeight: "60px", resize: "vertical" }} />
             </div>
             
             <div className={styles.twoCols}>

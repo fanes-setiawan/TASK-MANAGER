@@ -52,6 +52,7 @@ export interface ProjectData {
   company: string;
   email: string;
   phone: string;
+  address?: string;
   currency: string;
   ratePerPoint: number;
   configJson: string;
@@ -198,5 +199,58 @@ export async function deleteSavedLogo(userId: string, logo: SavedLogo) {
   const userRef = doc(db, "users", userId);
   await updateDoc(userRef, {
     savedLogos: arrayRemove(logo)
+  });
+}
+
+// --- Watermark Helpers ---
+export interface SavedWatermark {
+  id: string;
+  url: string;
+  publicId?: string;
+  createdAt?: string;
+}
+
+export async function saveUserWatermark(userId: string, url: string, publicId?: string) {
+  const { doc, updateDoc, arrayUnion } = await import("firebase/firestore");
+  const userRef = doc(db, "users", userId);
+  
+  const newWatermark: SavedWatermark = {
+    id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+    url,
+    publicId: publicId || "",
+    createdAt: new Date().toISOString(),
+  };
+  
+  await updateDoc(userRef, {
+    savedWatermarks: arrayUnion(newWatermark)
+  });
+  
+  return newWatermark.id;
+}
+
+export async function getSavedWatermarks(userId: string): Promise<SavedWatermark[]> {
+  const { doc, getDoc } = await import("firebase/firestore");
+  const userRef = doc(db, "users", userId);
+  const userSnap = await getDoc(userRef);
+  
+  if (userSnap.exists()) {
+    const data = userSnap.data();
+    const watermarks: SavedWatermark[] = data.savedWatermarks || [];
+    watermarks.sort((a, b) => {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+    return watermarks;
+  }
+  
+  return [];
+}
+
+export async function deleteSavedWatermark(userId: string, watermark: SavedWatermark) {
+  const { doc, updateDoc, arrayRemove } = await import("firebase/firestore");
+  const userRef = doc(db, "users", userId);
+  await updateDoc(userRef, {
+    savedWatermarks: arrayRemove(watermark)
   });
 }

@@ -13,6 +13,7 @@ interface ClientData {
   company: string;
   email: string;
   phone: string;
+  address?: string;
   status: "active" | "inactive";
   createdAt: any;
 }
@@ -33,6 +34,7 @@ export default function ClientsPage() {
     company: "",
     email: "",
     phone: "",
+    address: "",
     status: "active" as "active" | "inactive"
   });
 
@@ -91,7 +93,7 @@ export default function ClientsPage() {
       }
       setShowModal(false);
       setEditingClientId(null);
-      setFormData({ name: "", company: "", email: "", phone: "", status: "active" });
+      setFormData({ name: "", company: "", email: "", phone: "", address: "", status: "active" });
       await fetchClients(userId);
     } catch (error) {
       console.error("Error saving client:", error);
@@ -108,6 +110,7 @@ export default function ClientsPage() {
       company: client.company || "",
       email: client.email || "",
       phone: client.phone || "",
+      address: client.address || "",
       status: client.status
     });
     setShowModal(true);
@@ -134,7 +137,7 @@ export default function ClientsPage() {
         <div className={styles.actionRow}>
           <button className={styles.btnPrimary} onClick={() => {
             setEditingClientId(null);
-            setFormData({ name: "", company: "", email: "", phone: "", status: "active" });
+            setFormData({ name: "", company: "", email: "", phone: "", address: "", status: "active" });
             setShowModal(true);
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>person_add</span>
@@ -152,6 +155,7 @@ export default function ClientsPage() {
                 <th className={styles.th}>Company</th>
                 <th className={styles.th}>Email</th>
                 <th className={styles.th}>Phone</th>
+                <th className={styles.th}>Address</th>
                 <th className={styles.th}>Status</th>
                 <th className={styles.th} style={{ textAlign: "right" }}>Actions</th>
               </tr>
@@ -159,11 +163,11 @@ export default function ClientsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: "24px" }}>Loading clients...</td>
+                  <td colSpan={7} style={{ textAlign: "center", padding: "24px" }}>Loading clients...</td>
                 </tr>
               ) : clients.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: "64px 24px" }}>
+                  <td colSpan={7} style={{ textAlign: "center", padding: "64px 24px" }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', animation: 'slideUpFade 0.6s ease-out' }}>
                       <div style={{ 
                         width: '80px', 
@@ -204,6 +208,7 @@ export default function ClientsPage() {
                     <td className={styles.td}>{client.company || "-"}</td>
                     <td className={styles.td}>{client.email || "-"}</td>
                     <td className={styles.td}>{client.phone || "-"}</td>
+                    <td className={styles.td}>{client.address || "-"}</td>
                     <td className={styles.td}>
                       <span className={styles.badgeActive} style={{ 
                         backgroundColor: client.status === 'active' ? 'rgba(52, 211, 153, 0.1)' : 'rgba(239, 68, 68, 0.1)',
@@ -292,6 +297,16 @@ export default function ClientsPage() {
                   value={formData.phone} 
                   onChange={e => setFormData({...formData, phone: e.target.value})} 
                   placeholder="+1 (555) 000-0000"
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Address</label>
+                <textarea 
+                  className={styles.input} 
+                  value={formData.address} 
+                  onChange={e => setFormData({...formData, address: e.target.value})} 
+                  placeholder="Client full address"
+                  style={{ minHeight: "80px", resize: "vertical" }}
                 />
               </div>
               

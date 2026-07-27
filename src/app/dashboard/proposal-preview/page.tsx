@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense, useRef } from "react";
 import styles from "./proposal-preview.module.css";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { getProjectById, ProjectData, saveUserLogo, getSavedLogos, deleteSavedLogo, SavedLogo } from "@/lib/firebase/firestore";
+import { getProjectById, ProjectData, saveUserLogo, getSavedLogos, deleteSavedLogo, SavedLogo, saveUserWatermark, getSavedWatermarks, deleteSavedWatermark, SavedWatermark } from "@/lib/firebase/firestore";
 import { auth } from "@/lib/firebase/client";
 
 function ProposalPreviewContent() {
@@ -17,12 +17,19 @@ function ProposalPreviewContent() {
   const [themeColor, setThemeColor] = useState("#000000");
   const [activeThumb, setActiveThumb] = useState(0);
   const [isDraft, setIsDraft] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [watermarkType, setWatermarkType] = useState<"text" | "image">("text");
   const [watermarkText, setWatermarkText] = useState("DRAFT");
+  const [watermarkImageUrl, setWatermarkImageUrl] = useState("");
   const [watermarkSize, setWatermarkSize] = useState(120);
+  const [watermarkOpacity, setWatermarkOpacity] = useState(8);
   const [showPageNumbers, setShowPageNumbers] = useState(false);
   const [showToc, setShowToc] = useState(false);
+  const watermarkInputRef = useRef<HTMLInputElement>(null);
 
   const [savedLogos, setSavedLogos] = useState<SavedLogo[]>([]);
+  const [savedWatermarks, setSavedWatermarks] = useState<SavedWatermark[]>([]);
+  const [uploadingWatermark, setUploadingWatermark] = useState(false);
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,6 +76,48 @@ function ProposalPreviewContent() {
     reader.readAsDataURL(file);
   };
 
+  const handleWatermarkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingWatermark(true);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const base64Data = reader.result as string;
+        let oldPublicId = undefined;
+        if (watermarkImageUrl && watermarkImageUrl.includes("res.cloudinary.com") && watermarkImageUrl.includes("task_manager_logos")) {
+          const parts = watermarkImageUrl.split("/");
+          const filename = parts[parts.length - 1];
+          const folder = parts[parts.length - 2];
+          oldPublicId = `${folder}/${filename.split(".")[0]}`;
+        }
+
+        const res = await fetch("/api/upload-logo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: base64Data, oldPublicId })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+
+        setWatermarkImageUrl(data.url);
+        const user = auth.currentUser;
+        if (user) {
+          const newWatermarkId = await saveUserWatermark(user.uid, data.url, data.publicId);
+          setSavedWatermarks(prev => [{ id: newWatermarkId, url: data.url, publicId: data.publicId }, ...prev]);
+        }
+      } catch (err: any) {
+        alert(err.message || "Failed to upload watermark");
+      } finally {
+        setUploadingWatermark(false);
+        if (watermarkInputRef.current) watermarkInputRef.current.value = "";
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const [customProjectName, setCustomProjectName] = useState("");
   const [customClientName, setCustomClientName] = useState("");
 
@@ -85,13 +134,15 @@ function ProposalPreviewContent() {
       });
     }
 
-    const fetchLogos = async (user: any) => {
+    const fetchAssets = async (user: any) => {
       if (user) {
         const logos = await getSavedLogos(user.uid);
         setSavedLogos(logos);
+        const watermarks = await getSavedWatermarks(user.uid);
+        setSavedWatermarks(watermarks);
       }
     };
-    const unsubscribe = auth.onAuthStateChanged(fetchLogos);
+    const unsubscribe = auth.onAuthStateChanged(fetchAssets);
     return () => unsubscribe();
   }, [projectId]);
 
@@ -117,6 +168,31 @@ function ProposalPreviewContent() {
       }
     } catch (err: any) {
       alert("Failed to delete logo: " + err.message);
+    }
+  };
+
+  const handleDeleteWatermark = async (e: React.MouseEvent, watermark: SavedWatermark) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this watermark?")) return;
+
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      if (watermark.publicId) {
+        await fetch("/api/delete-logo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ publicId: watermark.publicId })
+        });
+      }
+
+      if (watermark.id) {
+        await deleteSavedWatermark(user.uid, watermark);
+        setSavedWatermarks(prev => prev.filter(w => w.id !== watermark.id));
+      }
+    } catch (err: any) {
+      alert("Failed to delete watermark: " + err.message);
     }
   };
 
@@ -295,11 +371,15 @@ function ProposalPreviewContent() {
                     zoom: zoomLevel / 100,
                   }}
                 >
-                  {isDraft && watermarkText && (
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
-                      <div style={{ transform: 'rotate(-45deg)', fontSize: watermarkSize, fontWeight: 900, color: 'rgba(0,0,0,0.05)', letterSpacing: 20, whiteSpace: 'nowrap' }}>{watermarkText}</div>
+                  {isDraft && (watermarkType === 'text' && watermarkText ? (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 50, overflow: 'hidden' }}>
+                      <div style={{ transform: 'rotate(-45deg)', fontSize: watermarkSize, fontWeight: 900, color: `rgba(0,0,0,${watermarkOpacity / 100})`, letterSpacing: 20, whiteSpace: 'nowrap' }}>{watermarkText}</div>
                     </div>
-                  )}
+                  ) : watermarkType === 'image' && watermarkImageUrl ? (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 50, overflow: 'hidden' }}>
+                      <img src={watermarkImageUrl} style={{ width: watermarkSize, opacity: watermarkOpacity / 100, objectFit: 'contain' }} alt="Watermark" />
+                    </div>
+                  ) : null)}
 
                   <div className={styles.pdfAccent} style={{ backgroundColor: themeColor }}></div>
                   <div className={styles.pdfContent}>
@@ -313,9 +393,8 @@ function ProposalPreviewContent() {
                           </div>
                           <div className={styles.pdfMetaBox}>
                             <div className={styles.pdfMetaItem}>
-                              <span className="material-symbols-outlined">calendar_today</span>
                               <div className={styles.pdfMetaValue}>
-                                {new Date().toLocaleString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                {new Date().toLocaleString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':')}
                               </div>
                             </div>
                           </div>
@@ -330,7 +409,12 @@ function ProposalPreviewContent() {
                             {projectData?.company && <div className={styles.pdfInfoRow}><span className="material-symbols-outlined">badge</span> {customClientName}</div>}
                             {projectData?.email && <div className={styles.pdfInfoRow}><span className="material-symbols-outlined">mail</span> {projectData.email}</div>}
                             {projectData?.phone && <div className={styles.pdfInfoRow}><span className="material-symbols-outlined">call</span> {projectData.phone}</div>}
-                            <div className={styles.pdfInfoRow}><span className="material-symbols-outlined">location_on</span> Jakarta, Indonesia</div>
+                            {projectData?.address && (
+                              <div className={styles.pdfInfoRow} style={{ alignItems: 'flex-start' }}>
+                                <span className="material-symbols-outlined" style={{ marginTop: '2px' }}>location_on</span>
+                                <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>{projectData.address}</div>
+                              </div>
+                            )}
                           </div>
                           <div className={styles.pdfInfoCol}>
                             <h4 style={{ color: themeColor }}><span className="material-symbols-outlined">work</span> Project Information</h4>
@@ -338,9 +422,9 @@ function ProposalPreviewContent() {
                             <p style={{ marginTop: 8, color: 'var(--color-on-surface-variant)', fontSize: 13, lineHeight: 1.5 }}>
                               Pembuatan {customProjectName.toLowerCase()} responsif dengan fitur manajemen konten dan optimasi.
                             </p>
-                            <div className={styles.pdfDuration} style={{ marginTop: 16, fontSize: 13 }}>
+                            <div className={styles.pdfDuration} style={{ marginTop: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span className="material-symbols-outlined" style={{ fontSize: 16, color: themeColor }}>schedule</span>
-                              Estimated Duration: <strong>4 - 6 Weeks</strong>
+                              <span>Estimated Duration: <strong>4 - 6 Weeks</strong></span>
                             </div>
                           </div>
                         </div>
@@ -400,7 +484,15 @@ function ProposalPreviewContent() {
                     )}
 
                     {page.isLast && (
-                      <div style={{ marginTop: 'auto' }}>
+                      <div style={{ marginTop: 'auto', paddingTop: 32 }}>
+                        {/* Notes Section */}
+                        {notes && (
+                          <div style={{ marginBottom: 24, padding: '16px', backgroundColor: '#f8fafc', borderRadius: 8, fontSize: 13, color: '#475569', border: '1px solid #e2e8f0' }}>
+                            <h5 style={{ color: themeColor, marginBottom: 8, fontSize: 14 }}>Catatan</h5>
+                            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{notes}</div>
+                          </div>
+                        )}
+
                         {/* Summary Section */}
                         <div className={styles.pdfSummaryArea}>
                           <div className={styles.pdfSummaryIcon}>
@@ -427,7 +519,11 @@ function ProposalPreviewContent() {
                             <div><span className="material-symbols-outlined">call</span> +62 882 2540 9824</div>
                           </div>
                           <div className={styles.pdfBannerRight}>
-                            <span className="material-symbols-outlined" style={{ fontSize: 64, opacity: 0.8 }}>assignment_turned_in</span>
+                            {logoUrl ? (
+                              <img src={logoUrl} style={{ maxHeight: 64, maxWidth: 120, objectFit: 'contain', opacity: 0.9, filter: 'brightness(0) invert(1)' }} alt="Footer Logo" />
+                            ) : (
+                              <span className="material-symbols-outlined" style={{ fontSize: 64, opacity: 0.8 }}>assignment_turned_in</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -517,6 +613,10 @@ function ProposalPreviewContent() {
                 <label className={styles.propLabel}>Client Name</label>
                 <input className={styles.inputField} type="text" value={customClientName} onChange={(e) => setCustomClientName(e.target.value)} />
               </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+                <label className={styles.propLabel}>Additional Notes</label>
+                <textarea className={styles.inputField} value={notes} onChange={(e) => setNotes(e.target.value)} style={{ minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} placeholder="Syarat & ketentuan, info pembayaran, dll..." />
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label className={styles.propLabel}>Proposal Template</label>
                 <select className={styles.inputField} style={{ appearance: "none" }}>
@@ -550,12 +650,56 @@ function ProposalPreviewContent() {
               {isDraft && (
                 <>
                   <div className={styles.propGroup}>
-                    <label className={styles.propLabel}>Watermark Text</label>
-                    <input className={styles.inputField} type="text" value={watermarkText} onChange={(e) => setWatermarkText(e.target.value)} placeholder="e.g. DRAFT" />
+                    <label className={styles.propLabel}>Watermark Type</label>
+                    <select className={styles.inputField} style={{ appearance: "none" }} value={watermarkType} onChange={(e) => setWatermarkType(e.target.value as any)}>
+                      <option value="text">Text</option>
+                      <option value="image">Image</option>
+                    </select>
+                  </div>
+                  {watermarkType === "text" ? (
+                    <div className={styles.propGroup}>
+                      <label className={styles.propLabel}>Watermark Text</label>
+                      <input className={styles.inputField} type="text" value={watermarkText} onChange={(e) => setWatermarkText(e.target.value)} placeholder="e.g. DRAFT" />
+                    </div>
+                  ) : (
+                    <div className={styles.propGroup}>
+                      <label className={styles.propLabel}>Watermark Image</label>
+                      <div className={styles.brandingBox} onClick={() => !uploadingWatermark && watermarkInputRef.current?.click()} style={{ cursor: uploadingWatermark ? 'wait' : 'pointer', padding: '12px', minHeight: '60px' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 24, color: "var(--color-outline)" }}>
+                          {uploadingWatermark ? 'hourglass_empty' : 'add_photo_alternate'}
+                        </span>
+                        <span style={{ fontSize: 12, marginTop: 4, color: "var(--color-outline)" }}>
+                          {uploadingWatermark ? 'Uploading...' : (watermarkImageUrl ? 'Change Image' : 'Upload Image')}
+                        </span>
+                        {watermarkImageUrl && <img src={watermarkImageUrl} style={{ maxHeight: 60, marginTop: 12, opacity: 0.5 }} alt="Watermark Preview" />}
+                      </div>
+                      <input type="file" hidden ref={watermarkInputRef} onChange={handleWatermarkUpload} accept="image/*" />
+
+                      {savedWatermarks.length > 0 && (
+                        <div className={styles.galleryList} style={{ marginTop: 12 }}>
+                          {savedWatermarks.map((wm) => (
+                            <div
+                              key={wm.id}
+                              className={`${styles.galleryItem} ${watermarkImageUrl === wm.url ? styles.galleryItemActive : ""}`}
+                              onClick={() => setWatermarkImageUrl(wm.url)}
+                            >
+                              <img src={wm.url} alt="Saved Watermark" className={styles.galleryImage} style={{ objectFit: 'contain' }} />
+                              <button className={styles.btnDeleteLogo} onClick={(e) => handleDeleteWatermark(e, wm)} title="Delete Watermark">
+                                <span className="material-symbols-outlined">close</span>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className={styles.propGroup}>
+                    <label className={styles.propLabel}>Watermark Size {watermarkType === 'text' ? '(px)' : '(width px)'}</label>
+                    <input className={styles.inputField} type="number" value={watermarkSize} onChange={(e) => setWatermarkSize(Number(e.target.value))} min={10} max={1000} />
                   </div>
                   <div className={styles.propGroup}>
-                    <label className={styles.propLabel}>Watermark Size (px)</label>
-                    <input className={styles.inputField} type="number" value={watermarkSize} onChange={(e) => setWatermarkSize(Number(e.target.value))} min={10} max={500} />
+                    <label className={styles.propLabel}>Watermark Opacity (%)</label>
+                    <input className={styles.inputField} type="number" value={watermarkOpacity} onChange={(e) => setWatermarkOpacity(Number(e.target.value))} min={1} max={100} />
                   </div>
                 </>
               )}
