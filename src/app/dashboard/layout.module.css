@@ -429,3 +429,19 @@
     display: none;
   }
 }
+
+@media print {
+  .sidebar, .header, :global(footer) {
+    display: none !important;
+  }
+  .mainContent {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Force background graphics to print */
+  :global(*) {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

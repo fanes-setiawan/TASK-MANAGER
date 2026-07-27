@@ -56,6 +56,8 @@ export interface ProjectData {
   currency: string;
   ratePerPoint: number;
   configJson: string;
+  clientLogoUrl?: string;
+  clientLogoPublicId?: string;
   createdAt?: any;
   createdBy?: string;
   status?: string;

@@ -127,10 +127,27 @@ function ProposalPreviewContent() {
 
   useEffect(() => {
     if (projectId) {
-      getProjectById(projectId).then((data) => {
-        setProjectData(data);
-        setCustomProjectName(data?.projectName || "");
-        setCustomClientName(data?.clientName || data?.company || "");
+      getProjectById(projectId).then(async (data) => {
+        let finalData = data;
+        if (data && !data.clientLogoUrl && data.clientName) {
+          try {
+            const { collection, query, where, getDocs, limit } = await import("firebase/firestore");
+            const { db } = await import("@/lib/firebase/client");
+            const q = query(collection(db, "clients"), where("name", "==", data.clientName), limit(1));
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+              const clientData = snapshot.docs[0].data();
+              if (clientData.logoUrl) {
+                finalData = { ...data, clientLogoUrl: clientData.logoUrl };
+              }
+            }
+          } catch (e) {
+            console.error("Failed to fetch fallback client logo", e);
+          }
+        }
+        setProjectData(finalData);
+        setCustomProjectName(finalData?.projectName || "");
+        setCustomClientName(finalData?.clientName || finalData?.company || "");
         setLoading(false);
       });
     }
@@ -228,6 +245,40 @@ function ProposalPreviewContent() {
       : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
   };
 
+  // Flatten modules and subtasks into rows
+  const flatRows: any[] = [];
+  let globalModIdx = 0;
+  
+  modules.forEach((mod: any) => {
+    let modCost = 0;
+    if (mod.subtasks && Array.isArray(mod.subtasks)) {
+      modCost = mod.subtasks.reduce((acc: number, sub: any) => acc + ((sub.points || 0) * (projectData?.ratePerPoint || 0)), 0);
+    } else {
+      modCost = (mod.points || 0) * (projectData?.ratePerPoint || 0);
+    }
+
+    flatRows.push({
+      type: 'module',
+      data: mod,
+      globalModIdx,
+      modCost
+    });
+
+    if (mod.subtasks && Array.isArray(mod.subtasks)) {
+      mod.subtasks.forEach((sub: any, subIdx: number) => {
+        flatRows.push({
+          type: 'subtask',
+          data: sub,
+          globalModIdx,
+          subIdx,
+          isLastSubtask: subIdx === mod.subtasks.length - 1
+        });
+      });
+    }
+    
+    globalModIdx++;
+  });
+
   // Chunking logic for Pagination
   const ROW_HEIGHT = 36;
   const HEADER_HEIGHT = 350;
@@ -238,37 +289,20 @@ function ProposalPreviewContent() {
   let currentPage: any = { items: [], hasHeader: true, heightUsed: HEADER_HEIGHT, isLast: false };
   pages.push(currentPage);
 
-  let globalModIdx = 0;
-
-  modules.forEach((mod: any) => {
-    const subCount = mod.subtasks && Array.isArray(mod.subtasks) ? mod.subtasks.length : 0;
-    const modHeight = ROW_HEIGHT + (subCount * ROW_HEIGHT);
-
-    // If it doesn't fit on the current page, start a new one
-    if (currentPage.heightUsed + modHeight > PAGE_HEIGHT_LIMIT) {
-      // If a single module is incredibly huge, it will just stretch the page, but let's keep it simple
+  flatRows.forEach((row) => {
+    if (currentPage.heightUsed + ROW_HEIGHT > PAGE_HEIGHT_LIMIT) {
       currentPage = { items: [], hasHeader: false, heightUsed: 0, isLast: false };
       pages.push(currentPage);
     }
-
-    // Calculate cost
-    let modCost = 0;
-    if (mod.subtasks && Array.isArray(mod.subtasks)) {
-      modCost = mod.subtasks.reduce((acc: number, sub: any) => acc + ((sub.points || 0) * (projectData?.ratePerPoint || 0)), 0);
-    } else {
-      modCost = (mod.points || 0) * (projectData?.ratePerPoint || 0);
-    }
-
-    currentPage.items.push({ ...mod, globalModIdx, modCost });
-    currentPage.heightUsed += modHeight;
-    globalModIdx++;
+    currentPage.items.push(row);
+    currentPage.heightUsed += ROW_HEIGHT;
   });
 
   // Check if footer fits on the last page
-  if (pages[pages.length - 1].heightUsed + FOOTER_HEIGHT > PAGE_HEIGHT_LIMIT) {
+  if (currentPage.heightUsed + FOOTER_HEIGHT > PAGE_HEIGHT_LIMIT) {
     pages.push({ items: [], hasHeader: false, heightUsed: FOOTER_HEIGHT, isLast: true });
   } else {
-    pages[pages.length - 1].isLast = true;
+    currentPage.isLast = true;
   }
 
   return (
@@ -419,9 +453,15 @@ function ProposalPreviewContent() {
                         {/* Info Grid */}
                         <div className={styles.pdfInfoGrid}>
                           <div className={styles.pdfInfoCol}>
-                            <h4 style={{ color: themeColor }}><span className="material-symbols-outlined">person</span>Information</h4>
-                            <h5>{customClientName}</h5>
-                            {projectData?.company && <div className={styles.pdfInfoRow}><span className="material-symbols-outlined">badge</span> {customClientName}</div>}
+                            <h4 style={{ color: themeColor, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {projectData?.clientLogoUrl ? (
+                                <img src={projectData.clientLogoUrl} alt="Company Logo" style={{ maxHeight: 24, maxWidth: 80, objectFit: 'contain' }} />
+                              ) : (
+                                <span className="material-symbols-outlined">person</span>
+                              )}
+                              {projectData?.company || "Company"}
+                            </h4>
+                            {customClientName && <div className={styles.pdfInfoRow}><span className="material-symbols-outlined">badge</span> {customClientName}</div>}
                             {projectData?.email && <div className={styles.pdfInfoRow}><span className="material-symbols-outlined">mail</span> {projectData.email}</div>}
                             {projectData?.phone && <div className={styles.pdfInfoRow}><span className="material-symbols-outlined">call</span> {projectData.phone}</div>}
                             {projectData?.address && (
@@ -459,47 +499,46 @@ function ProposalPreviewContent() {
                             </tr>
                           </thead>
                           <tbody>
-                            {page.items.map((mod: any, i: number) => (
-                              <React.Fragment key={mod.globalModIdx}>
-                                {/* Module Group Row */}
-                                <tr className={styles.modRow}>
-                                  <td>
-                                    <div className={styles.modIndex}>{mod.globalModIdx + 1}</div>
-                                  </td>
-                                  <td colSpan={2} className={styles.modTitle}>{mod.name}</td>
-                                  <td className={styles.modTotal} style={{ color: themeColor }}>
-                                    {formatCurrency(mod.modCost, projectData?.currency)}
-                                  </td>
-                                </tr>
-
-                                {/* Subtasks Rows */}
-                                {mod.subtasks && Array.isArray(mod.subtasks) && mod.subtasks.map((sub: any, subIdx: number) => {
-                                  const subCost = (sub.points || 0) * (projectData?.ratePerPoint || 0);
-                                  const isLast = subIdx === mod.subtasks.length - 1;
-                                  return (
-                                    <tr key={subIdx} className={styles.subRow}>
-                                      <td></td>
-                                      <td>
-                                        <div className={styles.subTaskWrapper}>
-                                          <div className={`${styles.treeLine} ${isLast ? styles.treeLineLast : ''}`}></div>
-                                          <div className={styles.subIndex}>{mod.globalModIdx + 1}.{subIdx + 1}</div>
-                                          <span className={styles.subName}>{sub.name}</span>
-                                        </div>
-                                      </td>
-                                      <td className={styles.subDesc}>{sub.desc || sub.description || '-'}</td>
-                                      <td className={styles.subPrice}>{formatCurrency(subCost, projectData?.currency)}</td>
-                                    </tr>
-                                  )
-                                })}
-                              </React.Fragment>
-                            ))}
+                            {page.items.map((row: any, i: number) => {
+                              if (row.type === 'module') {
+                                const mod = row.data;
+                                return (
+                                  <tr key={`mod-${row.globalModIdx}-${i}`} className={styles.modRow}>
+                                    <td>
+                                      <div className={styles.modIndex}>{row.globalModIdx + 1}</div>
+                                    </td>
+                                    <td colSpan={2} className={styles.modTitle}>{mod.name}</td>
+                                    <td className={styles.modTotal} style={{ color: themeColor }}>
+                                      {formatCurrency(row.modCost, projectData?.currency)}
+                                    </td>
+                                  </tr>
+                                );
+                              } else {
+                                const sub = row.data;
+                                const subCost = (sub.points || 0) * (projectData?.ratePerPoint || 0);
+                                return (
+                                  <tr key={`sub-${row.globalModIdx}-${row.subIdx}-${i}`} className={styles.subRow}>
+                                    <td></td>
+                                    <td>
+                                      <div className={styles.subTaskWrapper}>
+                                        <div className={`${styles.treeLine} ${row.isLastSubtask ? styles.treeLineLast : ''}`}></div>
+                                        <div className={styles.subIndex}>{row.globalModIdx + 1}.{row.subIdx + 1}</div>
+                                        <span className={styles.subName}>{sub.name}</span>
+                                      </div>
+                                    </td>
+                                    <td className={styles.subDesc}>{sub.description || '-'}</td>
+                                    <td className={styles.subPrice}>{formatCurrency(subCost, projectData?.currency)}</td>
+                                  </tr>
+                                );
+                              }
+                            })}
                           </tbody>
                         </table>
                       </div>
                     )}
 
                     {page.isLast && (
-                      <div style={{ marginTop: 'auto', paddingTop: 32 }}>
+                      <div style={{ marginTop: 'auto', paddingTop: 32, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                         {/* Notes Section */}
                         {notes && (
                           <div style={{ marginBottom: 24, padding: '16px', backgroundColor: '#f8fafc', borderRadius: 8, fontSize: 13, color: '#475569', border: '1px solid #e2e8f0' }}>

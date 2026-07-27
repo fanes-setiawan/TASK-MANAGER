@@ -810,6 +810,7 @@
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
+  margin-top: auto;
 }
 
 .pdfBannerLeft {
@@ -883,6 +884,11 @@
 
 /* --- Print Styles --- */
 @media print {
+  :global(*) {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   /* Hide all UI elements except the document */
   .topToolbar, 
   .sidebarLeft, 
@@ -912,10 +918,15 @@
   .pdfPage {
     max-width: none !important;
     width: 100% !important;
-    height: auto !important;
+    min-height: 296mm !important;
+    height: 100% !important;
     box-shadow: none !important;
     transform: none !important;
     aspect-ratio: auto !important;
+    page-break-after: always;
+    break-after: page;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
   
   @page {

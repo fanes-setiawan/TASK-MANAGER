@@ -16,6 +16,8 @@ interface ClientData {
   address?: string;
   status: "active" | "inactive";
   createdAt: any;
+  logoUrl?: string;
+  logoPublicId?: string;
 }
 
 export default function ClientsPage() {
@@ -35,8 +37,12 @@ export default function ClientsPage() {
     email: "",
     phone: "",
     address: "",
-    status: "active" as "active" | "inactive"
+    status: "active" as "active" | "inactive",
+    logoUrl: "",
+    logoPublicId: ""
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -80,20 +86,59 @@ export default function ClientsPage() {
     if (!userId) return;
     setSaving(true);
     try {
-      if (editingClientId) {
-        await updateDoc(doc(db, "clients", editingClientId), {
-          ...formData
+      let finalLogoUrl = formData.logoUrl;
+      let finalLogoPublicId = formData.logoPublicId;
+
+      if (logoFile) {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = error => reject(error);
+          reader.readAsDataURL(logoFile);
         });
+        
+        const base64Image = await base64Promise;
+        
+        const res = await fetch('/api/upload-logo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            image: base64Image,
+            oldPublicId: formData.logoPublicId 
+          }),
+        });
+
+        if (!res.ok) throw new Error("Failed to upload logo");
+        const data = await res.json();
+        
+        finalLogoUrl = data.url;
+        finalLogoPublicId = data.publicId;
+      }
+
+      const clientDataToSave = {
+        name: formData.name,
+        company: formData.company,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        status: formData.status,
+        ...(finalLogoUrl ? { logoUrl: finalLogoUrl, logoPublicId: finalLogoPublicId } : { logoUrl: "", logoPublicId: "" })
+      };
+
+      if (editingClientId) {
+        await updateDoc(doc(db, "clients", editingClientId), clientDataToSave);
       } else {
         await addDoc(collection(db, "clients"), {
-          ...formData,
+          ...clientDataToSave,
           createdBy: userId,
           createdAt: serverTimestamp()
         });
       }
       setShowModal(false);
       setEditingClientId(null);
-      setFormData({ name: "", company: "", email: "", phone: "", address: "", status: "active" });
+      setFormData({ name: "", company: "", email: "", phone: "", address: "", status: "active", logoUrl: "", logoPublicId: "" });
+      setLogoFile(null);
+      setLogoPreview(null);
       await fetchClients(userId);
     } catch (error) {
       console.error("Error saving client:", error);
@@ -111,14 +156,25 @@ export default function ClientsPage() {
       email: client.email || "",
       phone: client.phone || "",
       address: client.address || "",
-      status: client.status
+      status: client.status,
+      logoUrl: client.logoUrl || "",
+      logoPublicId: client.logoPublicId || ""
     });
+    setLogoFile(null);
+    setLogoPreview(client.logoUrl || null);
     setShowModal(true);
   };
 
-  const handleDeleteClient = async (id: string) => {
+  const handleDeleteClient = async (id: string, logoPublicId?: string) => {
     if (!confirm("Are you sure you want to delete this client?")) return;
     try {
+      if (logoPublicId) {
+        await fetch('/api/delete-logo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ publicId: logoPublicId }),
+        }).catch(e => console.error("Failed to delete logo:", e));
+      }
       await deleteDoc(doc(db, "clients", id));
       if (userId) await fetchClients(userId);
     } catch (error) {
@@ -137,7 +193,9 @@ export default function ClientsPage() {
         <div className={styles.actionRow}>
           <button className={styles.btnPrimary} onClick={() => {
             setEditingClientId(null);
-            setFormData({ name: "", company: "", email: "", phone: "", address: "", status: "active" });
+            setFormData({ name: "", company: "", email: "", phone: "", address: "", status: "active", logoUrl: "", logoPublicId: "" });
+            setLogoFile(null);
+            setLogoPreview(null);
             setShowModal(true);
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>person_add</span>
@@ -231,7 +289,7 @@ export default function ClientsPage() {
                         className={`${styles.btnIcon} ${styles.btnDelete}`} 
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteClient(client.id);
+                          handleDeleteClient(client.id, client.logoPublicId);
                         }}
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 20 }}>delete</span>
@@ -258,6 +316,39 @@ export default function ClientsPage() {
             </div>
             
             <form onSubmit={handleSaveClient}>
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Company Logo (Optional)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  {logoPreview ? (
+                    <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--color-outline-variant)' }}>
+                      <img src={logoPreview} alt="Logo Preview" style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: 'white' }} />
+                      <button 
+                        type="button" 
+                        onClick={() => { setLogoPreview(null); setLogoFile(null); setFormData({...formData, logoUrl: '', logoPublicId: ''}); }}
+                        style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', cursor: 'pointer', padding: 2, display: 'flex' }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>close</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ width: '60px', height: '60px', borderRadius: '8px', border: '1px dashed var(--color-outline)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-outline)' }}>
+                      <span className="material-symbols-outlined">image</span>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setLogoFile(file);
+                        setLogoPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    style={{ fontSize: '14px' }}
+                  />
+                </div>
+              </div>
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Client Name *</label>
                 <input 

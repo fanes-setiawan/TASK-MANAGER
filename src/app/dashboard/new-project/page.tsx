@@ -44,7 +44,9 @@ export default function NewProjectPage() {
     phone: "",
     address: "",
     currency: "IDR (Rp)",
-    ratePerPoint: 1200,
+    ratePerPoint: 3000,
+    clientLogoUrl: "",
+    clientLogoPublicId: "",
   });
 
   const [configJson, setConfigJson] = useState(defaultJson);
@@ -171,6 +173,8 @@ export default function NewProjectPage() {
                       email: client.email || "",
                       phone: client.phone || "",
                       address: client.address || "",
+                      clientLogoUrl: client.logoUrl || "",
+                      clientLogoPublicId: client.logoPublicId || "",
                     });
                   }
                 }}

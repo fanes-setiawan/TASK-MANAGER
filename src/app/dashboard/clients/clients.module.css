@@ -111,6 +111,15 @@
   font-weight: 600;
 }
 
+.tdPhone {
+  white-space: nowrap;
+}
+
+.tdActions {
+  white-space: nowrap;
+  min-width: 100px;
+}
+
 .badgeActive {
   background-color: rgba(52, 211, 153, 0.1);
   color: #059669;
