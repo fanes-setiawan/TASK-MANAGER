@@ -62,6 +62,25 @@ export interface ProjectData {
   createdBy?: string;
   status?: string;
   boardColumns?: { name: string; color: string }[];
+  shareSettings?: {
+    isPublic: boolean;
+    permission: "view" | "edit";
+  };
+  documentSettings?: {
+    logoUrl?: string;
+    themeColor?: string;
+    customProjectName?: string;
+    customClientName?: string;
+    notes?: string;
+    isDraft?: boolean;
+    showPageNumbers?: boolean;
+    showToc?: boolean;
+    watermarkType?: "text" | "image";
+    watermarkText?: string;
+    watermarkImageUrl?: string;
+    watermarkSize?: number;
+    watermarkOpacity?: number;
+  };
 }
 
 export async function saveProject(project: ProjectData, userId: string) {
@@ -86,6 +105,23 @@ export async function getProjectById(projectId: string): Promise<ProjectData | n
   }
   return null;
 }
+
+export async function updateProjectShareSettings(projectId: string, isPublic: boolean, permission: "view" | "edit") {
+  const { doc, updateDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", projectId);
+  await updateDoc(docRef, {
+    shareSettings: { isPublic, permission }
+  });
+}
+
+export async function updateProjectDocumentSettings(projectId: string, settings: any) {
+  const { doc, updateDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", projectId);
+  await updateDoc(docRef, {
+    documentSettings: settings
+  });
+}
+
 
 export async function getProjects(userId?: string) {
   const { collection, getDocs, query, where } = await import("firebase/firestore");

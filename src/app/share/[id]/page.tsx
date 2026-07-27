@@ -3,15 +3,17 @@
 import React, { useState, useEffect, Suspense, useRef } from "react";
 import styles from "./proposal-preview.module.css";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
-import { getProjectById, ProjectData, saveUserLogo, getSavedLogos, deleteSavedLogo, SavedLogo, saveUserWatermark, getSavedWatermarks, deleteSavedWatermark, SavedWatermark, updateProjectShareSettings, updateProjectDocumentSettings } from "@/lib/firebase/firestore";
+import { useParams } from "next/navigation";
+import { deleteSavedLogo, deleteSavedWatermark, getProjectById, ProjectData, SavedWatermark, saveUserWatermark, SavedLogo, saveUserLogo, getSavedLogos, getSavedWatermarks } from "@/lib/firebase/firestore";
 import { auth } from "@/lib/firebase/client";
 
-function ProposalPreviewContent() {
-  const searchParams = useSearchParams();
-  const projectId = searchParams.get("projectId");
+function SharePreviewContent() {
+  const params = useParams();
+  const projectId = params.id as string;
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
-  const [loading, setLoading] = useState(!!projectId);
+  const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [permission, setPermission] = useState<"view" | "edit">("view");
   const [zoomLevel, setZoomLevel] = useState(100);
   const [logoUrl, setLogoUrl] = useState("https://lh3.googleusercontent.com/aida-public/AB6AXuCAYxl62mvvaeKBMqiPv_xjWNJzn8AdapjWlfPMNMhCGQVzO059qxdGliakroZemwD6hYRC0dttMr5lZdIfj7k9a-qTbXWgM8KdeAi_HPZjuM0-eQIhd2LCgclnTHZqCjTLOQdKvuyx62Vhww9CZIBD1QxAY3QgquvRm-hx0wECm-OkzeQRKOFalfoO51bFxutpK-aZ6gGhvtmSgAF3cbb4GTeT7UHvko4nkpV_EqYaFg56Zajg8GWSHBTExXH8hmcpRiwZLX1YqVI");
   const [themeColor, setThemeColor] = useState("#000000");
@@ -31,13 +33,12 @@ function ProposalPreviewContent() {
   const [savedLogos, setSavedLogos] = useState<SavedLogo[]>([]);
   const [savedWatermarks, setSavedWatermarks] = useState<SavedWatermark[]>([]);
   const [uploadingWatermark, setUploadingWatermark] = useState(false);
-  
+
   // Share Modal States
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [sharePermission, setSharePermission] = useState<"view" | "edit">("view");
   const [isSavingShare, setIsSavingShare] = useState(false);
-  const [isSavingDocument, setIsSavingDocument] = useState(false);
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -132,64 +133,6 @@ function ProposalPreviewContent() {
   const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 25, 200));
   const handleZoomOut = () => setZoomLevel((prev) => Math.max(prev - 25, 50));
 
-  const handleSaveShareSettings = async () => {
-    if (!projectId) return;
-    setIsSavingShare(true);
-    try {
-      await updateProjectShareSettings(projectId, isPublic, sharePermission);
-      // Update local state
-      if (projectData) {
-        setProjectData({
-          ...projectData,
-          shareSettings: { isPublic, permission: sharePermission }
-        });
-      }
-      alert("Share settings updated!");
-    } catch (err: any) {
-      alert("Failed to update share settings: " + err.message);
-    } finally {
-      setIsSavingShare(false);
-    }
-  };
-
-  const getShareLink = () => {
-    if (typeof window !== "undefined" && projectId) {
-      return `${window.location.origin}/share/${projectId}`;
-    }
-    return "";
-  };
-
-  const copyShareLink = () => {
-    navigator.clipboard.writeText(getShareLink());
-    alert("Link copied to clipboard!");
-  };
-
-  const handleSaveDocumentSettings = async () => {
-    if (!projectId) return;
-    setIsSavingDocument(true);
-    try {
-      await updateProjectDocumentSettings(projectId, {
-        logoUrl,
-        themeColor,
-        customProjectName,
-        customClientName,
-        notes,
-        isDraft,
-        showPageNumbers,
-        showToc,
-        watermarkType,
-        watermarkText,
-        watermarkImageUrl,
-        watermarkSize,
-        watermarkOpacity
-      });
-      alert("Document settings saved!");
-    } catch (err: any) {
-      alert("Failed to save document settings: " + err.message);
-    } finally {
-      setIsSavingDocument(false);
-    }
-  };
 
   useEffect(() => {
     if (projectId) {
@@ -211,46 +154,42 @@ function ProposalPreviewContent() {
             console.error("Failed to fetch fallback client logo", e);
           }
         }
-        setProjectData(finalData);
-        if (finalData?.shareSettings) {
-          setIsPublic(finalData.shareSettings.isPublic);
-          setSharePermission(finalData.shareSettings.permission);
-        }
-        if (finalData?.documentSettings) {
-          const ds = finalData.documentSettings;
-          if (ds.logoUrl !== undefined) setLogoUrl(ds.logoUrl);
-          if (ds.themeColor !== undefined) setThemeColor(ds.themeColor);
-          if (ds.customProjectName !== undefined) setCustomProjectName(ds.customProjectName);
-          else setCustomProjectName(finalData?.projectName || "");
-          if (ds.customClientName !== undefined) setCustomClientName(ds.customClientName);
-          else setCustomClientName(finalData?.clientName || finalData?.company || "");
-          if (ds.notes !== undefined) setNotes(ds.notes);
-          if (ds.isDraft !== undefined) setIsDraft(ds.isDraft);
-          if (ds.showPageNumbers !== undefined) setShowPageNumbers(ds.showPageNumbers);
-          if (ds.showToc !== undefined) setShowToc(ds.showToc);
-          if (ds.watermarkType !== undefined) setWatermarkType(ds.watermarkType);
-          if (ds.watermarkText !== undefined) setWatermarkText(ds.watermarkText);
-          if (ds.watermarkImageUrl !== undefined) setWatermarkImageUrl(ds.watermarkImageUrl);
-          if (ds.watermarkSize !== undefined) setWatermarkSize(ds.watermarkSize);
-          if (ds.watermarkOpacity !== undefined) setWatermarkOpacity(ds.watermarkOpacity);
+        if (finalData?.shareSettings?.isPublic) {
+          setProjectData(finalData);
+          setPermission(finalData.shareSettings.permission || "view");
+          if (finalData.documentSettings) {
+            const ds = finalData.documentSettings;
+            if (ds.logoUrl !== undefined) setLogoUrl(ds.logoUrl);
+            if (ds.themeColor !== undefined) setThemeColor(ds.themeColor);
+            if (ds.customProjectName !== undefined) setCustomProjectName(ds.customProjectName);
+            else setCustomProjectName(finalData?.projectName || "");
+            if (ds.customClientName !== undefined) setCustomClientName(ds.customClientName);
+            else setCustomClientName(finalData?.clientName || finalData?.company || "");
+            if (ds.notes !== undefined) setNotes(ds.notes);
+            if (ds.isDraft !== undefined) setIsDraft(ds.isDraft);
+            if (ds.showPageNumbers !== undefined) setShowPageNumbers(ds.showPageNumbers);
+            if (ds.showToc !== undefined) setShowToc(ds.showToc);
+            if (ds.watermarkType !== undefined) setWatermarkType(ds.watermarkType);
+            if (ds.watermarkText !== undefined) setWatermarkText(ds.watermarkText);
+            if (ds.watermarkImageUrl !== undefined) setWatermarkImageUrl(ds.watermarkImageUrl);
+            if (ds.watermarkSize !== undefined) setWatermarkSize(ds.watermarkSize);
+            if (ds.watermarkOpacity !== undefined) setWatermarkOpacity(ds.watermarkOpacity);
+          } else {
+            setCustomProjectName(finalData.projectName || "");
+            setCustomClientName(finalData.clientName || finalData.company || "");
+          }
         } else {
-          setCustomProjectName(finalData?.projectName || "");
-          setCustomClientName(finalData?.clientName || finalData?.company || "");
+          setAccessDenied(true);
         }
         setLoading(false);
+      }).catch(() => {
+        setAccessDenied(true);
+        setLoading(false);
       });
+    } else {
+      setAccessDenied(true);
+      setLoading(false);
     }
-
-    const fetchAssets = async (user: any) => {
-      if (user) {
-        const logos = await getSavedLogos(user.uid);
-        setSavedLogos(logos);
-        const watermarks = await getSavedWatermarks(user.uid);
-        setSavedWatermarks(watermarks);
-      }
-    };
-    const unsubscribe = auth.onAuthStateChanged(fetchAssets);
-    return () => unsubscribe();
   }, [projectId]);
 
   const handleDeleteLogo = async (e: React.MouseEvent, logo: SavedLogo) => {
@@ -337,7 +276,7 @@ function ProposalPreviewContent() {
   // Flatten modules and subtasks into rows
   const flatRows: any[] = [];
   let globalModIdx = 0;
-  
+
   modules.forEach((mod: any) => {
     let modCost = 0;
     if (mod.subtasks && Array.isArray(mod.subtasks)) {
@@ -364,7 +303,7 @@ function ProposalPreviewContent() {
         });
       });
     }
-    
+
     globalModIdx++;
   });
 
@@ -394,6 +333,24 @@ function ProposalPreviewContent() {
     currentPage.isLast = true;
   }
 
+  if (loading) {
+    return <div style={{ padding: 40, textAlign: 'center' }}>Loading proposal...</div>;
+  }
+
+  if (accessDenied) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: 16 }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'var(--color-error)' }}>lock</span>
+        <h2>Access Denied</h2>
+        <p>This proposal is not public.</p>
+      </div>
+    );
+  }
+
+  const generatePDF = () => {
+    window.print();
+  };
+
   return (
     <div className={styles.container}>
       {/* Top Toolbar */}
@@ -417,37 +374,8 @@ function ProposalPreviewContent() {
         </div>
 
         <div className={styles.toolbarRight}>
-          <button className={styles.btnIconOnly} title="Share Link" onClick={() => setShareModalOpen(true)}>
-            <span className="material-symbols-outlined">share</span>
-          </button>
-          
-          <div className={styles.toolbarDivider}></div>
-          
-          <div style={{ position: 'relative' }}>
-            <button className={styles.btnIconOnly} title="More Options" onClick={() => setMenuOpen(!menuOpen)}>
-              <span className="material-symbols-outlined">more_vert</span>
-            </button>
-            
-            {menuOpen && (
-              <div 
-                style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, backgroundColor: 'white', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: 220, padding: '8px 0', zIndex: 100, border: '1px solid var(--color-outline-variant)', display: 'flex', flexDirection: 'column' }}
-                onClick={() => setMenuOpen(false)}
-              >
-                <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', color: 'var(--color-on-surface)', fontSize: 14, fontFamily: 'var(--font-body-md)' }} onClick={() => alert("Regenerating proposal...")} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-container-low)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--color-on-surface-variant)' }}>refresh</span> 
-                  Generate Again
-                </button>
-                <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: uploadingLogo ? 'wait' : 'pointer', color: 'var(--color-on-surface)', fontSize: 14, fontFamily: 'var(--font-body-md)' }} onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); setMenuOpen(false); }} disabled={uploadingLogo} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-container-low)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--color-on-surface-variant)' }}>{uploadingLogo ? 'hourglass_empty' : 'upload'}</span> 
-                  {uploadingLogo ? 'Uploading...' : 'Upload Cover Logo'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          <button className={styles.btnDownload} onClick={() => window.print()} style={{ marginLeft: 8 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>download</span>
-            Download PDF
+          <button className={styles.btnPrimary} onClick={generatePDF}>
+            <span className="material-symbols-outlined">download</span> Download PDF
           </button>
         </div>
       </header>
@@ -685,245 +613,41 @@ function ProposalPreviewContent() {
           )}
         </div>
 
-        {/* Right Sidebar: Properties */}
-        <aside className={styles.sidebarRight}>
-          <div className={styles.sidebarHeader}>
-            <span className={styles.sidebarTitle}>DOCUMENT SETTINGS</span>
-          </div>
-          <input type="file" hidden ref={fileInputRef} onChange={handleLogoUpload} accept="image/*" />
+        {permission === "edit" && (
+          <aside className={styles.sidebarRight}>
+            <div className={styles.sidebarHeader}>
+              <span className={styles.sidebarTitle}>DOCUMENT SETTINGS</span>
+            </div>
 
-          <div className={styles.propertiesList}>
-
-            <div className={styles.propGroup}>
-              <label className={styles.propLabel}>Cover Logo</label>
-              <div className={styles.brandingBox} onClick={() => !uploadingLogo && fileInputRef.current?.click()} style={{ cursor: uploadingLogo ? 'wait' : 'pointer' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 32, color: "var(--color-outline)" }}>
-                  {uploadingLogo ? 'hourglass_empty' : 'add_photo_alternate'}
-                </span>
-                <span style={{ fontSize: 12, marginTop: 8, color: "var(--color-outline)" }}>
-                  {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
-                </span>
-                <img
-                  alt="Agency Logo"
-                  className={styles.proposalLogo}
-                  src={logoUrl}
-                />
-              </div>
-
-              {savedLogos.length > 0 && (
-                <div className={styles.galleryList}>
-                  {savedLogos.map((logo) => (
+            <div className={styles.propertiesList}>
+              <div className={styles.propGroup}>
+                <label className={styles.propLabel}>Theme Color</label>
+                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                  {["#006951", "#1B2A4A", "#D3A13B", "#7F41E8"].map(c => (
                     <div
-                      key={logo.id}
-                      className={`${styles.galleryItem} ${logoUrl === logo.url ? styles.galleryItemActive : ""}`}
-                      onClick={() => setLogoUrl(logo.url)}
-                    >
-                      <img src={logo.url} alt="Saved Logo" className={styles.galleryImage} />
-                      <button className={styles.btnDeleteLogo} onClick={(e) => handleDeleteLogo(e, logo)} title="Delete Logo">
-                        <span className="material-symbols-outlined">close</span>
-                      </button>
-                    </div>
+                      key={c}
+                      onClick={() => setThemeColor(c)}
+                      style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c, cursor: "pointer", border: themeColor === c ? "2px solid var(--color-on-surface)" : "none" }}
+                    ></div>
                   ))}
-                </div>
-              )}
-            </div>
-
-            <div className={styles.propGroup}>
-              <label className={styles.propLabel}>Theme Color</label>
-              <div className={styles.colorsRow}>
-                <div className={`${styles.colorSwatch} ${themeColor === "#009D7B" ? styles.colorActive : ""}`} style={{ backgroundColor: "#009D7B" }} onClick={() => setThemeColor("#009D7B")}></div>
-                <div className={`${styles.colorSwatch} ${themeColor === "#1A365D" ? styles.colorActive : ""}`} style={{ backgroundColor: "#1A365D" }} onClick={() => setThemeColor("#1A365D")}></div>
-                <div className={`${styles.colorSwatch} ${themeColor === "#D4AF37" ? styles.colorActive : ""}`} style={{ backgroundColor: "#D4AF37" }} onClick={() => setThemeColor("#D4AF37")}></div>
-                <div className={`${styles.colorSwatch} ${themeColor === "#7C3AED" ? styles.colorActive : ""}`} style={{ backgroundColor: "#7C3AED" }} onClick={() => setThemeColor("#7C3AED")}></div>
-                <label className={styles.colorCircle} style={{ position: 'relative', overflow: 'hidden' }}>
-                  <span className="material-symbols-outlined" style={{ color: "var(--color-outline)" }}>add</span>
-                  <input
-                    type="color"
-                    style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
-                    value={themeColor}
-                    onChange={(e) => setThemeColor(e.target.value)}
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className={styles.propGroup} style={{ marginTop: 8 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
-                <label className={styles.propLabel}>Project Title</label>
-                <input className={styles.inputField} type="text" value={customProjectName} onChange={(e) => setCustomProjectName(e.target.value)} />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
-                <label className={styles.propLabel}>Client Name</label>
-                <input className={styles.inputField} type="text" value={customClientName} onChange={(e) => setCustomClientName(e.target.value)} />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
-                <label className={styles.propLabel}>Additional Notes</label>
-                <textarea className={styles.inputField} value={notes} onChange={(e) => setNotes(e.target.value)} style={{ minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} placeholder="Syarat & ketentuan, info pembayaran, dll..." />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label className={styles.propLabel}>Proposal Template</label>
-                <select className={styles.inputField} style={{ appearance: "none" }}>
-                  <option>Corporate Premium</option>
-                  <option>Modern Minimalist</option>
-                  <option>Tech Brutalist</option>
-                  <option>Classic Financial</option>
-                </select>
-              </div>
-            </div>
-
-            <div className={styles.propGroup} style={{ marginTop: 16, gap: 16 }}>
-              <div className={styles.toggleRow}>
-                <span className={styles.toggleLabel}>Show Page Numbers</span>
-                <div className={`${styles.toggleSwitch} ${showPageNumbers ? styles.on : styles.off}`} onClick={() => setShowPageNumbers(!showPageNumbers)}>
-                  <div className={styles.toggleKnob}></div>
+                  <label style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 16, border: "1px dashed var(--color-outline)", cursor: "pointer" }}>
+                    <input type="color" hidden value={themeColor} onChange={e => setThemeColor(e.target.value)} />
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+                  </label>
                 </div>
               </div>
-              <div className={styles.toggleRow}>
-                <span className={styles.toggleLabel}>Include Table of Contents</span>
-                <div className={`${styles.toggleSwitch} ${showToc ? styles.on : styles.off}`} onClick={() => setShowToc(!showToc)}>
-                  <div className={styles.toggleKnob}></div>
-                </div>
-              </div>
-              <div className={styles.toggleRow}>
-                <span className={styles.toggleLabel}>Show Watermark</span>
-                <div className={`${styles.toggleSwitch} ${isDraft ? styles.on : styles.off}`} onClick={() => setIsDraft(!isDraft)}>
-                  <div className={styles.toggleKnob}></div>
-                </div>
-              </div>
-              {isDraft && (
-                <>
-                  <div className={styles.propGroup}>
-                    <label className={styles.propLabel}>Watermark Type</label>
-                    <select className={styles.inputField} style={{ appearance: "none" }} value={watermarkType} onChange={(e) => setWatermarkType(e.target.value as any)}>
-                      <option value="text">Text</option>
-                      <option value="image">Image</option>
-                    </select>
-                  </div>
-                  {watermarkType === "text" ? (
-                    <div className={styles.propGroup}>
-                      <label className={styles.propLabel}>Watermark Text</label>
-                      <input className={styles.inputField} type="text" value={watermarkText} onChange={(e) => setWatermarkText(e.target.value)} placeholder="e.g. DRAFT" />
-                    </div>
-                  ) : (
-                    <div className={styles.propGroup}>
-                      <label className={styles.propLabel}>Watermark Image</label>
-                      <div className={styles.brandingBox} onClick={() => !uploadingWatermark && watermarkInputRef.current?.click()} style={{ cursor: uploadingWatermark ? 'wait' : 'pointer', padding: '12px', minHeight: '60px' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 24, color: "var(--color-outline)" }}>
-                          {uploadingWatermark ? 'hourglass_empty' : 'add_photo_alternate'}
-                        </span>
-                        <span style={{ fontSize: 12, marginTop: 4, color: "var(--color-outline)" }}>
-                          {uploadingWatermark ? 'Uploading...' : (watermarkImageUrl ? 'Change Image' : 'Upload Image')}
-                        </span>
-                        {watermarkImageUrl && <img src={watermarkImageUrl} style={{ maxHeight: 60, marginTop: 12, opacity: 0.5 }} alt="Watermark Preview" />}
-                      </div>
-                      <input type="file" hidden ref={watermarkInputRef} onChange={handleWatermarkUpload} accept="image/*" />
-
-                      {savedWatermarks.length > 0 && (
-                        <div className={styles.galleryList} style={{ marginTop: 12 }}>
-                          {savedWatermarks.map((wm) => (
-                            <div
-                              key={wm.id}
-                              className={`${styles.galleryItem} ${watermarkImageUrl === wm.url ? styles.galleryItemActive : ""}`}
-                              onClick={() => setWatermarkImageUrl(wm.url)}
-                            >
-                              <img src={wm.url} alt="Saved Watermark" className={styles.galleryImage} style={{ objectFit: 'contain' }} />
-                              <button className={styles.btnDeleteLogo} onClick={(e) => handleDeleteWatermark(e, wm)} title="Delete Watermark">
-                                <span className="material-symbols-outlined">close</span>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div className={styles.propGroup}>
-                    <label className={styles.propLabel}>Watermark Size {watermarkType === 'text' ? '(px)' : '(width px)'}</label>
-                    <input className={styles.inputField} type="number" value={watermarkSize} onChange={(e) => setWatermarkSize(Number(e.target.value))} min={10} max={1000} />
-                  </div>
-                  <div className={styles.propGroup}>
-                    <label className={styles.propLabel}>Watermark Opacity (%)</label>
-                    <input className={styles.inputField} type="number" value={watermarkOpacity} onChange={(e) => setWatermarkOpacity(Number(e.target.value))} min={1} max={100} />
-                  </div>
-                </>
-              )}
             </div>
-
-          </div>
-
-          <div className={styles.sidebarFooter}>
-            <button className={styles.btnSave} onClick={handleSaveDocumentSettings} disabled={isSavingDocument} style={{ cursor: isSavingDocument ? 'wait' : 'pointer' }}>
-              {isSavingDocument ? 'Saving...' : 'Save All Changes'}
-            </button>
-          </div>
-        </aside>
-
+          </aside>
+        )}
       </main>
-
-      {/* Share Modal */}
-      {shareModalOpen && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-          <div style={{ backgroundColor: "var(--color-surface)", padding: 24, borderRadius: 16, width: "100%", maxWidth: 400, boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h2 style={{ margin: 0, fontSize: 20 }}>Share Proposal</h2>
-              <button onClick={() => setShareModalOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-on-surface-variant)" }}>
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <div>
-                  <div style={{ fontWeight: 600 }}>Link Sharing</div>
-                  <div style={{ fontSize: 12, color: "var(--color-on-surface-variant)" }}>Anyone with the link can access</div>
-                </div>
-                <label style={{ position: "relative", display: "inline-block", width: 40, height: 24 }}>
-                  <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
-                  <span style={{ position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isPublic ? "var(--color-primary)" : "#ccc", transition: ".4s", borderRadius: 34 }}>
-                    <span style={{ position: "absolute", content: '""', height: 16, width: 16, left: 4, bottom: 4, backgroundColor: "white", transition: ".4s", borderRadius: "50%", transform: isPublic ? "translateX(16px)" : "none" }}></span>
-                  </span>
-                </label>
-              </div>
-
-              {isPublic && (
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", marginBottom: 8, fontSize: 14, fontWeight: 500 }}>Access Level</label>
-                  <select 
-                    value={sharePermission} 
-                    onChange={(e) => setSharePermission(e.target.value as "view" | "edit")}
-                    style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--color-outline-variant)", backgroundColor: "var(--color-surface)", fontSize: 14 }}
-                  >
-                    <option value="view">Viewer (Read-only)</option>
-                    <option value="edit">Editor (Can change logo, colors, regenerate)</option>
-                  </select>
-                </div>
-              )}
-            </div>
-
-            <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={copyShareLink} style={{ flex: 1, padding: "10px 16px", borderRadius: 8, border: "1px solid var(--color-outline)", backgroundColor: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>content_copy</span>
-                Copy Link
-              </button>
-              <button 
-                onClick={handleSaveShareSettings} 
-                disabled={isSavingShare}
-                style={{ flex: 1, padding: "10px 16px", borderRadius: 8, border: "none", backgroundColor: "var(--color-primary)", color: "var(--color-on-primary)", cursor: isSavingShare ? "wait" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-              >
-                {isSavingShare ? "Saving..." : "Save Settings"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
-
   );
 }
 
-export default function ProposalPreviewPage() {
+export default function SharePreviewPage() {
   return (
     <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading proposal...</div>}>
-      <ProposalPreviewContent />
+      <SharePreviewContent />
     </Suspense>
   );
 }
