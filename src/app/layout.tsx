@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: "Kelola tugas dan estimasi proyek.",
 };
 
+import DisableInspect from "@/components/DisableInspect";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,7 +23,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <DisableInspect />
+        {children}
+      </body>
     </html>
   );
 }
