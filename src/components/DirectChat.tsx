@@ -77,10 +77,10 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
   useEffect(() => {
     if (!isOpen || !currentUserId) return;
 
+    // Query without orderBy to avoid composite index requirement — sort client-side
     const q = query(
       collection(db, "direct_chats"),
-      where("participants", "array-contains", currentUserId),
-      orderBy("updatedAt", "desc")
+      where("participants", "array-contains", currentUserId)
     );
 
     const unsub = onSnapshot(q, async (snap) => {
@@ -95,6 +95,12 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
         }
         sessions.push({ ...data, chatId: docSnap.id, otherUser });
       }
+      // Sort by most recent message client-side
+      sessions.sort((a, b) => {
+        const aTime = a.lastMessageTime?.seconds ?? 0;
+        const bTime = b.lastMessageTime?.seconds ?? 0;
+        return bTime - aTime;
+      });
       setActiveChats(sessions);
     });
 
