@@ -27,22 +27,30 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch users when opened
+  // Fetch users real-time when opened
   useEffect(() => {
-    if (isOpen) {
-      loadUsers();
-    }
-  }, [isOpen]);
+    if (!isOpen) return;
 
-  const loadUsers = async () => {
-    try {
-      const allUsers = await getAllUsers();
-      // Filter out myself
-      setUsers(allUsers.filter(u => u.uid !== currentUserId));
-    } catch (err) {
-      console.error("Error loading users:", err);
-    }
-  };
+    const usersQuery = query(collection(db, "users"), orderBy("displayName", "asc"));
+    const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
+      const loadedUsers: UserProfile[] = [];
+      snapshot.forEach(doc => {
+        const u = doc.data() as UserProfile;
+        if (u.uid !== currentUserId) {
+          loadedUsers.push(u);
+        }
+      });
+      setUsers(loadedUsers);
+      
+      setSelectedUser(prev => {
+        if (!prev) return prev;
+        const updated = loadedUsers.find(u => u.uid === prev.uid);
+        return updated || prev;
+      });
+    });
+
+    return () => unsubscribe();
+  }, [isOpen, currentUserId]);
 
   // Subscribe to messages when a user is selected
   useEffect(() => {
