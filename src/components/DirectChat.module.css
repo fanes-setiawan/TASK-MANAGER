@@ -1,0 +1,333 @@
+.fabChat {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 1000;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.fabChat:hover {
+  transform: scale(1.05);
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
+.chatDrawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  max-width: 100vw;
+  background-color: var(--color-surface);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 1001;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chatDrawerOpen {
+  transform: translateX(0);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.overlayOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-outline-variant);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--color-surface-container-low);
+  min-height: 72px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: var(--color-on-surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  margin-left: -8px;
+}
+
+.headerTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  margin: 0;
+}
+
+.headerSubtitle {
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+  margin-top: 4px;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.closeButton:hover {
+  background-color: var(--color-surface-container-high);
+}
+
+/* Screen 1: Contacts List */
+.contactsList {
+  flex: 1;
+  overflow-y: auto;
+  background-color: var(--color-surface);
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  gap: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-outline-variant);
+  transition: background-color 0.2s;
+}
+
+.contactItem:hover {
+  background-color: var(--color-surface-container-lowest);
+}
+
+.avatarContainer {
+  position: relative;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--color-surface-container-high);
+}
+
+.presenceDot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--color-outline);
+  border: 2px solid var(--color-surface);
+}
+
+.presenceDot.online {
+  background-color: #22c55e;
+}
+
+.contactInfo {
+  flex: 1;
+}
+
+.contactName {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-on-surface);
+  margin-bottom: 2px;
+}
+
+.contactStatus {
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+}
+
+.contactStatus.onlineText {
+  color: #22c55e;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--color-on-surface-variant);
+  height: 100%;
+}
+
+.emptyStateIcon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+  color: var(--color-primary);
+}
+
+/* Screen 2: Chat Room */
+.messageList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background-color: var(--color-surface);
+}
+
+.messageRow {
+  display: flex;
+  gap: 12px;
+  max-width: 85%;
+}
+
+.messageRow.isMine {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.messageContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.isMine .messageContent {
+  align-items: flex-end;
+}
+
+.bubble {
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-on-surface);
+  background-color: var(--color-surface-container-highest);
+  word-break: break-word;
+}
+
+.isMine .bubble {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border-bottom-right-radius: 4px;
+}
+
+.messageRow:not(.isMine) .bubble {
+  border-bottom-left-radius: 4px;
+}
+
+.messageFooter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-on-surface-variant);
+  margin-top: 2px;
+}
+
+.isMine .messageFooter {
+  justify-content: flex-end;
+}
+
+.readReceipts {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+.readReceipts .material-symbols-outlined {
+  font-size: 14px;
+  color: var(--color-outline);
+}
+
+.readReceipts.isRead .material-symbols-outlined {
+  color: #3b82f6;
+}
+
+.inputArea {
+  padding: 16px;
+  border-top: 1px solid var(--color-outline-variant);
+  background-color: var(--color-surface);
+  display: flex;
+  gap: 12px;
+}
+
+.input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid var(--color-outline);
+  border-radius: 24px;
+  font-size: 14px;
+  font-family: inherit;
+  background-color: var(--color-surface-container-lowest);
+  color: var(--color-on-surface);
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.sendButton {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.sendButton:hover:not(:disabled) {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
+.sendButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

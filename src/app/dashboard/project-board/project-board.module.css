@@ -509,3 +509,32 @@ input:checked + .toggleSlider:before {
   font-size: 14px;
   font-weight: 500;
 }
+
+.fabChat {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 900;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.fabChat:hover {
+  transform: scale(1.05);
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
+.fabChat .material-symbols-outlined {
+  font-size: 28px;
+}

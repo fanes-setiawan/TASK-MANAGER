@@ -20,8 +20,9 @@ import {
   updateProjectTaskFull,
   updateProjectShareSettings
 } from "@/lib/firebase/firestore";
-import { auth } from "@/lib/firebase/client";
+import { auth, db } from "@/lib/firebase/client";
 import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 // Legacy fallback columns for old projects that don't have boardColumns
 const LEGACY_COLUMNS = [
@@ -52,7 +53,9 @@ function BoardContent() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isPublicShare, setIsPublicShare] = useState(false);
-  const [drawerWidth, setDrawerWidth] = useState(600);
+  const [currentUserName, setCurrentUserName] = useState("User");
+  const [currentUserAvatar, setCurrentUserAvatar] = useState("");
+  const [drawerWidth, setDrawerWidth] = useState(400);
   const isResizing = useRef(false);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
@@ -85,6 +88,19 @@ function BoardContent() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && projectId) {
         setUserId(user.uid);
+        setCurrentUserName(user.displayName || "User");
+        setCurrentUserAvatar(user.photoURL || "");
+        
+        // Optionally fetch from users collection if display name is missing
+        if (!user.displayName) {
+          const userSnap = await getDoc(doc(db, "users", user.uid));
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            if (data.displayName) setCurrentUserName(data.displayName);
+            if (data.avatarUrl) setCurrentUserAvatar(data.avatarUrl);
+          }
+        }
+        
         await loadData(projectId);
       } else if (!user) {
         router.push("/login");

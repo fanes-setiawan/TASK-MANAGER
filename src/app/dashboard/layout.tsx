@@ -7,7 +7,8 @@ import styles from "./layout.module.css";
 import { auth, db } from "@/lib/firebase/client";
 import { doc, getDoc, collection, query, orderBy, onSnapshot, limit } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { UserProfile, AppNotification, markNotificationAsRead } from "@/lib/firebase/firestore";
+import { UserProfile, AppNotification, markNotificationAsRead, updateUserPresence } from "@/lib/firebase/firestore";
+import DirectChat from "@/components/DirectChat";
 
 export default function DashboardLayout({
   children,
@@ -24,13 +25,19 @@ export default function DashboardLayout({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    let currentUserId: string | null = null;
+    
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        currentUserId = user.uid;
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
           setUserProfile(userSnap.data() as UserProfile);
         }
+
+        // Set online status initially
+        updateUserPresence(user.uid, true);
 
         // Listen for notifications
         const notifQuery = query(
@@ -53,19 +60,34 @@ export default function DashboardLayout({
           console.error("Notifications snapshot error:", error);
         });
 
-        // Save it to a ref or just ignore cleanup since onAuthStateChanged 
-        // will handle session. Or better, we should clean it up in useEffect return.
-        
         setLoading(false);
-        // Return a cleanup wrapper if needed, or simply don't return here.
-        // Actually onAuthStateChanged callback shouldn't return a cleanup function directly.
       } else {
+        if (currentUserId) {
+          updateUserPresence(currentUserId, false);
+          currentUserId = null;
+        }
         router.push("/login");
         setLoading(false);
       }
     });
 
-    return () => unsubscribeAuth();
+    const handleFocus = () => currentUserId && updateUserPresence(currentUserId, true);
+    const handleBlur = () => currentUserId && updateUserPresence(currentUserId, false);
+    const handleBeforeUnload = () => currentUserId && updateUserPresence(currentUserId, false);
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      unsubscribeAuth();
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      if (currentUserId) {
+        updateUserPresence(currentUserId, false);
+      }
+    };
   }, [router]);
 
   const handleLogout = async (e: React.MouseEvent) => {
@@ -314,6 +336,8 @@ export default function DashboardLayout({
             </span>
           </div>
         </footer>
+
+        {userProfile && <DirectChat currentUserId={userProfile.uid} />}
       </main>
     </div>
   );

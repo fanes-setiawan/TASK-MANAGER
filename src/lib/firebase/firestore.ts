@@ -11,6 +11,8 @@ export interface UserProfile {
   role: UserRole;
   createdAt: any;
   avatarUrl?: string;
+  isOnline?: boolean;
+  lastSeen?: any;
 }
 
 export interface AppNotification {
@@ -396,4 +398,109 @@ export async function updateProjectTaskFull(projectId: string, taskId: string, u
     
     await updateDoc(docRef, { kanbanTasks: updatedTasks });
   }
+}
+
+// --- Presence & Online Status ---
+export async function updateUserPresence(userId: string, isOnline: boolean) {
+  const { doc, updateDoc, serverTimestamp } = await import("firebase/firestore");
+  const userRef = doc(db, "users", userId);
+  try {
+    await updateDoc(userRef, {
+      isOnline,
+      lastSeen: serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Error updating presence:", error);
+  }
+}
+
+// --- Project Chat ---
+export interface ChatMessage {
+  id?: string;
+  projectId: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  text: string;
+  createdAt?: any;
+  readBy: string[]; // Array of user IDs who have read this
+}
+
+export async function sendChatMessage(projectId: string, message: ChatMessage) {
+  const { collection, addDoc, serverTimestamp } = await import("firebase/firestore");
+  const chatRef = collection(db, "projects", projectId, "chats");
+  
+  const newMsg = {
+    ...message,
+    createdAt: serverTimestamp(),
+  };
+  
+  await addDoc(chatRef, newMsg);
+}
+
+export async function markMessagesAsRead(projectId: string, messageIds: string[], userId: string) {
+  const { doc, updateDoc, arrayUnion } = await import("firebase/firestore");
+  const promises = messageIds.map(msgId => {
+    const msgRef = doc(db, "projects", projectId, "chats", msgId);
+    return updateDoc(msgRef, {
+      readBy: arrayUnion(userId)
+    });
+  });
+  await Promise.all(promises);
+}
+
+// --- Direct Messaging ---
+export interface DirectMessage {
+  id?: string;
+  senderId: string;
+  text: string;
+  createdAt?: any;
+  isRead: boolean;
+}
+
+export async function getAllUsers(): Promise<UserProfile[]> {
+  const { collection, getDocs, query, orderBy } = await import("firebase/firestore");
+  const q = query(collection(db, "users"), orderBy("displayName", "asc"));
+  const snapshot = await getDocs(q);
+  const users: UserProfile[] = [];
+  snapshot.forEach(doc => {
+    users.push(doc.data() as UserProfile);
+  });
+  return users;
+}
+
+export function getDirectChatId(uid1: string, uid2: string) {
+  // Sort UIDs to ensure consistent chat ID regardless of who started it
+  return [uid1, uid2].sort().join("_");
+}
+
+export async function sendDirectMessage(senderId: string, receiverId: string, text: string) {
+  const { collection, addDoc, serverTimestamp, setDoc, doc } = await import("firebase/firestore");
+  const chatId = getDirectChatId(senderId, receiverId);
+  
+  // Ensure the chat document exists with participants
+  const chatRef = doc(db, "direct_chats", chatId);
+  await setDoc(chatRef, {
+    participants: [senderId, receiverId],
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+
+  const messagesRef = collection(db, "direct_chats", chatId, "messages");
+  await addDoc(messagesRef, {
+    senderId,
+    text,
+    createdAt: serverTimestamp(),
+    isRead: false
+  });
+}
+
+export async function markDirectMessagesAsRead(chatId: string, messageIds: string[]) {
+  const { doc, updateDoc } = await import("firebase/firestore");
+  const promises = messageIds.map(msgId => {
+    const msgRef = doc(db, "direct_chats", chatId, "messages", msgId);
+    return updateDoc(msgRef, {
+      isRead: true
+    });
+  });
+  await Promise.all(promises);
 }
