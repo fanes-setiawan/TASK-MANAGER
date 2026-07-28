@@ -25,8 +25,8 @@ import {
 
 type View = "activeChats" | "newChat" | "chatRoom";
 
-const DEFAULT_AVATAR =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuCyI4Df_EA0qn_sQX-LKgmcvoOz0_dH-FOKtWuPJoKcVBOl0oBs00VV517zAjLO80jbWYMrbFsB0F3Mp7-kHVm3OdRaVU_m14cTdDB1aegWVzzJJZl5y7IwbXEaZoRWnUpbgXtvIm20MZCR9gdJx9ElvW4AfYkogtxGFGkx_tyHCA7kL4hvLRMgnvXJsy5mU_dztGM4am8AFBwqgUL8LJf9F80VcWRCsihhDw1BYLYFKQMuKhhQ4QlwaRvZIc3nzLSpFlZQ08zh19Q";
+const DEFAULT_AVATAR = (name?: string | null) =>
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=6366f1&color=fff&size=128&bold=true&rounded=true`;
 
 function formatTime(ts: any): string {
   if (!ts?.seconds) return "";
@@ -254,7 +254,7 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
                   return (
                     <div key={chat.chatId} className={styles.chatCard} onClick={() => openChatWith(user)}>
                       <div className={styles.avatarWrap}>
-                        <img src={user.avatarUrl || DEFAULT_AVATAR} alt={user.displayName || "User"} className={styles.chatAvatar} />
+                        <img src={user.avatarUrl || DEFAULT_AVATAR(user.displayName)} alt={user.displayName || "User"} className={styles.chatAvatar} />
                         <span className={`${styles.presenceDot} ${user.isOnline ? styles.online : ""}`} />
                       </div>
                       <div className={styles.chatCardInfo}>
@@ -300,7 +300,7 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
                 allUsers.map((user) => (
                   <div key={user.uid} className={styles.contactItem} onClick={() => openChatWith(user)}>
                     <div className={styles.avatarWrap}>
-                      <img src={user.avatarUrl || DEFAULT_AVATAR} alt={user.displayName || "User"} className={styles.chatAvatar} />
+                      <img src={user.avatarUrl || DEFAULT_AVATAR(user.displayName)} alt={user.displayName || "User"} className={styles.chatAvatar} />
                       <span className={`${styles.presenceDot} ${user.isOnline ? styles.online : ""}`} />
                     </div>
                     <div>
@@ -324,7 +324,7 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
               <div className={styles.profileModal}>
                 <div className={styles.profileBanner} />
                 <div className={styles.profileAvatarSection}>
-                  <img src={selectedUser.avatarUrl || DEFAULT_AVATAR} className={styles.profileAvatarLarge} alt="Profile" />
+                  <img src={selectedUser.avatarUrl || DEFAULT_AVATAR(selectedUser.displayName)} className={styles.profileAvatarLarge} alt="Profile" />
                   <div className={styles.headerActions}>
                     <button className={`${styles.iconBtn} ${styles.danger}`} onClick={handleDeleteChat} title="Hapus Chat">
                       <span className="material-symbols-outlined">delete</span>
@@ -357,7 +357,7 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
                 <span className="material-symbols-outlined">arrow_back</span>
               </button>
               <img
-                src={selectedUser.avatarUrl || DEFAULT_AVATAR}
+                src={selectedUser.avatarUrl || DEFAULT_AVATAR(selectedUser.displayName)}
                 alt={selectedUser.displayName || "User"}
                 className={styles.headerAvatar}
                 onClick={() => setShowProfile(true)}
@@ -369,9 +369,6 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
                 </span>
               </div>
               <div className={styles.headerActions}>
-                <button className={`${styles.iconBtn} ${styles.danger}`} onClick={handleDeleteChat} title="Hapus Chat">
-                  <span className="material-symbols-outlined">delete</span>
-                </button>
                 <button className={styles.iconBtn} onClick={handleClose}>
                   <span className="material-symbols-outlined">close</span>
                 </button>
