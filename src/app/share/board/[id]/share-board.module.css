@@ -1,0 +1,222 @@
+.container {
+  padding: 24px 32px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-surface);
+  overflow: hidden;
+  font-family: inherit;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.titleBox h1 {
+  margin: 0;
+  font-size: 24px;
+  color: var(--color-on-surface);
+}
+
+.titleBox p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--color-on-surface-variant);
+}
+
+.readOnlyBanner {
+  background-color: var(--color-secondary-container);
+  color: var(--color-on-secondary-container);
+  padding: 8px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+}
+
+.boardScroll {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 16px;
+}
+
+.board {
+  display: flex;
+  gap: 20px;
+  height: 100%;
+  align-items: flex-start;
+}
+
+.column {
+  min-width: 300px;
+  width: 300px;
+  background-color: var(--color-surface-container-low);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+
+.columnHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  font-size: 14px;
+}
+
+.taskCount {
+  background-color: var(--color-surface-container-highest);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+}
+
+.columnBody {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+  min-height: 50px;
+}
+
+.columnBody::-webkit-scrollbar {
+  width: 6px;
+}
+.columnBody::-webkit-scrollbar-thumb {
+  background-color: var(--color-outline-variant);
+  border-radius: 4px;
+}
+
+.card {
+  background-color: var(--color-surface);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid var(--color-outline-variant);
+  transition: box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+
+.card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-color: var(--color-outline);
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--color-on-surface);
+}
+
+.cardDesc {
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+  
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--color-outline);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+  z-index: 1000;
+}
+
+.modal {
+  background-color: var(--color-surface);
+  width: 100%;
+  max-width: 600px;
+  padding: 32px;
+  box-shadow: -12px 0 32px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.3s ease-out;
+  overflow-y: auto;
+  position: relative;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.modal h2 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  color: var(--color-on-surface);
+}
+
+.btnCancel {
+  padding: 10px 20px;
+  border: 1px solid var(--color-outline);
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--color-on-surface);
+  align-self: flex-end;
+  margin-top: 32px;
+}
+
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  text-align: center;
+  padding: 32px;
+}
+
+.errorState h2 {
+  margin-bottom: 8px;
+}
+
+.errorState p {
+  color: var(--color-on-surface-variant);
+  margin-bottom: 24px;
+}
+
+.errorState button {
+  padding: 10px 24px;
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}

@@ -17,7 +17,8 @@ import {
   deleteProjectTask, 
   getProjectById, 
   ProjectData,
-  updateProjectTaskFull
+  updateProjectTaskFull,
+  updateProjectShareSettings
 } from "@/lib/firebase/firestore";
 import { auth } from "@/lib/firebase/client";
 import { onAuthStateChanged } from "firebase/auth";
@@ -48,7 +49,9 @@ function BoardContent() {
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isPublicShare, setIsPublicShare] = useState(false);
   const [drawerWidth, setDrawerWidth] = useState(600);
   const isResizing = useRef(false);
 
@@ -96,6 +99,7 @@ function BoardContent() {
       const proj = await getProjectById(pid);
       if (proj) {
         setProject(proj);
+        setIsPublicShare(proj.shareSettings?.isPublic || false);
         const t = await getProjectTasks(pid);
         setTasks(t);
       }
@@ -214,6 +218,50 @@ function BoardContent() {
     }
   };
 
+  const handleToggleShare = async () => {
+    if (!projectId) return;
+    const newVal = !isPublicShare;
+    setIsPublicShare(newVal);
+    
+    // optimistically update local project
+    if (project) {
+      setProject({
+        ...project,
+        shareSettings: {
+          isPublic: newVal,
+          permission: "view"
+        }
+      });
+    }
+    
+    try {
+      await updateProjectShareSettings(projectId, newVal, "view");
+    } catch (err) {
+      console.error("Failed to update share settings", err);
+      // Revert on error
+      setIsPublicShare(!newVal);
+      if (project) {
+        setProject({
+          ...project,
+          shareSettings: {
+            isPublic: !newVal,
+            permission: "view"
+          }
+        });
+      }
+    }
+  };
+
+  const copyShareLink = () => {
+    if (typeof window !== "undefined") {
+      const link = `${window.location.origin}/share/board/${projectId}`;
+      navigator.clipboard.writeText(link);
+      alert("Share link copied to clipboard!");
+    }
+  };
+
+  const isOwner = project?.createdBy === userId;
+
   if (loading) {
     return (
       <div className={styles.container} style={{ justifyContent: 'center', alignItems: 'center' }}>
@@ -264,11 +312,27 @@ function BoardContent() {
           <h1>{project.projectName}</h1>
           <p>Kanban Board & Progress Notes</p>
         </div>
-        <button className={styles.btnBack} onClick={() => router.push('/dashboard')}>
-          <span className="material-symbols-outlined">arrow_back</span>
-          Back to Dashboard
-        </button>
+        
+        <div className={styles.headerActions}>
+          {isOwner && (
+            <button className={styles.btnShare} onClick={() => setShowShareModal(true)}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>share</span>
+              Share
+            </button>
+          )}
+          <button className={styles.btnBack} onClick={() => router.push('/dashboard')}>
+            <span className="material-symbols-outlined">arrow_back</span>
+            Back to Dashboard
+          </button>
+        </div>
       </header>
+
+      {!isOwner && (
+        <div className={styles.readOnlyBanner}>
+          <span className="material-symbols-outlined">visibility</span>
+          You are viewing this board in read-only mode.
+        </div>
+      )}
 
       <div className={styles.boardScroll}>
         <div className={styles.board}>
@@ -279,9 +343,9 @@ function BoardContent() {
               <div 
                 key={status} 
                 className={`${styles.column} ${dragOverStatus === status ? styles.dragOver : ''}`}
-                onDragOver={(e) => handleDragOver(e, status)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, status)}
+                onDragOver={isOwner ? (e) => handleDragOver(e, status) : undefined}
+                onDragLeave={isOwner ? handleDragLeave : undefined}
+                onDrop={isOwner ? (e) => handleDrop(e, status) : undefined}
               >
                 <div className={styles.columnHeader}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -296,13 +360,16 @@ function BoardContent() {
                     <div 
                       key={task.id} 
                       className={`${styles.card} ${draggedTaskId === task.id ? styles.dragging : ''}`}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, task.id!)}
+                      draggable={isOwner}
+                      onDragStart={isOwner ? (e) => handleDragStart(e, task.id!) : undefined}
                       onClick={() => openEditTaskModal(task)}
+                      style={{ cursor: isOwner ? 'grab' : 'pointer' }}
                     >
-                      <button className={styles.btnDelete} onClick={(e) => handleDeleteTask(e, task.id!)} title="Delete Note">
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
-                      </button>
+                      {isOwner && (
+                        <button className={styles.btnDelete} onClick={(e) => handleDeleteTask(e, task.id!)} title="Delete Note">
+                          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                        </button>
+                      )}
                       <h4 className={styles.cardTitle}>{task.title}</h4>
                       {task.description && (
                         <p className={styles.cardDesc}>
@@ -311,16 +378,18 @@ function BoardContent() {
                       )}
                       <div className={styles.cardFooter}>
                         <span>{task.createdAt ? new Date(task.createdAt).toLocaleDateString() : ""}</span>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>drag_indicator</span>
+                        {isOwner && <span className="material-symbols-outlined" style={{ fontSize: 16 }}>drag_indicator</span>}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <button className={styles.btnAddCard} onClick={() => openNewTaskModal(status)}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-                  Add Note
-                </button>
+                {isOwner && (
+                  <button className={styles.btnAddCard} onClick={() => openNewTaskModal(status)}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+                    Add Note
+                  </button>
+                )}
               </div>
             );
           })}
@@ -363,13 +432,62 @@ function BoardContent() {
               </div>
               <div className={styles.modalActions} style={{ marginTop: 'auto' }}>
                 <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)} disabled={saving}>
-                  Cancel
+                  {isOwner ? 'Cancel' : 'Close'}
                 </button>
-                <button type="submit" className={styles.btnSubmit} disabled={saving || !formData.title.trim()}>
-                  {saving ? 'Saving...' : 'Save Note'}
-                </button>
+                {isOwner && (
+                  <button type="submit" className={styles.btnSubmit} disabled={saving || !formData.title.trim()}>
+                    {saving ? 'Saving...' : 'Save Note'}
+                  </button>
+                )}
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showShareModal && isOwner && (
+        <div className={styles.modalOverlay} onClick={() => setShowShareModal(false)}>
+          <div className={styles.shareModal} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2>Share Board</h2>
+              <button onClick={() => setShowShareModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-on-surface-variant)' }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className={styles.shareToggleRow}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-on-surface)' }}>Public Share Link</div>
+                <div style={{ fontSize: 12, color: 'var(--color-on-surface-variant)', marginTop: 4 }}>
+                  Allow anyone with the link to view this board
+                </div>
+              </div>
+              <label className={styles.toggleSwitch}>
+                <input 
+                  type="checkbox" 
+                  checked={isPublicShare} 
+                  onChange={handleToggleShare} 
+                />
+                <span className={styles.toggleSlider}></span>
+              </label>
+            </div>
+
+            {isPublicShare && (
+              <div className={styles.shareLinkBox}>
+                <input 
+                  readOnly 
+                  value={typeof window !== "undefined" ? `${window.location.origin}/share/board/${projectId}` : ""} 
+                />
+                <button className={styles.btnCopy} onClick={copyShareLink}>
+                  Copy Link
+                </button>
+              </div>
+            )}
+            
+            <div style={{ fontSize: 13, color: 'var(--color-on-surface-variant)', backgroundColor: 'var(--color-surface-container-low)', padding: 12, borderRadius: 8 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'text-bottom', marginRight: 4 }}>info</span>
+              People with the link will only have <strong>view access</strong>. They cannot edit or delete notes.
+            </div>
           </div>
         </div>
       )}
