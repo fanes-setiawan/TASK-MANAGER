@@ -482,7 +482,10 @@ export async function sendDirectMessage(senderId: string, receiverId: string, te
   const chatRef = doc(db, "direct_chats", chatId);
   await setDoc(chatRef, {
     participants: [senderId, receiverId],
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
+    lastMessage: text,
+    lastMessageTime: serverTimestamp(),
+    lastMessageSenderId: senderId
   }, { merge: true });
 
   const messagesRef = collection(db, "direct_chats", chatId, "messages");
@@ -503,4 +506,27 @@ export async function markDirectMessagesAsRead(chatId: string, messageIds: strin
     });
   });
   await Promise.all(promises);
+}
+
+export async function deleteDirectChat(chatId: string) {
+  const { doc, collection, getDocs, deleteDoc } = await import("firebase/firestore");
+  
+  // Delete all messages in the subcollection first
+  const messagesRef = collection(db, "direct_chats", chatId, "messages");
+  const messagesSnap = await getDocs(messagesRef);
+  
+  const deletePromises = messagesSnap.docs.map(msgDoc => deleteDoc(msgDoc.ref));
+  await Promise.all(deletePromises);
+  
+  // Delete the chat document
+  const chatRef = doc(db, "direct_chats", chatId);
+  await deleteDoc(chatRef);
+}
+
+export interface ActiveChatSession {
+  chatId: string;
+  participants: string[];
+  lastMessage?: string;
+  lastMessageTime?: any;
+  lastMessageSenderId?: string;
 }
