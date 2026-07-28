@@ -61,6 +61,24 @@
   transform: translateX(0);
 }
 
+/* Drag resize handle */
+.resizeHandle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 10;
+  background: transparent;
+  transition: background 0.2s;
+}
+.resizeHandle:hover,
+.resizeHandle:active {
+  background: var(--color-primary);
+  opacity: 0.3;
+}
+
 /* =============================================
    COMMON HEADER
    ============================================= */
@@ -413,11 +431,11 @@
   flex: 1;
   color: var(--color-on-surface-variant);
 }
-.emptyStateIcon {
-  font-size: 72px;
-  color: var(--color-outline);
-  margin-bottom: 16px;
-  line-height: 1;
+.emptyStateIllustration {
+  width: 180px;
+  height: 180px;
+  margin-bottom: 24px;
+  opacity: 0.85;
 }
 .emptyState h3 {
   font-size: 18px;

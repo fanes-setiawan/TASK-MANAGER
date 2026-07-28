@@ -71,7 +71,27 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
   // Profile modal
   const [showProfile, setShowProfile] = useState(false);
 
+  // Resizable drawer
+  const [drawerWidth, setDrawerWidth] = useState(420);
+  const isResizing = useRef(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isResizing.current) return;
+      const newWidth = window.innerWidth - e.clientX;
+      setDrawerWidth(Math.min(Math.max(newWidth, 320), 800));
+    };
+    const onMouseUp = () => { isResizing.current = false; };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
 
   // ── Listen to active chats for current user ──────────────────────
   useEffect(() => {
@@ -227,7 +247,17 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
       <div className={`${styles.overlay} ${isOpen ? styles.overlayOpen : ""}`} onClick={handleClose} />
 
       {/* Drawer */}
-      <div className={`${styles.chatDrawer} ${isOpen ? styles.chatDrawerOpen : ""}`}>
+      <div
+        ref={drawerRef}
+        className={`${styles.chatDrawer} ${isOpen ? styles.chatDrawerOpen : ""}`}
+        style={{ width: drawerWidth }}
+      >
+        {/* Resize handle */}
+        <div
+          className={styles.resizeHandle}
+          onMouseDown={(e) => { e.preventDefault(); isResizing.current = true; }}
+          title="Drag to resize"
+        />
 
         {/* ── VIEW: ACTIVE CHATS ─────────────────────────── */}
         {view === "activeChats" && (
@@ -245,7 +275,15 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
             <div className={styles.chatList}>
               {activeChats.length === 0 ? (
                 <div className={styles.emptyState}>
-                  <span className={`material-symbols-outlined ${styles.emptyStateIcon}`}>forum</span>
+                  <svg className={styles.emptyStateIllustration} viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="100" cy="100" r="80" fill="#f0fdf4"/>
+                    <rect x="44" y="60" width="112" height="80" rx="14" fill="#d1fae5"/>
+                    <rect x="56" y="72" width="60" height="10" rx="5" fill="#6ee7b7"/>
+                    <rect x="56" y="88" width="40" height="10" rx="5" fill="#a7f3d0"/>
+                    <rect x="72" y="110" width="72" height="10" rx="5" fill="#6ee7b7"/>
+                    <circle cx="148" cy="148" r="24" fill="#10b981"/>
+                    <path d="M140 148h16M148 140v16" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+                  </svg>
                   <h3>Belum ada obrolan</h3>
                   <p>Mulai percakapan baru dengan rekan tim Anda.</p>
                   <button className={styles.startChatBtn} onClick={() => setView("newChat")}>
