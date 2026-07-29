@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Task Manager",
   description: "Kelola tugas dan estimasi proyek.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 import DisableInspect from "@/components/DisableInspect";
