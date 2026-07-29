@@ -213,10 +213,177 @@
 
 .errorState button {
   padding: 10px 24px;
-  background-color: var(--color-primary);
+  background: var(--gradient-primary, linear-gradient(135deg, #2563eb 0%, #059669 100%));
   color: var(--color-on-primary);
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  font-weight: 600;
+}
+
+.btnPrimary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gradient-primary, linear-gradient(135deg, #2563eb 0%, #059669 100%));
+  color: #ffffff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.btnPrimary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.addCardBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px dashed var(--color-outline-variant);
+  color: var(--color-on-surface-variant);
+  font-size: 13px;
   font-weight: 500;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s;
+}
+
+.addCardBtn:hover {
+  background: rgba(37, 99, 235, 0.06);
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.columnDragOver {
+  background-color: rgba(37, 99, 235, 0.08) !important;
+  outline: 2px dashed #2563eb;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cardActions {
+  display: flex;
+  gap: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.card:hover .cardActions {
+  opacity: 1;
+}
+
+.cardActionBtn {
+  background: transparent;
+  border: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  transition: all 0.2s;
+}
+
+.cardActionBtn:hover {
+  background: var(--color-surface-container);
+  color: var(--color-primary);
+}
+
+.cardActionBtn.delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Modal & Form Elements */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.formGroup label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.input, .select {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-outline-variant);
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input:focus, .select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-outline-variant);
+}
+
+.modalActionsRight {
+  display: flex;
+  gap: 10px;
+}
+
+.btnSave {
+  padding: 10px 20px;
+  border: none;
+  background: var(--gradient-primary, linear-gradient(135deg, #2563eb 0%, #059669 100%));
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btnSave:hover {
+  opacity: 0.92;
+}
+
+.btnDanger {
+  padding: 10px 16px;
+  border: 1px solid #fecaca;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btnDanger:hover {
+  background: #fca5a5;
 }
