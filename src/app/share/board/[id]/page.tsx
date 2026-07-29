@@ -94,25 +94,6 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
           <h1>{project.projectName}</h1>
           <p>Kanban Board & Progress Notes</p>
         </div>
-        <button
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '8px 16px',
-            borderRadius: 8,
-            backgroundColor: 'var(--color-primary)',
-            color: 'var(--color-on-primary, #ffffff)',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 14,
-            fontWeight: 500,
-          }}
-          onClick={() => window.dispatchEvent(new CustomEvent("open-direct-chat"))}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chat</span>
-          Chat
-        </button>
       </header>
       
       <div className={styles.readOnlyBanner}>

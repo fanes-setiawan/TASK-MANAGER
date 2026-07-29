@@ -375,14 +375,6 @@ function SharePreviewContent() {
         </div>
 
         <div className={styles.toolbarRight}>
-          <button
-            className={styles.btnPrimary}
-            style={{ backgroundColor: "var(--color-surface-container-high, #334155)", color: "var(--color-on-surface, #f8fafc)" }}
-            onClick={() => window.dispatchEvent(new CustomEvent("open-direct-chat"))}
-            title="Chat dengan tim"
-          >
-            <span className="material-symbols-outlined">chat</span> Chat
-          </button>
           <button className={styles.btnPrimary} onClick={generatePDF}>
             <span className="material-symbols-outlined">download</span> Download PDF
           </button>
