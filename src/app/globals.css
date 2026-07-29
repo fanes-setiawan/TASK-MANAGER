@@ -68,6 +68,10 @@
   --font-body-md: "Inter", sans-serif;
   --font-body-lg: "Inter", sans-serif;
   --font-label-sm: "Inter", sans-serif;
+  --gradient-primary: linear-gradient(135deg, #2563eb 0%, #059669 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #1d4ed8 0%, #047857 100%);
+  --gradient-secondary: linear-gradient(135deg, #059669 0%, #2563eb 100%);
+  --gradient-subtle: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(5, 150, 105, 0.08) 100%);
 }
 
 :root {
@@ -90,6 +94,11 @@
   --color-secondary-fixed: #a7f3d0;
   --color-error: #dc2626;
   --color-on-error: #ffffff;
+  
+  --gradient-primary: linear-gradient(135deg, #2563eb 0%, #059669 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #1d4ed8 0%, #047857 100%);
+  --gradient-secondary: linear-gradient(135deg, #059669 0%, #2563eb 100%);
+  --gradient-subtle: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(5, 150, 105, 0.08) 100%);
   
   --spacing-gutter: 24px;
   --spacing-margin-mobile: 16px;
