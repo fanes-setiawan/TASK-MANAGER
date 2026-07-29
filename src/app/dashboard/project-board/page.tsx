@@ -18,7 +18,8 @@ import {
   getProjectById, 
   ProjectData,
   updateProjectTaskFull,
-  updateProjectShareSettings
+  updateProjectShareSettings,
+  updateProjectColumns
 } from "@/lib/firebase/firestore";
 import { auth, db } from "@/lib/firebase/client";
 import { onAuthStateChanged } from "firebase/auth";
@@ -32,6 +33,10 @@ const LEGACY_COLUMNS = [
   { name: "In Review", color: "#f9a8d4" },
   { name: "In Process Maintenance...", color: "#d8b4fe" },
   { name: "Done", color: "#86efac" }
+];
+
+const PRESET_COLORS = [
+  "#fca5a5", "#93c5fd", "#fde047", "#f9a8d4", "#d8b4fe", "#86efac", "#cbd5e1", "#2563eb", "#059669"
 ];
 
 function BoardContent() {
@@ -57,6 +62,13 @@ function BoardContent() {
   const [currentUserAvatar, setCurrentUserAvatar] = useState("");
   const [drawerWidth, setDrawerWidth] = useState(400);
   const isResizing = useRef(false);
+
+  // Column Header Management State
+  const [showColumnModal, setShowColumnModal] = useState(false);
+  const [editingColumnIndex, setEditingColumnIndex] = useState<number | null>(null);
+  const [columnNameInput, setColumnNameInput] = useState("");
+  const [columnColorInput, setColumnColorInput] = useState("#2563eb");
+  const [savingColumn, setSavingColumn] = useState(false);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing.current) return;
@@ -276,6 +288,85 @@ function BoardContent() {
     }
   };
 
+  // Column Header Handlers
+  const openAddColumnModal = () => {
+    setEditingColumnIndex(null);
+    setColumnNameInput("");
+    setColumnColorInput("#2563eb");
+    setShowColumnModal(true);
+  };
+
+  const openEditColumnModal = (index: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const col = activeColumns[index];
+    if (!col) return;
+    setEditingColumnIndex(index);
+    setColumnNameInput(col.name);
+    setColumnColorInput(col.color || "#2563eb");
+    setShowColumnModal(true);
+  };
+
+  const handleSaveColumnHeader = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!columnNameInput.trim() || !projectId) return;
+
+    setSavingColumn(true);
+    try {
+      let updatedColumns = [...activeColumns];
+      if (editingColumnIndex !== null) {
+        updatedColumns[editingColumnIndex] = {
+          name: columnNameInput.trim(),
+          color: columnColorInput
+        };
+      } else {
+        updatedColumns.push({
+          name: columnNameInput.trim(),
+          color: columnColorInput
+        });
+      }
+
+      await updateProjectColumns(projectId, updatedColumns);
+      if (project) {
+        setProject({ ...project, boardColumns: updatedColumns });
+      }
+      setShowColumnModal(false);
+    } catch (err) {
+      console.error("Failed to save column header:", err);
+      alert("Failed to save column header.");
+    } finally {
+      setSavingColumn(false);
+    }
+  };
+
+  const handleDeleteColumnHeader = async (index: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!projectId || activeColumns.length <= 1) {
+      alert("A board must have at least one column.");
+      return;
+    }
+
+    const colToDelete = activeColumns[index];
+    const tasksInCol = tasks.filter(t => t.status === colToDelete.name);
+    if (tasksInCol.length > 0) {
+      if (!confirm(`Header "${colToDelete.name}" has ${tasksInCol.length} task(s). Deleting it will remove the column header. Proceed?`)) {
+        return;
+      }
+    } else {
+      if (!confirm(`Are you sure you want to delete header "${colToDelete.name}"?`)) return;
+    }
+
+    try {
+      const updatedColumns = activeColumns.filter((_, idx) => idx !== index);
+      await updateProjectColumns(projectId, updatedColumns);
+      if (project) {
+        setProject({ ...project, boardColumns: updatedColumns });
+      }
+    } catch (err) {
+      console.error("Failed to delete column:", err);
+      alert("Failed to delete column header.");
+    }
+  };
+
   const isOwner = project?.createdBy === userId;
 
   if (loading) {
@@ -331,10 +422,16 @@ function BoardContent() {
         
         <div className={styles.headerActions}>
           {isOwner && (
-            <button className={styles.btnShare} onClick={() => setShowShareModal(true)}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>share</span>
-              Share
-            </button>
+            <>
+              <button className={styles.btnShare} onClick={openAddColumnModal} style={{ background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--color-primary)' }}>add_box</span>
+                Add Column Header
+              </button>
+              <button className={styles.btnShare} onClick={() => setShowShareModal(true)}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>share</span>
+                Share
+              </button>
+            </>
           )}
           <button className={styles.btnBack} onClick={() => router.push('/dashboard')}>
             <span className="material-symbols-outlined">arrow_back</span>
@@ -352,7 +449,7 @@ function BoardContent() {
 
       <div className={styles.boardScroll}>
         <div className={styles.board}>
-          {activeColumns.map(col => {
+          {activeColumns.map((col, colIdx) => {
             const status = col.name;
             const columnTasks = tasks.filter(t => t.status === status);
             return (
@@ -368,7 +465,27 @@ function BoardContent() {
                     <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: col.color || "#cbd5e1" }}></div>
                     {status}
                   </div>
-                  <span className={styles.taskCount}>{columnTasks.length}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span className={styles.taskCount}>{columnTasks.length}</span>
+                    {isOwner && (
+                      <div className={styles.columnHeaderActions}>
+                        <button 
+                          className={styles.btnColumnHeaderAction} 
+                          onClick={(e) => openEditColumnModal(colIdx, e)}
+                          title="Edit Header Name / Color"
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
+                        </button>
+                        <button 
+                          className={`${styles.btnColumnHeaderAction} ${styles.delete}`} 
+                          onClick={(e) => handleDeleteColumnHeader(colIdx, e)}
+                          title="Delete Header"
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className={styles.columnBody}>
@@ -409,6 +526,13 @@ function BoardContent() {
               </div>
             );
           })}
+
+          {isOwner && (
+            <div className={styles.addColumnCard} onClick={openAddColumnModal}>
+              <span className="material-symbols-outlined">add_circle</span>
+              <span>Add Column Header</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -455,6 +579,69 @@ function BoardContent() {
                     {saving ? 'Saving...' : 'Save Note'}
                   </button>
                 )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showColumnModal && (
+        <div className={styles.modalOverlay} onClick={() => !savingColumn && setShowColumnModal(false)}>
+          <div className={styles.modal} style={{ width: 450, maxWidth: '90%', height: 'auto', alignSelf: 'center', borderRadius: 16 }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ marginBottom: 8 }}>{editingColumnIndex !== null ? "Edit Column Header" : "Add Column Header"}</h2>
+            <p style={{ fontSize: 13, color: 'var(--color-on-surface-variant)', marginBottom: 20 }}>
+              Customize your Kanban board columns and statuses.
+            </p>
+            <form onSubmit={handleSaveColumnHeader}>
+              <div className={styles.formGroup} style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: 'block' }}>Header Name</label>
+                <input 
+                  autoFocus
+                  required
+                  placeholder="e.g. Backlog, Testing, Released..."
+                  value={columnNameInput}
+                  onChange={e => setColumnNameInput(e.target.value)}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--color-outline-variant)' }}
+                />
+              </div>
+
+              <div className={styles.formGroup} style={{ marginBottom: 24 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: 'block' }}>Header Color Indicator</label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {PRESET_COLORS.map(c => (
+                    <div 
+                      key={c}
+                      onClick={() => setColumnColorInput(c)}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        backgroundColor: c,
+                        cursor: 'pointer',
+                        border: columnColorInput === c ? '2px solid #0f172a' : '2px solid transparent',
+                        boxShadow: columnColorInput === c ? '0 0 0 2px white inset' : 'none'
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                <button 
+                  type="button" 
+                  className={styles.btnCancel} 
+                  onClick={() => setShowColumnModal(false)}
+                  disabled={savingColumn}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className={styles.btnSubmit} 
+                  disabled={savingColumn || !columnNameInput.trim()}
+                >
+                  {savingColumn ? "Saving..." : (editingColumnIndex !== null ? "Update Header" : "Add Header")}
+                </button>
               </div>
             </form>
           </div>

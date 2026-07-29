@@ -82,6 +82,67 @@
   font-size: 14px;
 }
 
+.columnHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.columnHeader:hover .columnHeaderActions {
+  opacity: 1;
+}
+
+.btnColumnHeaderAction {
+  background: transparent;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  transition: all 0.2s;
+}
+
+.btnColumnHeaderAction:hover {
+  background: var(--color-surface-container-highest);
+  color: var(--color-primary);
+}
+
+.btnColumnHeaderAction.delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.addColumnCard {
+  min-width: 260px;
+  width: 260px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.addColumnCard:hover {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: #2563eb;
+  transform: translateY(-2px);
+}
+
 .taskCount {
   background-color: var(--color-surface-container-highest);
   padding: 2px 8px;
