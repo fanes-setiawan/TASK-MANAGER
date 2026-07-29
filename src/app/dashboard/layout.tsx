@@ -26,7 +26,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     let currentUserId: string | null = null;
-    
+
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUserId = user.uid;
@@ -114,8 +114,8 @@ export default function DashboardLayout({
   return (
     <div className={styles.container}>
       {/* Mobile Overlay */}
-      <div 
-        className={`${styles.overlay} ${isMobileMenuOpen ? styles.overlayOpen : ""}`} 
+      <div
+        className={`${styles.overlay} ${isMobileMenuOpen ? styles.overlayOpen : ""}`}
         onClick={() => setIsMobileMenuOpen(false)}
       ></div>
 
@@ -219,8 +219,8 @@ export default function DashboardLayout({
       <main className={styles.mainContent}>
         {/* TopAppBar */}
         <header className={styles.header}>
-          <button 
-            className={`${styles.iconButton} ${styles.mobileMenuBtn}`} 
+          <button
+            className={`${styles.iconButton} ${styles.mobileMenuBtn}`}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             <span className="material-symbols-outlined">menu</span>
@@ -237,8 +237,8 @@ export default function DashboardLayout({
           </div>
           <div className={styles.headerRight}>
             <div style={{ position: "relative" }}>
-              <button 
-                className={styles.iconButton} 
+              <button
+                className={styles.iconButton}
                 onClick={() => setShowNotifications(!showNotifications)}
               >
                 <span className="material-symbols-outlined">notifications</span>
@@ -261,8 +261,8 @@ export default function DashboardLayout({
                       <div className={styles.emptyNotifications}>No new notifications</div>
                     ) : (
                       notifications.map(notif => (
-                        <div 
-                          key={notif.id} 
+                        <div
+                          key={notif.id}
                           className={`${styles.notificationItem} ${!notif.isRead ? styles.unread : ''}`}
                           onClick={() => handleNotificationClick(notif)}
                         >
@@ -278,7 +278,7 @@ export default function DashboardLayout({
                 </div>
               )}
             </div>
-            
+
             <button className={styles.iconButton} onClick={() => router.push('/dashboard/settings')}>
               <span className="material-symbols-outlined">settings</span>
             </button>

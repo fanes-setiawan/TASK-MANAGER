@@ -13,7 +13,7 @@ function ProposalPreviewContent() {
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [loading, setLoading] = useState(!!projectId);
   const [zoomLevel, setZoomLevel] = useState(100);
-  const [logoUrl, setLogoUrl] = useState("/logo.png");
+  const [logoUrl, setLogoUrl] = useState("https://lh3.googleusercontent.com/aida-public/AB6AXuCAYxl62mvvaeKBMqiPv_xjWNJzn8AdapjWlfPMNMhCGQVzO059qxdGliakroZemwD6hYRC0dttMr5lZdIfj7k9a-qTbXWgM8KdeAi_HPZjuM0-eQIhd2LCgclnTHZqCjTLOQdKvuyx62Vhww9CZIBD1QxAY3QgquvRm-hx0wECm-OkzeQRKOFalfoO51bFxutpK-aZ6gGhvtmSgAF3cbb4GTeT7UHvko4nkpV_EqYaFg56Zajg8GWSHBTExXH8hmcpRiwZLX1YqVI");
   const [themeColor, setThemeColor] = useState("#000000");
   const [activeThumb, setActiveThumb] = useState(0);
   const [isDraft, setIsDraft] = useState(false);
@@ -31,7 +31,7 @@ function ProposalPreviewContent() {
   const [savedLogos, setSavedLogos] = useState<SavedLogo[]>([]);
   const [savedWatermarks, setSavedWatermarks] = useState<SavedWatermark[]>([]);
   const [uploadingWatermark, setUploadingWatermark] = useState(false);
-  
+
   // Share Modal States
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
@@ -337,7 +337,7 @@ function ProposalPreviewContent() {
   // Flatten modules and subtasks into rows
   const flatRows: any[] = [];
   let globalModIdx = 0;
-  
+
   modules.forEach((mod: any) => {
     let modCost = 0;
     if (mod.subtasks && Array.isArray(mod.subtasks)) {
@@ -364,7 +364,7 @@ function ProposalPreviewContent() {
         });
       });
     }
-    
+
     globalModIdx++;
   });
 
@@ -420,25 +420,25 @@ function ProposalPreviewContent() {
           <button className={styles.btnIconOnly} title="Share Link" onClick={() => setShareModalOpen(true)}>
             <span className="material-symbols-outlined">share</span>
           </button>
-          
+
           <div className={styles.toolbarDivider}></div>
-          
+
           <div style={{ position: 'relative' }}>
             <button className={styles.btnIconOnly} title="More Options" onClick={() => setMenuOpen(!menuOpen)}>
               <span className="material-symbols-outlined">more_vert</span>
             </button>
-            
+
             {menuOpen && (
-              <div 
+              <div
                 style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, backgroundColor: 'white', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: 220, padding: '8px 0', zIndex: 100, border: '1px solid var(--color-outline-variant)', display: 'flex', flexDirection: 'column' }}
                 onClick={() => setMenuOpen(false)}
               >
                 <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', color: 'var(--color-on-surface)', fontSize: 14, fontFamily: 'var(--font-body-md)' }} onClick={() => alert("Regenerating proposal...")} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-container-low)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--color-on-surface-variant)' }}>refresh</span> 
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--color-on-surface-variant)' }}>refresh</span>
                   Generate Again
                 </button>
                 <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: uploadingLogo ? 'wait' : 'pointer', color: 'var(--color-on-surface)', fontSize: 14, fontFamily: 'var(--font-body-md)' }} onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); setMenuOpen(false); }} disabled={uploadingLogo} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-container-low)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--color-on-surface-variant)' }}>{uploadingLogo ? 'hourglass_empty' : 'upload'}</span> 
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--color-on-surface-variant)' }}>{uploadingLogo ? 'hourglass_empty' : 'upload'}</span>
                   {uploadingLogo ? 'Uploading...' : 'Upload Cover Logo'}
                 </button>
               </div>
@@ -869,7 +869,7 @@ function ProposalPreviewContent() {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            
+
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div>
@@ -887,8 +887,8 @@ function ProposalPreviewContent() {
               {isPublic && (
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", marginBottom: 8, fontSize: 14, fontWeight: 500 }}>Access Level</label>
-                  <select 
-                    value={sharePermission} 
+                  <select
+                    value={sharePermission}
                     onChange={(e) => setSharePermission(e.target.value as "view" | "edit")}
                     style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--color-outline-variant)", backgroundColor: "var(--color-surface)", fontSize: 14 }}
                   >
@@ -904,8 +904,8 @@ function ProposalPreviewContent() {
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>content_copy</span>
                 Copy Link
               </button>
-              <button 
-                onClick={handleSaveShareSettings} 
+              <button
+                onClick={handleSaveShareSettings}
                 disabled={isSavingShare}
                 style={{ flex: 1, padding: "10px 16px", borderRadius: 8, border: "none", backgroundColor: "var(--color-primary)", color: "var(--color-on-primary)", cursor: isSavingShare ? "wait" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
               >

@@ -59,9 +59,9 @@ export default function LoginPage() {
               />
             </div>
             <div className={styles.floatingAsset1}>
-              <div style={{ height: 8, width: "75%", background: "rgba(0,105,81,0.2)", borderRadius: 4, marginBottom: 8 }}></div>
-              <div style={{ height: 8, width: "50%", background: "rgba(0,105,81,0.1)", borderRadius: 4, marginBottom: 16 }}></div>
-              <div style={{ flex: 1, border: "1px dashed rgba(0,105,81,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ height: 8, width: "75%", background: "rgba(37,99,235,0.2)", borderRadius: 4, marginBottom: 8 }}></div>
+              <div style={{ height: 8, width: "50%", background: "rgba(37,99,235,0.1)", borderRadius: 4, marginBottom: 16 }}></div>
+              <div style={{ flex: 1, border: "1px dashed rgba(37,99,235,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <span className="material-symbols-outlined" style={{ color: "var(--color-primary)" }}>description</span>
               </div>
             </div>
@@ -82,11 +82,12 @@ export default function LoginPage() {
 
       <div className={styles.rightSection}>
         <div className={styles.headerLogo}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', backgroundColor: 'var(--color-primary)', borderRadius: '8px' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M19 3H5C3.89 3 3.01 3.89 3 5V19C3 20.11 3.89 21 5 21H19C20.11 21 21 20.11 21 19V5C21 3.89 20.11 3 19 3ZM19 19H5V5H19V19ZM17 12H15V17H17V12ZM13 7H11V17H13V7ZM9 14H7V17H9V14Z" fill="white"/>
-            </svg>
-          </div>
+          <img
+            src="/logo.png"
+            alt="Task Manager Logo"
+            className={styles.logoImage}
+            style={{ objectFit: "contain" }}
+          />
           <span>Task Manager</span>
         </div>
 

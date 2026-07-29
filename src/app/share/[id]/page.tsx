@@ -15,7 +15,7 @@ function SharePreviewContent() {
   const [accessDenied, setAccessDenied] = useState(false);
   const [permission, setPermission] = useState<"view" | "edit">("view");
   const [zoomLevel, setZoomLevel] = useState(100);
-  const [logoUrl, setLogoUrl] = useState("/logo.png");
+  const [logoUrl, setLogoUrl] = useState("https://lh3.googleusercontent.com/aida-public/AB6AXuCAYxl62mvvaeKBMqiPv_xjWNJzn8AdapjWlfPMNMhCGQVzO059qxdGliakroZemwD6hYRC0dttMr5lZdIfj7k9a-qTbXWgM8KdeAi_HPZjuM0-eQIhd2LCgclnTHZqCjTLOQdKvuyx62Vhww9CZIBD1QxAY3QgquvRm-hx0wECm-OkzeQRKOFalfoO51bFxutpK-aZ6gGhvtmSgAF3cbb4GTeT7UHvko4nkpV_EqYaFg56Zajg8GWSHBTExXH8hmcpRiwZLX1YqVI");
   const [themeColor, setThemeColor] = useState("#000000");
   const [activeThumb, setActiveThumb] = useState(0);
   const [isDraft, setIsDraft] = useState(false);
@@ -624,7 +624,7 @@ function SharePreviewContent() {
               <div className={styles.propGroup}>
                 <label className={styles.propLabel}>Theme Color</label>
                 <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                  {["#006951", "#1B2A4A", "#D3A13B", "#7F41E8"].map(c => (
+                  {["#2563EB", "#059669", "#1B2A4A", "#7F41E8"].map(c => (
                     <div
                       key={c}
                       onClick={() => setThemeColor(c)}
