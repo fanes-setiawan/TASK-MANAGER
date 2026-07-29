@@ -11,7 +11,9 @@ import {
   deleteDirectChat,
   ActiveChatSession,
 } from "@/lib/firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { useRouter } from "next/navigation";
+import { onAuthStateChanged } from "firebase/auth";
+import { db, auth } from "@/lib/firebase/client";
 import {
   collection,
   query,
@@ -50,12 +52,43 @@ interface ActiveChatWithUser extends ActiveChatSession {
 }
 
 interface DirectChatProps {
-  currentUserId: string;
+  currentUserId?: string | null;
 }
 
-export default function DirectChat({ currentUserId }: DirectChatProps) {
+export default function DirectChat({ currentUserId: propUserId }: DirectChatProps = {}) {
+  const router = useRouter();
+  const [authUserId, setAuthUserId] = useState<string | null>(propUserId ?? auth?.currentUser?.uid ?? null);
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<View>("activeChats");
+
+  useEffect(() => {
+    if (propUserId !== undefined) {
+      setAuthUserId(propUserId);
+      return;
+    }
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setAuthUserId(user ? user.uid : null);
+    });
+    return () => unsub();
+  }, [propUserId]);
+
+  const activeUserId = propUserId || authUserId;
+
+  const handleOpenChat = () => {
+    if (!activeUserId) {
+      router.push("/login");
+      return;
+    }
+    setIsOpen(true);
+  };
+
+  useEffect(() => {
+    const handleCustomOpen = () => {
+      handleOpenChat();
+    };
+    window.addEventListener("open-direct-chat", handleCustomOpen);
+    return () => window.removeEventListener("open-direct-chat", handleCustomOpen);
+  }, [activeUserId]);
 
   // Data for views
   const [activeChats, setActiveChats] = useState<ActiveChatWithUser[]>([]);
@@ -95,19 +128,19 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
 
   // ── Listen to active chats for current user ──────────────────────
   useEffect(() => {
-    if (!isOpen || !currentUserId) return;
+    if (!isOpen || !activeUserId) return;
 
     // Query without orderBy to avoid composite index requirement — sort client-side
     const q = query(
       collection(db, "direct_chats"),
-      where("participants", "array-contains", currentUserId)
+      where("participants", "array-contains", activeUserId)
     );
 
     const unsub = onSnapshot(q, async (snap) => {
       const sessions: ActiveChatWithUser[] = [];
       for (const docSnap of snap.docs) {
         const data = docSnap.data() as ActiveChatSession;
-        const otherId = data.participants.find((p) => p !== currentUserId);
+        const otherId = data.participants.find((p) => p !== activeUserId);
         let otherUser: UserProfile | null = null;
         if (otherId) {
           const userSnap = await getDoc(doc(db, "users", otherId));
@@ -125,24 +158,24 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
     });
 
     return () => unsub();
-  }, [isOpen, currentUserId]);
+  }, [isOpen, activeUserId]);
 
   // ── Listen to all users for contact picker ─────────────────────────
   useEffect(() => {
-    if (view !== "newChat" || !isOpen) return;
+    if (view !== "newChat" || !isOpen || !activeUserId) return;
 
     const q = query(collection(db, "users"), orderBy("displayName", "asc"));
     const unsub = onSnapshot(q, (snap) => {
       const users: UserProfile[] = [];
       snap.forEach((d) => {
         const u = d.data() as UserProfile;
-        if (u.uid !== currentUserId) users.push(u);
+        if (u.uid !== activeUserId) users.push(u);
       });
       setAllUsers(users);
     });
 
     return () => unsub();
-  }, [view, isOpen, currentUserId]);
+  }, [view, isOpen, activeUserId]);
 
   // ── Listen to selected user's profile (presence) ──────────────────
   useEffect(() => {
@@ -155,7 +188,7 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
 
   // ── Listen to messages in chat room ───────────────────────────────
   useEffect(() => {
-    if (!currentChatId) return;
+    if (!currentChatId || !activeUserId) return;
 
     const q = query(
       collection(db, "direct_chats", currentChatId, "messages"),
@@ -169,7 +202,7 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
       snap.forEach((d) => {
         const msg = { id: d.id, ...d.data() } as DirectMessage;
         msgs.push(msg);
-        if (msg.senderId !== currentUserId && !msg.isRead) unreadIds.push(msg.id!);
+        if (msg.senderId !== activeUserId && !msg.isRead) unreadIds.push(msg.id!);
       });
       setMessages(msgs);
       if (unreadIds.length > 0) {
@@ -178,7 +211,7 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
     });
 
     return () => unsub();
-  }, [currentChatId, currentUserId]);
+  }, [currentChatId, activeUserId]);
 
   // Auto-scroll
   useEffect(() => {
@@ -187,7 +220,8 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
 
   // ── Handlers ──────────────────────────────────────────────────────
   const openChatWith = (user: UserProfile) => {
-    const chatId = getDirectChatId(currentUserId, user.uid);
+    if (!activeUserId) return;
+    const chatId = getDirectChatId(activeUserId, user.uid);
     setSelectedUser(user);
     setCurrentChatId(chatId);
     setView("chatRoom");
@@ -196,10 +230,10 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || isSending || !selectedUser || !currentChatId) return;
+    if (!inputText.trim() || isSending || !selectedUser || !currentChatId || !activeUserId) return;
     setIsSending(true);
     try {
-      await sendDirectMessage(currentUserId, selectedUser.uid, inputText.trim());
+      await sendDirectMessage(activeUserId, selectedUser.uid, inputText.trim());
       setInputText("");
     } catch {
       alert("Gagal mengirim pesan. Periksa Firebase Rules Anda.");
@@ -239,7 +273,7 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
   return (
     <>
       {/* FAB */}
-      <button className={styles.fabChat} onClick={() => setIsOpen(true)} title="Open Messages">
+      <button className={styles.fabChat} onClick={handleOpenChat} title="Open Messages">
         <span className="material-symbols-outlined">chat</span>
       </button>
 
@@ -307,7 +341,7 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
                           <span className={styles.chatCardTime}>{formatTime(chat.lastMessageTime)}</span>
                         </div>
                         <div className={styles.chatCardLastMsg}>
-                          {chat.lastMessageSenderId === currentUserId ? "Anda: " : ""}
+                          {chat.lastMessageSenderId === activeUserId ? "Anda: " : ""}
                           {chat.lastMessage || "Mulai percakapan..."}
                         </div>
                       </div>
@@ -429,7 +463,7 @@ export default function DirectChat({ currentUserId }: DirectChatProps) {
                 </div>
               ) : (
                 messages.map((msg) => {
-                  const isMine = msg.senderId === currentUserId;
+                  const isMine = msg.senderId === activeUserId;
                   return (
                     <div key={msg.id} className={`${styles.messageRow} ${isMine ? styles.isMine : ""}`}>
                       <div className={styles.messageContent}>
