@@ -304,6 +304,7 @@ export default function ProjectsPage() {
                     key={project.id}
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
+                    <div className={styles.cardAccentBar} />
                     <div className={styles.checkboxWrapper}>
                       <input 
                         type="checkbox" 
@@ -317,15 +318,15 @@ export default function ProjectsPage() {
                       <div className={styles.projectInfo}>
                         <h3 className={styles.projectName}>{project.projectName || "Unnamed Project"}</h3>
                         <div className={styles.clientName}>
-                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>person</span>
+                          <span className="material-symbols-outlined" style={{ fontSize: 14, color: "var(--color-primary)" }}>domain</span>
                           {project.clientName || "Unknown Client"}
                         </div>
                       </div>
                       <div className={styles.actionButtons}>
-                        <button className={styles.iconBtn} onClick={() => openEditModal(project)} title="Edit">
+                        <button className={styles.iconBtn} onClick={() => openEditModal(project)} title="Edit Project">
                           <span className="material-symbols-outlined">edit</span>
                         </button>
-                        <button className={`${styles.iconBtn} ${styles.delete}`} onClick={() => confirmDelete(project)} title="Delete">
+                        <button className={`${styles.iconBtn} ${styles.delete}`} onClick={() => confirmDelete(project)} title="Delete Project">
                           <span className="material-symbols-outlined">delete</span>
                         </button>
                       </div>
@@ -333,16 +334,22 @@ export default function ProjectsPage() {
 
                     <div className={styles.cardBody}>
                       <div className={styles.infoRow}>
-                        <span className={styles.infoLabel}>Date Created</span>
+                        <span className={styles.infoLabel}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 15 }}>calendar_today</span>
+                          Date Created
+                        </span>
                         <span className={styles.infoValue}>
                           {project.createdAt?.seconds 
-                            ? new Date(project.createdAt.seconds * 1000).toLocaleDateString() 
+                            ? new Date(project.createdAt.seconds * 1000).toLocaleDateString("id-ID", { year: 'numeric', month: 'short', day: 'numeric' }) 
                             : "Unknown"}
                         </span>
                       </div>
                       <div className={styles.infoRow}>
-                        <span className={styles.infoLabel}>Rate</span>
-                        <span className={styles.infoValue}>
+                        <span className={styles.infoLabel}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 15 }}>payments</span>
+                          Rate
+                        </span>
+                        <span className={styles.infoValueTag}>
                           {project.currency.includes("IDR") ? "Rp " : "$"}{project.ratePerPoint.toLocaleString()} / pt
                         </span>
                       </div>
@@ -364,16 +371,20 @@ export default function ProjectsPage() {
                         <span className={`material-symbols-outlined ${styles.statusIcon}`}>expand_more</span>
                       </div>
                       
-                      <Link href={`/dashboard/proposal-preview?projectId=${project.id}`}>
-                        <button className={styles.iconBtn} title="View Proposal" style={{ color: 'var(--color-primary)' }}>
-                          <span className="material-symbols-outlined">description</span>
-                        </button>
-                      </Link>
-                      <Link href={`/dashboard/project-board?id=${project.id}`}>
-                        <button className={styles.iconBtn} title="Kanban Board / Notes" style={{ color: 'var(--color-primary)' }}>
-                          <span className="material-symbols-outlined">view_kanban</span>
-                        </button>
-                      </Link>
+                      <div className={styles.cardQuickLinks}>
+                        <Link href={`/dashboard/proposal-preview?projectId=${project.id}`}>
+                          <button className={styles.actionBadgeBtn} title="View Proposal">
+                            <span className="material-symbols-outlined">description</span>
+                            <span>Proposal</span>
+                          </button>
+                        </Link>
+                        <Link href={`/dashboard/project-board?id=${project.id}`}>
+                          <button className={styles.actionBadgeBtn} title="Kanban Board">
+                            <span className="material-symbols-outlined">view_kanban</span>
+                            <span>Board</span>
+                          </button>
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 );
