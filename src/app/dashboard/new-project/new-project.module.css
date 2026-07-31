@@ -509,3 +509,174 @@
   cursor: pointer;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
+
+/* Preset Section Styles */
+.presetCard {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid var(--color-outline-variant);
+  padding: var(--spacing-unit-md);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.presetHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.presetTitleArea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.presetTitle {
+  font-family: var(--font-headline-md);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-on-surface);
+  margin: 0;
+}
+
+.btnAddPreset {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--color-surface-container);
+  color: var(--color-primary);
+  border: 1px solid var(--color-outline-variant);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnAddPreset:hover {
+  background-color: var(--color-primary-container);
+}
+
+.presetGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.presetItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-surface-container-low);
+  border: 1px solid var(--color-outline-variant);
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.presetItem:hover {
+  background-color: white;
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0,105,81,0.12);
+  transform: translateY(-1px);
+}
+
+.presetItemName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.priceTag {
+  background-color: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.presetActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.presetActionBtn {
+  background: none;
+  border: none;
+  color: var(--color-outline);
+  padding: 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.presetActionBtn:hover {
+  color: var(--color-on-surface);
+  background-color: rgba(0,0,0,0.06);
+}
+
+.toastNotification {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #047857;
+  font-size: 13px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Modal Overlay & Form */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modalContent {
+  background: white;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-on-surface);
+  margin: 0;
+}

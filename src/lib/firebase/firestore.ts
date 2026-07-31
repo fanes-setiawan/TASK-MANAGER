@@ -530,3 +530,79 @@ export interface ActiveChatSession {
   lastMessageTime?: any;
   lastMessageSenderId?: string;
 }
+
+// --- Fixed Price Task Presets ---
+export interface FixedPricePreset {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  createdAt?: string;
+}
+
+export const DEFAULT_FIXED_PRESETS: FixedPricePreset[] = [
+  { id: "def-1", name: "Release Aplikasi", description: "Build & deploy ke App Store / Play Store", price: 100000 },
+  { id: "def-2", name: "Build Android & iOS", description: "Kompilasi installer Android (APK/AAB) & iOS (IPA)", price: 50000 },
+  { id: "def-3", name: "Deploy Store", description: "Upload binary ke Console Store & submit review", price: 50000 },
+  { id: "def-4", name: "Setup Domain & SSL", description: "Konfigurasi DNS, SSL Certificate & Custom Domain", price: 75000 },
+];
+
+export async function getFixedPricePresets(userId: string): Promise<FixedPricePreset[]> {
+  const { doc, getDoc } = await import("firebase/firestore");
+  const userRef = doc(db, "users", userId);
+  const userSnap = await getDoc(userRef);
+  
+  if (userSnap.exists()) {
+    const data = userSnap.data();
+    if (data.fixedPricePresets && Array.isArray(data.fixedPricePresets) && data.fixedPricePresets.length > 0) {
+      return data.fixedPricePresets;
+    }
+  }
+  return DEFAULT_FIXED_PRESETS;
+}
+
+export async function saveFixedPricePreset(userId: string, preset: Omit<FixedPricePreset, "id">): Promise<FixedPricePreset> {
+  const { doc, getDoc, setDoc, updateDoc, arrayUnion } = await import("firebase/firestore");
+  const userRef = doc(db, "users", userId);
+  const userSnap = await getDoc(userRef);
+  
+  const currentPresets = userSnap.exists() && userSnap.data().fixedPricePresets 
+    ? userSnap.data().fixedPricePresets 
+    : DEFAULT_FIXED_PRESETS;
+
+  const newPreset: FixedPricePreset = {
+    ...preset,
+    id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
+    createdAt: new Date().toISOString()
+  };
+
+  const updated = [...currentPresets, newPreset];
+  await setDoc(userRef, { fixedPricePresets: updated }, { merge: true });
+  return newPreset;
+}
+
+export async function updateFixedPricePreset(userId: string, preset: FixedPricePreset): Promise<void> {
+  const { doc, getDoc, setDoc } = await import("firebase/firestore");
+  const userRef = doc(db, "users", userId);
+  const userSnap = await getDoc(userRef);
+  
+  const currentPresets: FixedPricePreset[] = userSnap.exists() && userSnap.data().fixedPricePresets 
+    ? userSnap.data().fixedPricePresets 
+    : DEFAULT_FIXED_PRESETS;
+
+  const updated = currentPresets.map(p => p.id === preset.id ? preset : p);
+  await setDoc(userRef, { fixedPricePresets: updated }, { merge: true });
+}
+
+export async function deleteFixedPricePreset(userId: string, presetId: string): Promise<void> {
+  const { doc, getDoc, setDoc } = await import("firebase/firestore");
+  const userRef = doc(db, "users", userId);
+  const userSnap = await getDoc(userRef);
+  
+  const currentPresets: FixedPricePreset[] = userSnap.exists() && userSnap.data().fixedPricePresets 
+    ? userSnap.data().fixedPricePresets 
+    : DEFAULT_FIXED_PRESETS;
+
+  const updated = currentPresets.filter(p => p.id !== presetId);
+  await setDoc(userRef, { fixedPricePresets: updated }, { merge: true });
+}
