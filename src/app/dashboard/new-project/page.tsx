@@ -135,7 +135,7 @@ export default function NewProjectPage() {
 
   const handleDeletePreset = async (presetId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Hapus preset task ini dari Firebase?")) return;
+    if (!confirm("Hapus preset task ini?")) return;
     const user = auth.currentUser;
     if (user) {
       await deleteFixedPricePreset(user.uid, presetId);
@@ -266,36 +266,40 @@ export default function NewProjectPage() {
 
   return (
     <div className={styles.container}>
-      {/* Left Column: Form & Editor */}
+      {/* Left Column */}
       <div className={styles.leftCol}>
         
-        {/* Project Information Form */}
+        {/* Project Info Form */}
         <div className={styles.card}>
-          <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 className={styles.cardTitle}>Project Information</h2>
+          <div className={styles.cardHeader} style={{ justifyContent: "space-between" }}>
+            <h3 className={styles.cardTitle}>Project Information</h3>
             {savedClients.length > 0 && (
               <select 
                 className={styles.input} 
-                style={{ width: '200px', fontSize: '13px', padding: '6px 12px' }}
+                style={{ width: "auto", fontSize: 13, padding: "6px 12px" }}
                 onChange={(e) => {
-                  const client = savedClients.find(c => c.id === e.target.value);
+                  const selectedId = e.target.value;
+                  if (!selectedId) return;
+                  const client = savedClients.find(c => c.id === selectedId);
                   if (client) {
-                    setFormData({
-                      ...formData,
+                    setFormData(prev => ({
+                      ...prev,
                       clientName: client.name || "",
                       company: client.company || "",
                       email: client.email || "",
                       phone: client.phone || "",
                       address: client.address || "",
                       clientLogoUrl: client.logoUrl || "",
-                      clientLogoPublicId: client.logoPublicId || "",
-                    });
+                      clientLogoPublicId: client.logoPublicId || ""
+                    }));
                   }
                 }}
               >
                 <option value="">-- Auto-fill from Client --</option>
-                {savedClients.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                {savedClients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.company ? `${client.company} (${client.name})` : client.name}
+                  </option>
                 ))}
               </select>
             )}
@@ -348,53 +352,6 @@ export default function NewProjectPage() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Fixed Price Presets Toolbar */}
-        <div className={styles.presetCard}>
-          <div className={styles.presetHeader}>
-            <div className={styles.presetTitleArea}>
-              <span className="material-symbols-outlined" style={{ color: "var(--color-primary)", fontSize: 20 }}>
-                sell
-              </span>
-              <h4 className={styles.presetTitle}>Preset Task Harga Tetap (Firebase Stored)</h4>
-            </div>
-            <button className={styles.btnAddPreset} onClick={handleOpenNewPresetModal}>
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-              Tambah Preset
-            </button>
-          </div>
-
-          <div className={styles.presetGrid}>
-            {fixedPresets.map((preset) => (
-              <div 
-                key={preset.id} 
-                className={styles.presetItem}
-                onClick={() => handleInsertPresetToJson(preset)}
-                title={preset.description ? `${preset.description} - Klik untuk menyisipkan ke JSON` : "Klik untuk menyisipkan ke JSON"}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 16, color: "var(--color-primary)" }}>add_circle</span>
-                <span className={styles.presetItemName}>{preset.name}</span>
-                <span className={styles.priceTag}>Rp {preset.price.toLocaleString("id-ID")}</span>
-                
-                <div className={styles.presetActions}>
-                  <button className={styles.presetActionBtn} onClick={(e) => handleOpenEditPresetModal(preset, e)} title="Edit preset">
-                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
-                  </button>
-                  <button className={styles.presetActionBtn} onClick={(e) => handleDeletePreset(preset.id, e)} title="Hapus preset">
-                    <span className="material-symbols-outlined" style={{ fontSize: 14, color: "#ef4444" }}>delete</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {presetSuccessToast && (
-            <div className={styles.toastNotification}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check_circle</span>
-              {presetSuccessToast}
-            </div>
-          )}
         </div>
 
         {/* JSON Editor */}
@@ -464,7 +421,7 @@ export default function NewProjectPage() {
 
       </div>
 
-      {/* Right Column: Live Summary */}
+      {/* Right Column: Live Summary & Fixed Price Presets Catalog */}
       <div className={styles.rightCol}>
         <div className={styles.summaryCard}>
           <h3 className={styles.summaryHeader}>
@@ -515,9 +472,55 @@ export default function NewProjectPage() {
               </p>
             )}
           </div>
-
-
         </div>
+
+        {/* Katalog Task Harga Tetap (Right Sidebar) */}
+        <div className={styles.presetCard}>
+          <div className={styles.presetHeader}>
+            <div className={styles.presetTitleArea}>
+              <span className="material-symbols-outlined" style={{ color: "var(--color-primary)", fontSize: 20 }}>
+                sell
+              </span>
+              <h4 className={styles.presetTitle}>Katalog Task Harga Tetap</h4>
+            </div>
+            <button className={styles.btnAddPreset} onClick={handleOpenNewPresetModal}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+              Tambah
+            </button>
+          </div>
+
+          <div className={styles.presetGrid}>
+            {fixedPresets.map((preset) => (
+              <div 
+                key={preset.id} 
+                className={styles.presetItem}
+                onClick={() => handleInsertPresetToJson(preset)}
+                title={preset.description ? `${preset.description} - Klik untuk menyisipkan ke JSON` : "Klik untuk menyisipkan ke JSON"}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: "var(--color-primary)" }}>add_circle</span>
+                <span className={styles.presetItemName}>{preset.name}</span>
+                <span className={styles.priceTag}>Rp {preset.price.toLocaleString("id-ID")}</span>
+                
+                <div className={styles.presetActions}>
+                  <button className={styles.presetActionBtn} onClick={(e) => handleOpenEditPresetModal(preset, e)} title="Edit preset">
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
+                  </button>
+                  <button className={styles.presetActionBtn} onClick={(e) => handleDeletePreset(preset.id, e)} title="Hapus preset">
+                    <span className="material-symbols-outlined" style={{ fontSize: 14, color: "#ef4444" }}>delete</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {presetSuccessToast && (
+            <div className={styles.toastNotification}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check_circle</span>
+              {presetSuccessToast}
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* Preset Create / Edit Modal */}
@@ -572,7 +575,7 @@ export default function NewProjectPage() {
                 Batal
               </button>
               <button className={styles.btnPrimary} onClick={handleSavePreset}>
-                Simpan ke Firebase
+                Simpan Preset
               </button>
             </div>
           </div>

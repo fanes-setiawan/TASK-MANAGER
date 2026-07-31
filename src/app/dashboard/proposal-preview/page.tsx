@@ -303,6 +303,22 @@ function ProposalPreviewContent() {
     }
   };
 
+  const handleCopyJson = () => {
+    if (projectData && projectData.configJson) {
+      try {
+        const parsed = JSON.parse(projectData.configJson);
+        const formatted = JSON.stringify(parsed, null, 2);
+        navigator.clipboard.writeText(formatted);
+        alert("Konfigurasi JSON berhasil disalin ke clipboard!");
+      } catch (e) {
+        navigator.clipboard.writeText(projectData.configJson);
+        alert("Konfigurasi JSON berhasil disalin ke clipboard!");
+      }
+    } else {
+      alert("Tidak ada data JSON untuk disalin.");
+    }
+  };
+
   const getItemCost = (item: any, rate: number) => {
     const fixed = item?.price ?? item?.cost ?? item?.fixedPrice ?? item?.fixed_price;
     if (fixed !== undefined && fixed !== null && fixed !== "") {
@@ -439,6 +455,10 @@ function ProposalPreviewContent() {
         </div>
 
         <div className={styles.toolbarRight}>
+          <button className={styles.btnIconOnly} title="Copy JSON Scope" onClick={handleCopyJson}>
+            <span className="material-symbols-outlined">content_copy</span>
+          </button>
+
           <button className={styles.btnIconOnly} title="Share Link" onClick={() => setShareModalOpen(true)}>
             <span className="material-symbols-outlined">share</span>
           </button>
@@ -455,6 +475,10 @@ function ProposalPreviewContent() {
                 style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, backgroundColor: 'white', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: 220, padding: '8px 0', zIndex: 100, border: '1px solid var(--color-outline-variant)', display: 'flex', flexDirection: 'column' }}
                 onClick={() => setMenuOpen(false)}
               >
+                <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', color: 'var(--color-on-surface)', fontSize: 14, fontFamily: 'var(--font-body-md)' }} onClick={handleCopyJson} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-container-low)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--color-on-surface-variant)' }}>content_copy</span>
+                  Copy JSON Scope
+                </button>
                 <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', color: 'var(--color-on-surface)', fontSize: 14, fontFamily: 'var(--font-body-md)' }} onClick={() => alert("Regenerating proposal...")} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-container-low)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--color-on-surface-variant)' }}>refresh</span>
                   Generate Again
@@ -715,6 +739,32 @@ function ProposalPreviewContent() {
           <input type="file" hidden ref={fileInputRef} onChange={handleLogoUpload} accept="image/*" />
 
           <div className={styles.propertiesList}>
+
+            <div className={styles.propGroup}>
+              <label className={styles.propLabel}>Project Data</label>
+              <button 
+                onClick={handleCopyJson}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  width: "100%",
+                  padding: "10px 14px",
+                  backgroundColor: "var(--color-surface-container)",
+                  color: "var(--color-primary)",
+                  border: "1px solid var(--color-outline-variant)",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>content_copy</span>
+                Copy JSON Scope
+              </button>
+            </div>
 
             <div className={styles.propGroup}>
               <label className={styles.propLabel}>Cover Logo</label>

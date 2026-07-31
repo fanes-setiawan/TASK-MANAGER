@@ -18,14 +18,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-gutter);
-  max-width: 56rem; /* max-w-4xl */
 }
 
 .rightCol {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-unit-md);
+  gap: var(--spacing-gutter);
   position: sticky;
   top: 80px;
   height: fit-content;
@@ -33,7 +32,7 @@
 
 @media (min-width: 1024px) {
   .rightCol {
-    width: 400px;
+    width: 380px;
   }
 }
 
