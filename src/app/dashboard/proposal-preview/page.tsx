@@ -27,6 +27,7 @@ function ProposalPreviewContent() {
   const [showPageNumbers, setShowPageNumbers] = useState(false);
   const [showToc, setShowToc] = useState(false);
   const [estimatedDuration, setEstimatedDuration] = useState("4 - 6 Weeks");
+  const [projectDescription, setProjectDescription] = useState("");
   const watermarkInputRef = useRef<HTMLInputElement>(null);
 
   const [savedLogos, setSavedLogos] = useState<SavedLogo[]>([]);
@@ -229,7 +230,8 @@ function ProposalPreviewContent() {
         watermarkImageUrl,
         watermarkSize,
         watermarkOpacity,
-        estimatedDuration
+        estimatedDuration,
+        projectDescription
       });
       alert("Document settings saved!");
     } catch (err: any) {
@@ -282,6 +284,7 @@ function ProposalPreviewContent() {
           if (ds.watermarkSize !== undefined) setWatermarkSize(ds.watermarkSize);
           if (ds.watermarkOpacity !== undefined) setWatermarkOpacity(ds.watermarkOpacity);
           if (ds.estimatedDuration !== undefined) setEstimatedDuration(ds.estimatedDuration);
+          if (ds.projectDescription !== undefined) setProjectDescription(ds.projectDescription);
         } else {
           setCustomProjectName(finalData?.projectName || "");
           setCustomClientName(finalData?.clientName || finalData?.company || "");
@@ -660,7 +663,7 @@ function ProposalPreviewContent() {
                             <h4 style={{ color: themeColor }}><span className="material-symbols-outlined">work</span> Project Information</h4>
                             <h5>{customProjectName}</h5>
                             <p style={{ marginTop: 8, color: 'var(--color-on-surface-variant)', fontSize: 13, lineHeight: 1.5 }}>
-                              Pembuatan {customProjectName.toLowerCase()} responsif dengan fitur manajemen konten dan optimasi.
+                              {projectDescription || `Pembuatan ${customProjectName.toLowerCase()} responsif dengan fitur manajemen konten dan optimasi.`}
                             </p>
                             <div className={styles.pdfDuration} style={{ marginTop: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span className="material-symbols-outlined" style={{ fontSize: 16, color: themeColor }}>schedule</span>
@@ -896,6 +899,10 @@ function ProposalPreviewContent() {
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
                 <label className={styles.propLabel}>Project Title</label>
                 <input className={styles.inputField} type="text" value={customProjectName} onChange={(e) => setCustomProjectName(e.target.value)} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+                <label className={styles.propLabel}>Project Description</label>
+                <textarea className={styles.inputField} value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} style={{ minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} placeholder="Pembuatan aplikasi responsif..." />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
                 <label className={styles.propLabel}>Client Name</label>
