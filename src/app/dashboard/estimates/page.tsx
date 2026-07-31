@@ -122,12 +122,29 @@ export default function EstimatesPage() {
     console.error("Failed to parse configJson", e);
   }
 
+  const getModuleCost = (mod: any) => {
+    const fixedMod = mod?.price ?? mod?.cost ?? mod?.fixedPrice ?? mod?.fixed_price;
+    if (fixedMod !== undefined && fixedMod !== null && fixedMod !== "") {
+      return Number(fixedMod) || 0;
+    }
+    if (mod.subtasks && Array.isArray(mod.subtasks) && mod.subtasks.length > 0) {
+      return mod.subtasks.reduce((sum: number, sub: any) => {
+        const fixedSub = sub?.price ?? sub?.cost ?? sub?.fixedPrice ?? sub?.fixed_price;
+        if (fixedSub !== undefined && fixedSub !== null && fixedSub !== "") {
+          return sum + (Number(fixedSub) || 0);
+        }
+        return sum + ((sub.points || 0) * (project.ratePerPoint || 0));
+      }, 0);
+    }
+    return (mod.points || 0) * (project.ratePerPoint || 0);
+  };
+
   const totalCost = modules.reduce((sum, mod) => {
-    return sum + (mod.price !== undefined ? mod.price : (mod.points || 0) * project.ratePerPoint);
+    return sum + getModuleCost(mod);
   }, 0);
   const totalDays = modules.reduce((sum, mod) => {
-    const cost = mod.price !== undefined ? mod.price : (mod.points || 0) * project.ratePerPoint;
-    return sum + Math.ceil((cost / project.ratePerPoint * 2) / 8);
+    const cost = getModuleCost(mod);
+    return sum + Math.ceil((cost / (project.ratePerPoint || 1) * 2) / 8);
   }, 0);
   
   const formatCurrency = (amount: number) => {

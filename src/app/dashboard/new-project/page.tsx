@@ -17,7 +17,8 @@ const defaultJson = `{
       "subtasks": [
         { "name": "Handle Token", "desc": "Mengelola token autentikasi user", "points": 3 },
         { "name": "Login", "desc": "Fitur login untuk user", "points": 2.5 },
-        { "name": "Register", "desc": "Fitur register user baru", "points": 3.5 }
+        { "name": "Register", "desc": "Fitur register user baru", "points": 3.5 },
+        { "name": "Release Aplikasi", "desc": "Build & deploy ke App Store / Play Store", "price": 100000 }
       ]
     },
     {
@@ -81,17 +82,28 @@ export default function NewProjectPage() {
       const modules = Array.isArray(data.modules) ? data.modules : [];
       
       let totalPoints = 0;
+      let totalFixedCost = 0;
       modules.forEach((mod: any) => {
         if (mod.subtasks && Array.isArray(mod.subtasks)) {
           mod.subtasks.forEach((sub: any) => {
-            totalPoints += (sub.points || 0);
+            const fixed = sub.price ?? sub.cost ?? sub.fixedPrice ?? sub.fixed_price;
+            if (fixed !== undefined && fixed !== null && fixed !== "") {
+              totalFixedCost += Number(fixed) || 0;
+            } else {
+              totalPoints += (sub.points || 0);
+            }
           });
         } else {
-          totalPoints += (mod.points || 0); // fallback for flat lists
+          const fixed = mod.price ?? mod.cost ?? mod.fixedPrice ?? mod.fixed_price;
+          if (fixed !== undefined && fixed !== null && fixed !== "") {
+            totalFixedCost += Number(fixed) || 0;
+          } else {
+            totalPoints += (mod.points || 0);
+          }
         }
       });
       
-      const totalCost = totalPoints * formData.ratePerPoint;
+      const totalCost = (totalPoints * formData.ratePerPoint) + totalFixedCost;
       
       return {
         modules,

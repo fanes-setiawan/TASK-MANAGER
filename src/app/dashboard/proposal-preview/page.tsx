@@ -303,6 +303,14 @@ function ProposalPreviewContent() {
     }
   };
 
+  const getItemCost = (item: any, rate: number) => {
+    const fixed = item?.price ?? item?.cost ?? item?.fixedPrice ?? item?.fixed_price;
+    if (fixed !== undefined && fixed !== null && fixed !== "") {
+      return Number(fixed) || 0;
+    }
+    return (item?.points || 0) * rate;
+  };
+
   // Derived calculations
   let modules: any[] = [];
   let totalPoints = 0;
@@ -312,17 +320,30 @@ function ProposalPreviewContent() {
       const parsed = JSON.parse(projectData.configJson);
       modules = Array.isArray(parsed.modules) ? parsed.modules : [];
       let calculatedPoints = 0;
+      let calculatedFixedCost = 0;
+      const rate = projectData.ratePerPoint || 0;
+      
       modules.forEach((mod: any) => {
         if (mod.subtasks && Array.isArray(mod.subtasks)) {
           mod.subtasks.forEach((sub: any) => {
-            calculatedPoints += (sub.points || 0);
+            const fixed = sub.price ?? sub.cost ?? sub.fixedPrice ?? sub.fixed_price;
+            if (fixed !== undefined && fixed !== null && fixed !== "") {
+              calculatedFixedCost += Number(fixed) || 0;
+            } else {
+              calculatedPoints += (sub.points || 0);
+            }
           });
         } else {
-          calculatedPoints += (mod.points || 0);
+          const fixed = mod.price ?? mod.cost ?? mod.fixedPrice ?? mod.fixed_price;
+          if (fixed !== undefined && fixed !== null && fixed !== "") {
+            calculatedFixedCost += Number(fixed) || 0;
+          } else {
+            calculatedPoints += (mod.points || 0);
+          }
         }
       });
       totalPoints = calculatedPoints;
-      totalCost = totalPoints * (projectData.ratePerPoint || 0);
+      totalCost = (totalPoints * rate) + calculatedFixedCost;
     } catch (e) {
       console.error("Failed to parse configJson");
     }
@@ -340,10 +361,11 @@ function ProposalPreviewContent() {
 
   modules.forEach((mod: any) => {
     let modCost = 0;
+    const rate = projectData?.ratePerPoint || 0;
     if (mod.subtasks && Array.isArray(mod.subtasks)) {
-      modCost = mod.subtasks.reduce((acc: number, sub: any) => acc + ((sub.points || 0) * (projectData?.ratePerPoint || 0)), 0);
+      modCost = mod.subtasks.reduce((acc: number, sub: any) => acc + getItemCost(sub, rate), 0);
     } else {
-      modCost = (mod.points || 0) * (projectData?.ratePerPoint || 0);
+      modCost = getItemCost(mod, rate);
     }
 
     flatRows.push({
@@ -604,7 +626,7 @@ function ProposalPreviewContent() {
                                 );
                               } else {
                                 const sub = row.data;
-                                const subCost = (sub.points || 0) * (projectData?.ratePerPoint || 0);
+                                const subCost = getItemCost(sub, projectData?.ratePerPoint || 0);
                                 return (
                                   <tr key={`sub-${row.globalModIdx}-${row.subIdx}-${i}`} className={styles.subRow}>
                                     <td></td>
