@@ -79,7 +79,7 @@ function ProposalPreviewContent() {
     try {
       const parsed = JSON.parse(jsonEditorValue);
       const compactedJson = JSON.stringify(parsed);
-      
+
       await updateProject(projectId, { configJson: compactedJson });
       setProjectData(prev => prev ? { ...prev, configJson: compactedJson } : prev);
       setShowJsonEditor(false);
@@ -430,7 +430,7 @@ function ProposalPreviewContent() {
     let modCost = 0;
     const rate = projectData?.ratePerPoint || 0;
     const modFixed = mod.price ?? mod.cost ?? mod.fixedPrice ?? mod.fixed_price;
-    
+
     if (modFixed !== undefined && modFixed !== null && modFixed !== "") {
       modCost = Number(modFixed) || 0;
     } else if (mod.subtasks && Array.isArray(mod.subtasks)) {
@@ -821,22 +821,22 @@ function ProposalPreviewContent() {
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>content_copy</span>
                 Copy JSON Scope
               </button>
-              <button 
+              <button
                 onClick={handleOpenJsonEditor}
-                style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center", 
-                  gap: 8, 
-                  width: "100%", 
-                  padding: "10px 14px", 
-                  backgroundColor: "var(--color-primary)", 
-                  color: "white", 
-                  border: "none", 
-                  borderRadius: 8, 
-                  fontSize: 13, 
-                  fontWeight: 600, 
-                  cursor: "pointer", 
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  width: "100%",
+                  padding: "10px 14px",
+                  backgroundColor: "var(--color-primary)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
                   transition: "all 0.2s",
                   marginTop: 8
                 }}
@@ -1086,8 +1086,8 @@ function ProposalPreviewContent() {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <textarea 
-              className={styles.jsonTextarea} 
+            <textarea
+              className={styles.jsonTextarea}
               value={jsonEditorValue}
               onChange={(e) => setJsonEditorValue(e.target.value)}
               spellCheck="false"
@@ -1096,8 +1096,8 @@ function ProposalPreviewContent() {
               <button className={styles.btnCancel} onClick={() => setShowJsonEditor(false)}>
                 Cancel
               </button>
-              <button 
-                className={styles.btnSave} 
+              <button
+                className={styles.btnSave}
                 onClick={handleSaveJson}
                 disabled={isSavingJson}
                 style={{ opacity: isSavingJson ? 0.7 : 1, cursor: isSavingJson ? "wait" : "pointer" }}
@@ -1115,7 +1115,7 @@ function ProposalPreviewContent() {
 
 export default function ProposalPreviewPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading proposal...</div>}>
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
       <ProposalPreviewContent />
     </Suspense>
   );

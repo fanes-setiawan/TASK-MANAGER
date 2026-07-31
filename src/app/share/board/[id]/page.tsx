@@ -28,6 +28,42 @@ const LEGACY_COLUMNS = [
   { name: "Done", color: "#86efac" }
 ];
 
+const quillModules = {
+  toolbar: {
+    container: [
+      [{ header: [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['link', 'image'],
+      ['table', 'insertRowBelow', 'deleteRow', 'insertColRight', 'deleteCol'],
+      ['clean'],
+    ],
+    handlers: {
+      table: function () {
+        // @ts-ignore
+        this.quill.getModule('table').insertTable(2, 2);
+      },
+      insertRowBelow: function () {
+        // @ts-ignore
+        this.quill.getModule('table').insertRowBelow();
+      },
+      deleteRow: function () {
+        // @ts-ignore
+        this.quill.getModule('table').deleteRow();
+      },
+      insertColRight: function () {
+        // @ts-ignore
+        this.quill.getModule('table').insertColumnRight();
+      },
+      deleteCol: function () {
+        // @ts-ignore
+        this.quill.getModule('table').deleteColumn();
+      },
+    }
+  },
+  table: true
+};
+
 export default function PublicBoardPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id: projectId } = use(params);
@@ -341,6 +377,7 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
                     theme="snow"
                     value={formData.description}
                     onChange={(content) => setFormData(prev => ({ ...prev, description: content }))}
+                    modules={quillModules}
                     placeholder="Add detailed task notes or description..."
                     style={{ height: 180, marginBottom: 40 }}
                   />

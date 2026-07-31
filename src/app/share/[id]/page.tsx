@@ -306,7 +306,7 @@ function SharePreviewContent() {
     let modCost = 0;
     const rate = projectData?.ratePerPoint || 0;
     const modFixed = mod.price ?? mod.cost ?? mod.fixedPrice ?? mod.fixed_price;
-    
+
     if (modFixed !== undefined && modFixed !== null && modFixed !== "") {
       modCost = Number(modFixed) || 0;
     } else if (mod.subtasks && Array.isArray(mod.subtasks)) {
@@ -364,7 +364,7 @@ function SharePreviewContent() {
   }
 
   if (loading) {
-    return <div style={{ padding: 40, textAlign: 'center' }}>Loading proposal...</div>;
+    return <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>;
   }
 
   if (accessDenied) {
@@ -679,7 +679,7 @@ function SharePreviewContent() {
 
 export default function SharePreviewPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading proposal...</div>}>
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
       <SharePreviewContent />
     </Suspense>
   );

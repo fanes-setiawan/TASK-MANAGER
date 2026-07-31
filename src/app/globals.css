@@ -204,3 +204,98 @@ a {
     50% { transform: translateY(-20px); }
     100% { transform: translateY(0px); }
 }
+
+/* --- Quill Editor Overrides --- */
+
+/* 1. Continuous List Numbering (allows images to interrupt lists without resetting numbers) */
+.ql-editor {
+  counter-reset: quill-list;
+}
+.ql-editor ol {
+  list-style-type: none !important; /* Hide default browser numbers */
+}
+.ql-editor ol > li {
+  counter-increment: quill-list;
+  position: relative;
+}
+.ql-editor ol > li::before {
+  content: counter(quill-list) ". ";
+  position: absolute;
+  left: -1.5em;
+  top: 0;
+  font-weight: 500;
+}
+
+/* 2. Basic Table Styling for Quill 2.0 */
+.ql-editor table {
+  width: auto;
+  min-width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  table-layout: fixed; /* helps with resizing */
+}
+.ql-editor table td,
+.ql-editor table th {
+  border: 1px solid var(--color-outline-variant);
+  padding: 8px;
+  min-width: 50px;
+  resize: both; /* Allow users to resize columns/rows manually! */
+  overflow: auto;
+}
+.ql-editor table tbody tr:nth-child(even) {
+  background-color: var(--color-surface-container-low);
+}
+
+/* Table Toolbar Button Icons */
+.ql-snow .ql-toolbar button.ql-table,
+.ql-snow .ql-toolbar button.ql-insertRowBelow,
+.ql-snow .ql-toolbar button.ql-deleteRow,
+.ql-snow .ql-toolbar button.ql-insertColRight,
+.ql-snow .ql-toolbar button.ql-deleteCol {
+  width: auto !important;
+  padding: 0 6px !important;
+}
+
+.ql-snow .ql-toolbar button.ql-table::after {
+  content: "grid_on";
+  font-family: 'Material Symbols Outlined';
+  font-size: 18px;
+  line-height: 1;
+  display: block;
+  font-weight: normal;
+  color: #444;
+}
+
+.ql-snow .ql-toolbar button.ql-insertRowBelow::after {
+  content: "Row +";
+  font-size: 12px;
+  font-weight: 600;
+  color: #059669;
+}
+.ql-snow .ql-toolbar button.ql-deleteRow::after {
+  content: "Row -";
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+}
+.ql-snow .ql-toolbar button.ql-insertColRight::after {
+  content: "Col +";
+  font-size: 12px;
+  font-weight: 600;
+  color: #059669;
+}
+.ql-snow .ql-toolbar button.ql-deleteCol::after {
+  content: "Col -";
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.ql-snow .ql-toolbar button.ql-table:hover::after,
+.ql-snow .ql-toolbar button.ql-insertRowBelow:hover::after,
+.ql-snow .ql-toolbar button.ql-deleteRow:hover::after,
+.ql-snow .ql-toolbar button.ql-insertColRight:hover::after,
+.ql-snow .ql-toolbar button.ql-deleteCol:hover::after {
+  opacity: 0.7;
+}
+

@@ -39,6 +39,42 @@ const PRESET_COLORS = [
   "#fca5a5", "#93c5fd", "#fde047", "#f9a8d4", "#d8b4fe", "#86efac", "#cbd5e1", "#2563eb", "#059669"
 ];
 
+const quillModules = {
+  toolbar: {
+    container: [
+      [{ header: [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['link', 'image'],
+      ['table', 'insertRowBelow', 'deleteRow', 'insertColRight', 'deleteCol'],
+      ['clean'],
+    ],
+    handlers: {
+      table: function () {
+        // @ts-ignore
+        this.quill.getModule('table').insertTable(2, 2);
+      },
+      insertRowBelow: function () {
+        // @ts-ignore
+        this.quill.getModule('table').insertRowBelow();
+      },
+      deleteRow: function () {
+        // @ts-ignore
+        this.quill.getModule('table').deleteRow();
+      },
+      insertColRight: function () {
+        // @ts-ignore
+        this.quill.getModule('table').insertColumnRight();
+      },
+      deleteCol: function () {
+        // @ts-ignore
+        this.quill.getModule('table').deleteColumn();
+      },
+    }
+  },
+  table: true
+};
+
 function BoardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -565,6 +601,7 @@ function BoardContent() {
                     value={formData.description} 
                     onChange={(content) => setFormData({...formData, description: content})} 
                     readOnly={saving}
+                    modules={quillModules}
                     placeholder="Details, progress, or any notes..."
                     style={{ flex: 1, backgroundColor: 'var(--color-surface)' }}
                   />
