@@ -463,6 +463,11 @@ export interface DirectMessage {
     publicId: string;
     type: string;
   };
+  replyTo?: {
+    messageId: string;
+    text: string;
+    senderName?: string;
+  };
 }
 
 export async function getAllUsers(): Promise<UserProfile[]> {
@@ -485,7 +490,8 @@ export async function sendDirectMessage(
   senderId: string, 
   receiverId: string, 
   text: string,
-  attachment?: { url: string; publicId: string; type: string; }
+  attachment?: { url: string; publicId: string; type: string; },
+  replyTo?: { messageId: string; text: string; senderName?: string; }
 ) {
   const { collection, addDoc, serverTimestamp, setDoc, doc } = await import("firebase/firestore");
   const chatId = getDirectChatId(senderId, receiverId);
@@ -511,6 +517,9 @@ export async function sendDirectMessage(
   };
   if (attachment) {
     newMsg.attachment = attachment;
+  }
+  if (replyTo) {
+    newMsg.replyTo = replyTo;
   }
   await addDoc(messagesRef, newMsg);
 }

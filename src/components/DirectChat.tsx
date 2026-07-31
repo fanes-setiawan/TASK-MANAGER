@@ -104,6 +104,9 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
   const [isSending, setIsSending] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<{ file: File, previewUrl: string } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<DirectMessage | null>(null);
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
   
   // Profile modal
   const [showProfile, setShowProfile] = useState(false);
@@ -249,50 +252,38 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
     setInputText((prev) => prev + emojiData.emoji);
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !selectedUser || !currentChatId || !activeUserId) return;
-    
-    setIsUploading(true);
+    if (!file) return;
+    const previewUrl = URL.createObjectURL(file);
+    setPendingAttachment({ file, previewUrl });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveAttachment = () => {
+    if (pendingAttachment) {
+      URL.revokeObjectURL(pendingAttachment.previewUrl);
+    }
+    setPendingAttachment(null);
+  };
+
+  const handleDownloadImage = async (url: string) => {
     try {
-      const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1920,
-        useWebWorker: true,
-      };
-      const compressedFile = await imageCompression(file, options);
-      
-      const reader = new FileReader();
-      reader.readAsDataURL(compressedFile);
-      reader.onloadend = async () => {
-        const base64data = reader.result as string;
-        
-        const response = await fetch('/api/chat-attachment/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64data }),
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || "Upload failed");
-        }
-        
-        await sendDirectMessage(activeUserId, selectedUser.uid, "", {
-          url: data.url,
-          publicId: data.publicId,
-          type: "image",
-        });
-      };
-    } catch (error) {
-      console.error("Error uploading attachment:", error);
-      alert("Gagal mengunggah gambar.");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const objUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objUrl;
+      link.download = `image-${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(objUrl);
+    } catch (e) {
+      console.error("Gagal mendownload gambar:", e);
+      window.open(url, "_blank");
     }
   };
 
@@ -308,13 +299,68 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || isSending || !selectedUser || !currentChatId || !activeUserId) return;
+    if ((!inputText.trim() && !pendingAttachment) || isSending || !selectedUser || !currentChatId || !activeUserId) return;
     setIsSending(true);
     try {
-      await sendDirectMessage(activeUserId, selectedUser.uid, inputText.trim());
+      let attachmentData;
+
+      if (pendingAttachment) {
+        setIsUploading(true);
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(pendingAttachment.file, options);
+        
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.readAsDataURL(compressedFile);
+          reader.onloadend = () => resolve(reader.result as string);
+        });
+        const base64data = await base64Promise;
+        
+        const response = await fetch('/api/chat-attachment/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64data }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Upload failed");
+        
+        attachmentData = {
+          url: data.url,
+          publicId: data.publicId,
+          type: "image",
+        };
+        setIsUploading(false);
+      }
+
+      let replyData;
+      if (replyingTo) {
+        const senderName = replyingTo.senderId === activeUserId ? "Anda" : selectedUser.displayName || "User";
+        replyData = {
+          messageId: replyingTo.id!,
+          text: replyingTo.text || (replyingTo.attachment ? "Gambar" : ""),
+          senderName
+        };
+      }
+
+      await sendDirectMessage(
+        activeUserId, 
+        selectedUser.uid, 
+        inputText.trim(),
+        attachmentData,
+        replyData
+      );
+
       setInputText("");
-    } catch {
-      alert("Gagal mengirim pesan. Periksa Firebase Rules Anda.");
+      handleRemoveAttachment();
+      setReplyingTo(null);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mengirim pesan.");
+      setIsUploading(false);
     } finally {
       setIsSending(false);
     }
@@ -339,11 +385,20 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
   const handleClose = () => {
     setIsOpen(false);
     setShowProfile(false);
+    handleRemoveAttachment();
+    setReplyingTo(null);
   };
 
   const goBack = () => {
     if (showProfile) { setShowProfile(false); return; }
-    if (view === "chatRoom") { setView("activeChats"); setSelectedUser(null); setCurrentChatId(null); setMessages([]); }
+    if (view === "chatRoom") { 
+      setView("activeChats"); 
+      setSelectedUser(null); 
+      setCurrentChatId(null); 
+      setMessages([]); 
+      handleRemoveAttachment(); 
+      setReplyingTo(null);
+    }
     else if (view === "newChat") setView("activeChats");
   };
 
@@ -544,21 +599,41 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
                   const isMine = msg.senderId === activeUserId;
                   return (
                     <div key={msg.id} className={`${styles.messageRow} ${isMine ? styles.isMine : ""}`}>
-                      <div className={styles.messageContent}>
-                        <div className={styles.bubble}>
-                          {msg.attachment && msg.attachment.type === "image" && (
-                            <img src={msg.attachment.url} alt="Attachment" className={styles.attachmentImage} />
-                          )}
-                          {msg.text && renderMessageWithLinks(msg.text)}
+                      <div className={styles.messageBubbleWrap}>
+                        <div className={styles.messageContent}>
+                          <div className={styles.bubble}>
+                            {msg.replyTo && (
+                              <div className={styles.replyQuote}>
+                                <div className={styles.replyQuoteName}>{msg.replyTo.senderName}</div>
+                                <div className={styles.replyQuoteText}>{msg.replyTo.text}</div>
+                              </div>
+                            )}
+                            {msg.attachment && msg.attachment.type === "image" && (
+                              <img 
+                                src={msg.attachment.url} 
+                                alt="Attachment" 
+                                className={`${styles.attachmentImage} ${styles.clickable}`}
+                                onClick={() => setFullScreenImage(msg.attachment!.url)} 
+                              />
+                            )}
+                            {msg.text && renderMessageWithLinks(msg.text)}
+                          </div>
+                          <div className={styles.messageFooter}>
+                            {msg.createdAt ? new Date(msg.createdAt.seconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "..."}
+                            {isMine && (
+                              <span className={`${styles.readReceipts} ${msg.isRead ? styles.isRead : ""}`}>
+                                <span className="material-symbols-outlined">{msg.isRead ? "done_all" : "check"}</span>
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className={styles.messageFooter}>
-                          {msg.createdAt ? new Date(msg.createdAt.seconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "..."}
-                          {isMine && (
-                            <span className={`${styles.readReceipts} ${msg.isRead ? styles.isRead : ""}`}>
-                              <span className="material-symbols-outlined">{msg.isRead ? "done_all" : "check"}</span>
-                            </span>
-                          )}
-                        </div>
+                        <button 
+                          className={styles.replyActionBtn} 
+                          title="Balas Pesan"
+                          onClick={() => setReplyingTo(msg)}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>reply</span>
+                        </button>
                       </div>
                     </div>
                   );
@@ -566,6 +641,37 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
               )}
               <div ref={messagesEndRef} />
             </div>
+
+            {/* Input Previews */}
+            {(pendingAttachment || replyingTo) && (
+              <div className={styles.inputPreviewsContainer}>
+                {replyingTo && (
+                  <div className={styles.previewBox}>
+                    <div className={styles.previewContent}>
+                      <span className={styles.previewTitle}>
+                        Membalas {replyingTo.senderId === activeUserId ? "pesan Anda" : selectedUser.displayName}
+                      </span>
+                      <span className={styles.previewText}>{replyingTo.text || "Gambar"}</span>
+                    </div>
+                    <button type="button" className={styles.previewCloseBtn} onClick={() => setReplyingTo(null)}>
+                      <span className="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                )}
+                {pendingAttachment && (
+                  <div className={styles.previewBox}>
+                    <img src={pendingAttachment.previewUrl} alt="Preview" className={styles.previewImage} />
+                    <div className={styles.previewContent}>
+                      <span className={styles.previewTitle}>Lampiran Gambar</span>
+                      <span className={styles.previewText}>{pendingAttachment.file.name}</span>
+                    </div>
+                    <button type="button" className={styles.previewCloseBtn} onClick={handleRemoveAttachment}>
+                      <span className="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Input */}
             <form className={styles.inputArea} onSubmit={handleSend}>
@@ -609,13 +715,28 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
                 onChange={(e) => setInputText(e.target.value)}
                 disabled={isSending || isUploading}
               />
-              <button type="submit" className={styles.sendButton} disabled={(!inputText.trim() && !isUploading) || isSending || isUploading}>
+              <button type="submit" className={styles.sendButton} disabled={(!inputText.trim() && !pendingAttachment) || isSending || isUploading}>
                 <span className="material-symbols-outlined">send</span>
               </button>
             </form>
           </>
         )}
       </div>
+
+      {/* Image Viewer */}
+      {fullScreenImage && (
+        <div className={styles.imageViewerOverlay} onClick={() => setFullScreenImage(null)}>
+          <div className={styles.imageViewerHeader} onClick={e => e.stopPropagation()}>
+            <button className={styles.viewerBtn} onClick={() => handleDownloadImage(fullScreenImage)} title="Download Gambar">
+              <span className="material-symbols-outlined">download</span>
+            </button>
+            <button className={styles.viewerBtn} onClick={() => setFullScreenImage(null)} title="Tutup">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <img src={fullScreenImage} className={styles.fullScreenImage} alt="Fullscreen" onClick={e => e.stopPropagation()} />
+        </div>
+      )}
     </>
   );
 }
