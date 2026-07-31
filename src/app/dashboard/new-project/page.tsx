@@ -186,7 +186,10 @@ export default function NewProjectPage() {
       let totalPoints = 0;
       let totalFixedCost = 0;
       modules.forEach((mod: any) => {
-        if (mod.subtasks && Array.isArray(mod.subtasks)) {
+        const modFixed = mod.price ?? mod.cost ?? mod.fixedPrice ?? mod.fixed_price;
+        if (modFixed !== undefined && modFixed !== null && modFixed !== "") {
+          totalFixedCost += Number(modFixed) || 0;
+        } else if (mod.subtasks && Array.isArray(mod.subtasks)) {
           mod.subtasks.forEach((sub: any) => {
             const fixed = sub.price ?? sub.cost ?? sub.fixedPrice ?? sub.fixed_price;
             if (fixed !== undefined && fixed !== null && fixed !== "") {
@@ -196,12 +199,7 @@ export default function NewProjectPage() {
             }
           });
         } else {
-          const fixed = mod.price ?? mod.cost ?? mod.fixedPrice ?? mod.fixed_price;
-          if (fixed !== undefined && fixed !== null && fixed !== "") {
-            totalFixedCost += Number(fixed) || 0;
-          } else {
-            totalPoints += (mod.points || 0);
-          }
+          totalPoints += (mod.points || 0);
         }
       });
       

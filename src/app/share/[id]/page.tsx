@@ -266,7 +266,10 @@ function SharePreviewContent() {
       const rate = projectData.ratePerPoint || 0;
 
       modules.forEach((mod: any) => {
-        if (mod.subtasks && Array.isArray(mod.subtasks)) {
+        const modFixed = mod.price ?? mod.cost ?? mod.fixedPrice ?? mod.fixed_price;
+        if (modFixed !== undefined && modFixed !== null && modFixed !== "") {
+          calculatedFixedCost += Number(modFixed) || 0;
+        } else if (mod.subtasks && Array.isArray(mod.subtasks)) {
           mod.subtasks.forEach((sub: any) => {
             const fixed = sub.price ?? sub.cost ?? sub.fixedPrice ?? sub.fixed_price;
             if (fixed !== undefined && fixed !== null && fixed !== "") {
@@ -276,12 +279,7 @@ function SharePreviewContent() {
             }
           });
         } else {
-          const fixed = mod.price ?? mod.cost ?? mod.fixedPrice ?? mod.fixed_price;
-          if (fixed !== undefined && fixed !== null && fixed !== "") {
-            calculatedFixedCost += Number(fixed) || 0;
-          } else {
-            calculatedPoints += (mod.points || 0);
-          }
+          calculatedPoints += (mod.points || 0);
         }
       });
       totalPoints = calculatedPoints;
@@ -304,7 +302,11 @@ function SharePreviewContent() {
   modules.forEach((mod: any) => {
     let modCost = 0;
     const rate = projectData?.ratePerPoint || 0;
-    if (mod.subtasks && Array.isArray(mod.subtasks)) {
+    const modFixed = mod.price ?? mod.cost ?? mod.fixedPrice ?? mod.fixed_price;
+    
+    if (modFixed !== undefined && modFixed !== null && modFixed !== "") {
+      modCost = Number(modFixed) || 0;
+    } else if (mod.subtasks && Array.isArray(mod.subtasks)) {
       modCost = mod.subtasks.reduce((acc: number, sub: any) => acc + getItemCost(sub, rate), 0);
     } else {
       modCost = getItemCost(mod, rate);
@@ -568,7 +570,7 @@ function SharePreviewContent() {
                                         <span className={styles.subName}>{sub.name}</span>
                                       </div>
                                     </td>
-                                    <td className={styles.subDesc}>{sub.description || '-'}</td>
+                                    <td className={styles.subDesc}>{sub.description || sub.desc || sub.deskripsi || '-'}</td>
                                     <td className={styles.subPrice}>{formatCurrency(subCost, projectData?.currency)}</td>
                                   </tr>
                                 );
