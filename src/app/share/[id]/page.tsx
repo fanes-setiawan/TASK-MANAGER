@@ -28,6 +28,7 @@ function SharePreviewContent() {
   const [watermarkOpacity, setWatermarkOpacity] = useState(8);
   const [showPageNumbers, setShowPageNumbers] = useState(false);
   const [showToc, setShowToc] = useState(false);
+  const [estimatedDuration, setEstimatedDuration] = useState("4 - 6 Weeks");
   const watermarkInputRef = useRef<HTMLInputElement>(null);
 
   const [savedLogos, setSavedLogos] = useState<SavedLogo[]>([]);
@@ -174,6 +175,7 @@ function SharePreviewContent() {
             if (ds.watermarkImageUrl !== undefined) setWatermarkImageUrl(ds.watermarkImageUrl);
             if (ds.watermarkSize !== undefined) setWatermarkSize(ds.watermarkSize);
             if (ds.watermarkOpacity !== undefined) setWatermarkOpacity(ds.watermarkOpacity);
+            if (ds.estimatedDuration !== undefined) setEstimatedDuration(ds.estimatedDuration);
           } else {
             setCustomProjectName(finalData.projectName || "");
             setCustomClientName(finalData.clientName || finalData.company || "");
@@ -519,7 +521,7 @@ function SharePreviewContent() {
                             </p>
                             <div className={styles.pdfDuration} style={{ marginTop: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span className="material-symbols-outlined" style={{ fontSize: 16, color: themeColor }}>schedule</span>
-                              <span>Estimated Duration: <strong>4 - 6 Weeks</strong></span>
+                              <span>Estimated Duration: <strong>{estimatedDuration}</strong></span>
                             </div>
                           </div>
                         </div>

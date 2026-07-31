@@ -82,6 +82,7 @@ export interface ProjectData {
     watermarkImageUrl?: string;
     watermarkSize?: number;
     watermarkOpacity?: number;
+    estimatedDuration?: string;
   };
 }
 
