@@ -245,7 +245,7 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
     });
   };
 
-  const onEmojiClick = (emojiData: EmojiClickData, event: MouseEvent) => {
+  const onEmojiClick = (emojiData: EmojiClickData) => {
     setInputText((prev) => prev + emojiData.emoji);
   };
 
