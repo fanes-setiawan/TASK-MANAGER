@@ -605,3 +605,12 @@
 .profileDeleteBtn:hover {
   background-color: rgba(220, 38, 38, 0.08);
 }
+
+/* Hide chat button and drawer when printing */
+@media print {
+  .fabChat,
+  .chatDrawer,
+  .overlay {
+    display: none !important;
+  }
+}
