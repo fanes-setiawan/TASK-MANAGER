@@ -117,7 +117,7 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
+    const onMouseMove = (e: globalThis.MouseEvent) => {
       if (!isResizing.current) return;
       const newWidth = window.innerWidth - e.clientX;
       setDrawerWidth(Math.min(Math.max(newWidth, 320), 800));
