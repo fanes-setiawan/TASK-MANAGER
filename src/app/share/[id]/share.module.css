@@ -1010,3 +1010,12 @@
 .btnDeleteLogo .material-symbols-outlined {
   font-size: 12px;
 }
+
+@media (max-width: 768px) {
+  .sidebarLeft {
+    display: none;
+  }
+  .centerCanvas {
+    padding: var(--spacing-unit-sm) !important;
+  }
+}

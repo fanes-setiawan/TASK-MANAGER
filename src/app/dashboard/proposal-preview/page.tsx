@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense, useRef } from "react";
 import styles from "./proposal-preview.module.css";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { getProjectById, ProjectData, saveUserLogo, getSavedLogos, deleteSavedLogo, SavedLogo, saveUserWatermark, getSavedWatermarks, deleteSavedWatermark, SavedWatermark, updateProjectShareSettings, updateProjectDocumentSettings } from "@/lib/firebase/firestore";
+import { getProjectById, ProjectData, saveUserLogo, getSavedLogos, deleteSavedLogo, SavedLogo, saveUserWatermark, getSavedWatermarks, deleteSavedWatermark, SavedWatermark, updateProjectShareSettings, updateProjectDocumentSettings, updateProject } from "@/lib/firebase/firestore";
 import { auth } from "@/lib/firebase/client";
 
 function ProposalPreviewContent() {
@@ -41,6 +41,52 @@ function ProposalPreviewContent() {
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // JSON Editor States
+  const [showJsonEditor, setShowJsonEditor] = useState(false);
+  const [jsonEditorValue, setJsonEditorValue] = useState("");
+  const [isSavingJson, setIsSavingJson] = useState(false);
+
+  const handleCopyJsonScope = () => {
+    if (projectData?.configJson) {
+      navigator.clipboard.writeText(projectData.configJson);
+      alert("JSON Scope copied to clipboard!");
+    } else {
+      alert("No JSON scope available to copy.");
+    }
+  };
+
+  const handleOpenJsonEditor = () => {
+    if (projectData?.configJson) {
+      try {
+        const parsed = JSON.parse(projectData.configJson);
+        setJsonEditorValue(JSON.stringify(parsed, null, 2));
+      } catch (e) {
+        setJsonEditorValue(projectData.configJson);
+      }
+    } else {
+      setJsonEditorValue("[\n  \n]");
+    }
+    setShowJsonEditor(true);
+  };
+
+  const handleSaveJson = async () => {
+    if (!projectId) return;
+    setIsSavingJson(true);
+    try {
+      const parsed = JSON.parse(jsonEditorValue);
+      const compactedJson = JSON.stringify(parsed);
+      
+      await updateProject(projectId, { configJson: compactedJson });
+      setProjectData(prev => prev ? { ...prev, configJson: compactedJson } : prev);
+      setShowJsonEditor(false);
+      alert("JSON Scope updated successfully!");
+    } catch (e: any) {
+      alert("Invalid JSON format. Please check your syntax.\n\nError: " + e.message);
+    } finally {
+      setIsSavingJson(false);
+    }
+  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -338,7 +384,7 @@ function ProposalPreviewContent() {
       let calculatedPoints = 0;
       let calculatedFixedCost = 0;
       const rate = projectData.ratePerPoint || 0;
-      
+
       modules.forEach((mod: any) => {
         if (mod.subtasks && Array.isArray(mod.subtasks)) {
           mod.subtasks.forEach((sub: any) => {
@@ -439,9 +485,8 @@ function ProposalPreviewContent() {
         <div className={styles.toolbarLeft}>
           <span className={`material-symbols-outlined ${styles.docIcon}`}>description</span>
           <div className={styles.docTitleBox}>
-            <span className={styles.docTitle}>{projectData ? `${projectData.projectName.replace(/\s+/g, '_')}_Proposal.pdf` : 'Loading...'}</span>
-            <span className={styles.docSubtitle}>{projectData ? 'Auto-generated' : 'Draft'}</span>
-          </div>
+            <span className={styles.docTitle}>{projectData ? `${projectData.projectName.replace(/\s+/g, '_')}.pdf` : 'Loading...'}</span>
+            <span className={styles.docSubtitle}>{projectData ? '' : 'Draft'}</span>          </div>
         </div>
 
         <div className={styles.toolbarCenter}>
@@ -694,7 +739,7 @@ function ProposalPreviewContent() {
                               <span>{formatCurrency(totalCost, projectData?.currency)}</span>
                             </div>
                             <div className={styles.pdfSummaryRowTotal}>
-                              <span style={{ color: themeColor }}>Total Proposal</span>
+                              <span style={{ color: themeColor }}>Total Biaya</span>
                               <span className={styles.pdfGrandTotal} style={{ color: themeColor }}>{formatCurrency(totalCost, projectData?.currency)}</span>
                             </div>
                           </div>
@@ -742,8 +787,8 @@ function ProposalPreviewContent() {
 
             <div className={styles.propGroup}>
               <label className={styles.propLabel}>Project Data</label>
-              <button 
-                onClick={handleCopyJson}
+              <button
+                onClick={handleCopyJsonScope}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -763,6 +808,29 @@ function ProposalPreviewContent() {
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>content_copy</span>
                 Copy JSON Scope
+              </button>
+              <button 
+                onClick={handleOpenJsonEditor}
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  gap: 8, 
+                  width: "100%", 
+                  padding: "10px 14px", 
+                  backgroundColor: "var(--color-primary)", 
+                  color: "white", 
+                  border: "none", 
+                  borderRadius: 8, 
+                  fontSize: 13, 
+                  fontWeight: 600, 
+                  cursor: "pointer", 
+                  transition: "all 0.2s",
+                  marginTop: 8
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>data_object</span>
+                Edit JSON Scope
               </button>
             </div>
 
@@ -982,6 +1050,39 @@ function ProposalPreviewContent() {
                 style={{ flex: 1, padding: "10px 16px", borderRadius: 8, border: "none", backgroundColor: "var(--color-primary)", color: "var(--color-on-primary)", cursor: isSavingShare ? "wait" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
               >
                 {isSavingShare ? "Saving..." : "Save Settings"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* JSON Editor Modal */}
+      {showJsonEditor && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h2>Edit JSON Scope</h2>
+              <button onClick={() => setShowJsonEditor(false)} style={{ background: "transparent", border: "none", cursor: "pointer" }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <textarea 
+              className={styles.jsonTextarea} 
+              value={jsonEditorValue}
+              onChange={(e) => setJsonEditorValue(e.target.value)}
+              spellCheck="false"
+            />
+            <div className={styles.modalFooter}>
+              <button className={styles.btnCancel} onClick={() => setShowJsonEditor(false)}>
+                Cancel
+              </button>
+              <button 
+                className={styles.btnSave} 
+                onClick={handleSaveJson}
+                disabled={isSavingJson}
+                style={{ opacity: isSavingJson ? 0.7 : 1, cursor: isSavingJson ? "wait" : "pointer" }}
+              >
+                {isSavingJson ? "Saving..." : "Save JSON"}
               </button>
             </div>
           </div>

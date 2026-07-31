@@ -456,6 +456,11 @@ export interface DirectMessage {
   text: string;
   createdAt?: any;
   isRead: boolean;
+  attachment?: {
+    url: string;
+    publicId: string;
+    type: string;
+  };
 }
 
 export async function getAllUsers(): Promise<UserProfile[]> {
@@ -474,27 +479,38 @@ export function getDirectChatId(uid1: string, uid2: string) {
   return [uid1, uid2].sort().join("_");
 }
 
-export async function sendDirectMessage(senderId: string, receiverId: string, text: string) {
+export async function sendDirectMessage(
+  senderId: string, 
+  receiverId: string, 
+  text: string,
+  attachment?: { url: string; publicId: string; type: string; }
+) {
   const { collection, addDoc, serverTimestamp, setDoc, doc } = await import("firebase/firestore");
   const chatId = getDirectChatId(senderId, receiverId);
   
   // Ensure the chat document exists with participants
   const chatRef = doc(db, "direct_chats", chatId);
+  const displayLastMessage = attachment ? (text ? `🖼️ ${text}` : `🖼️ Gambar`) : text;
+  
   await setDoc(chatRef, {
     participants: [senderId, receiverId],
     updatedAt: serverTimestamp(),
-    lastMessage: text,
+    lastMessage: displayLastMessage,
     lastMessageTime: serverTimestamp(),
     lastMessageSenderId: senderId
   }, { merge: true });
 
   const messagesRef = collection(db, "direct_chats", chatId, "messages");
-  await addDoc(messagesRef, {
+  const newMsg: any = {
     senderId,
     text,
     createdAt: serverTimestamp(),
     isRead: false
-  });
+  };
+  if (attachment) {
+    newMsg.attachment = attachment;
+  }
+  await addDoc(messagesRef, newMsg);
 }
 
 export async function markDirectMessagesAsRead(chatId: string, messageIds: string[]) {
@@ -515,7 +531,28 @@ export async function deleteDirectChat(chatId: string) {
   const messagesRef = collection(db, "direct_chats", chatId, "messages");
   const messagesSnap = await getDocs(messagesRef);
   
-  const deletePromises = messagesSnap.docs.map(msgDoc => deleteDoc(msgDoc.ref));
+  const publicIdsToDelete: string[] = [];
+  
+  const deletePromises = messagesSnap.docs.map(msgDoc => {
+    const data = msgDoc.data() as DirectMessage;
+    if (data.attachment && data.attachment.publicId) {
+      publicIdsToDelete.push(data.attachment.publicId);
+    }
+    return deleteDoc(msgDoc.ref);
+  });
+  
+  if (publicIdsToDelete.length > 0) {
+    try {
+      await fetch('/api/chat-attachment/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicIds: publicIdsToDelete })
+      });
+    } catch (err) {
+      console.error("Failed to delete attachments from Cloudinary:", err);
+    }
+  }
+  
   await Promise.all(deletePromises);
   
   // Delete the chat document

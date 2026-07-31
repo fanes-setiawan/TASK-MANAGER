@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, MouseEvent } from "react";
 import styles from "./DirectChat.module.css";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import imageCompression from "browser-image-compression";
 import {
   UserProfile,
   DirectMessage,
@@ -100,7 +102,9 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
-
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  
   // Profile modal
   const [showProfile, setShowProfile] = useState(false);
 
@@ -110,6 +114,7 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
@@ -217,6 +222,79 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const renderMessageWithLinks = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.chatLink}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
+  const onEmojiClick = (emojiData: EmojiClickData, event: MouseEvent) => {
+    setInputText((prev) => prev + emojiData.emoji);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedUser || !currentChatId || !activeUserId) return;
+    
+    setIsUploading(true);
+    try {
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(file, options);
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(compressedFile);
+      reader.onloadend = async () => {
+        const base64data = reader.result as string;
+        
+        const response = await fetch('/api/chat-attachment/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64data }),
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || "Upload failed");
+        }
+        
+        await sendDirectMessage(activeUserId, selectedUser.uid, "", {
+          url: data.url,
+          publicId: data.publicId,
+          type: "image",
+        });
+      };
+    } catch (error) {
+      console.error("Error uploading attachment:", error);
+      alert("Gagal mengunggah gambar.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   // ── Handlers ──────────────────────────────────────────────────────
   const openChatWith = (user: UserProfile) => {
@@ -467,7 +545,12 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
                   return (
                     <div key={msg.id} className={`${styles.messageRow} ${isMine ? styles.isMine : ""}`}>
                       <div className={styles.messageContent}>
-                        <div className={styles.bubble}>{msg.text}</div>
+                        <div className={styles.bubble}>
+                          {msg.attachment && msg.attachment.type === "image" && (
+                            <img src={msg.attachment.url} alt="Attachment" className={styles.attachmentImage} />
+                          )}
+                          {msg.text && renderMessageWithLinks(msg.text)}
+                        </div>
                         <div className={styles.messageFooter}>
                           {msg.createdAt ? new Date(msg.createdAt.seconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "..."}
                           {isMine && (
@@ -486,15 +569,47 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
 
             {/* Input */}
             <form className={styles.inputArea} onSubmit={handleSend}>
+              <div className={styles.emojiPickerContainer}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  style={{ display: "none" }}
+                  onChange={handleFileSelect}
+                />
+                <button
+                  type="button"
+                  className={styles.emojiButton}
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Lampirkan Gambar"
+                  disabled={isUploading}
+                >
+                  <span className="material-symbols-outlined">attach_file</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.emojiButton}
+                  onClick={() => setShowEmojiPicker((prev) => !prev)}
+                  title="Emoji"
+                  disabled={isUploading}
+                >
+                  <span className="material-symbols-outlined">mood</span>
+                </button>
+                {showEmojiPicker && (
+                  <div className={styles.emojiPickerWrapper}>
+                    <EmojiPicker onEmojiClick={onEmojiClick} />
+                  </div>
+                )}
+              </div>
               <input
                 type="text"
                 className={styles.input}
                 placeholder={`Pesan ke ${selectedUser.displayName}...`}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                disabled={isSending}
+                disabled={isSending || isUploading}
               />
-              <button type="submit" className={styles.sendButton} disabled={!inputText.trim() || isSending}>
+              <button type="submit" className={styles.sendButton} disabled={(!inputText.trim() && !isUploading) || isSending || isUploading}>
                 <span className="material-symbols-outlined">send</span>
               </button>
             </form>

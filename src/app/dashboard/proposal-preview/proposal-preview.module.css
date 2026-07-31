@@ -1010,3 +1010,90 @@
 .btnDeleteLogo .material-symbols-outlined {
   font-size: 12px;
 }
+
+/* JSON Editor Modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modalContent {
+  background: var(--color-surface);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.modalHeader {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-outline-variant);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalHeader h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.jsonTextarea {
+  flex: 1;
+  padding: 16px;
+  font-family: monospace;
+  font-size: 13px;
+  border: none;
+  resize: none;
+  outline: none;
+  min-height: 400px;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+}
+
+.modalFooter {
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-outline-variant);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background-color: var(--color-surface-container-low);
+}
+
+.btnCancel {
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--color-outline);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btnSave {
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .sidebarLeft {
+    display: none;
+  }
+  .centerCanvas {
+    padding: var(--spacing-unit-sm) !important;
+  }
+}

@@ -349,6 +349,14 @@
   background-color: var(--color-surface-container-highest);
   color: var(--color-on-surface);
 }
+.attachmentImage {
+  max-width: 100%;
+  max-height: 250px;
+  border-radius: 12px;
+  object-fit: contain;
+  margin-bottom: 6px;
+  display: block;
+}
 .isMine .bubble {
   background-color: var(--color-primary);
   color: var(--color-on-primary);
@@ -356,6 +364,24 @@
 }
 .messageRow:not(.isMine) .bubble {
   border-bottom-left-radius: 4px;
+}
+
+.chatLink {
+  color: #3b82f6;
+  text-decoration: underline;
+  cursor: pointer;
+  word-break: break-all;
+}
+.chatLink:hover {
+  text-decoration: none;
+  color: #2563eb;
+}
+.isMine .chatLink {
+  color: #ffffff;
+  text-decoration: underline;
+}
+.isMine .chatLink:hover {
+  color: #e2e8f0;
 }
 
 .messageFooter {
@@ -380,6 +406,36 @@
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+.emojiPickerContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.emojiButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s, color 0.2s;
+}
+.emojiButton:hover {
+  background-color: var(--color-surface-container-high);
+  color: var(--color-primary);
+}
+.emojiPickerWrapper {
+  position: absolute;
+  bottom: 54px;
+  left: 0;
+  z-index: 1000;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  border-radius: 8px;
 }
 .input {
   flex: 1;

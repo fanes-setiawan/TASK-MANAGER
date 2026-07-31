@@ -381,8 +381,8 @@ function SharePreviewContent() {
         <div className={styles.toolbarLeft}>
           <span className={`material-symbols-outlined ${styles.docIcon}`}>description</span>
           <div className={styles.docTitleBox}>
-            <span className={styles.docTitle}>{projectData ? `${projectData.projectName.replace(/\s+/g, '_')}_Proposal.pdf` : 'Loading...'}</span>
-            <span className={styles.docSubtitle}>{projectData ? 'Auto-generated' : 'Draft'}</span>
+            <span className={styles.docTitle}>{projectData ? `${projectData.projectName.replace(/\s+/g, '_')}.pdf` : 'Loading...'}</span>
+            <span className={styles.docSubtitle}>{projectData ? '' : 'Draft'}</span>
           </div>
         </div>
 
@@ -599,7 +599,7 @@ function SharePreviewContent() {
                               <span>{formatCurrency(totalCost, projectData?.currency)}</span>
                             </div>
                             <div className={styles.pdfSummaryRowTotal}>
-                              <span style={{ color: themeColor }}>Total Proposal</span>
+                              <span style={{ color: themeColor }}>Total Biaya</span>
                               <span className={styles.pdfGrandTotal} style={{ color: themeColor }}>{formatCurrency(totalCost, projectData?.currency)}</span>
                             </div>
                           </div>
