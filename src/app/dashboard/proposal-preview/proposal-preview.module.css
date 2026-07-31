@@ -1092,8 +1092,35 @@
 @media (max-width: 768px) {
   .sidebarLeft {
     display: none;
+    position: absolute;
+    z-index: 100;
+    left: 0;
+    top: 61px;
+    bottom: 0;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+  }
+  .sidebarLeftMobileVisible {
+    display: flex !important;
+  }
+  .mobileSidebarToggle {
+    display: flex !important;
   }
   .centerCanvas {
     padding: var(--spacing-unit-sm) !important;
   }
+}
+
+.mobileSidebarToggle {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  color: var(--color-on-surface);
+  border-radius: 8px;
+}
+.mobileSidebarToggle:hover {
+  background-color: var(--color-surface-container-low);
 }

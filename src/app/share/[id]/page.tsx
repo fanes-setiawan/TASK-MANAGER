@@ -41,6 +41,7 @@ function SharePreviewContent() {
   const [isPublic, setIsPublic] = useState(false);
   const [sharePermission, setSharePermission] = useState<"view" | "edit">("view");
   const [isSavingShare, setIsSavingShare] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -385,6 +386,9 @@ function SharePreviewContent() {
       {/* Top Toolbar */}
       <header className={styles.topToolbar}>
         <div className={styles.toolbarLeft}>
+          <button className={styles.mobileSidebarToggle} onClick={() => setShowMobileSidebar(!showMobileSidebar)}>
+            <span className="material-symbols-outlined">menu</span>
+          </button>
           <span className={`material-symbols-outlined ${styles.docIcon}`}>description</span>
           <div className={styles.docTitleBox}>
             <span className={styles.docTitle}>{projectData ? `${projectData.projectName.replace(/\s+/g, '_')}.pdf` : 'Loading...'}</span>
@@ -411,7 +415,7 @@ function SharePreviewContent() {
 
       <main className={styles.mainWorkspace}>
         {/* Left Sidebar: Thumbnails */}
-        <aside className={styles.sidebarLeft}>
+        <aside className={`${styles.sidebarLeft} ${showMobileSidebar ? styles.sidebarLeftMobileVisible : ''}`}>
           <div className={styles.sidebarHeader}>
             <span className={styles.sidebarTitle}>Thumbnails</span>
             <span className="material-symbols-outlined" style={{ color: "var(--color-outline)", fontSize: 18 }}>grid_view</span>
