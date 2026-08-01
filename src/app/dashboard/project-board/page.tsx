@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
 import BoardSetup from "./BoardSetup";
+import TeamManagerModal from "./TeamManagerModal";
 
 const QuillEditor = dynamic(() => import("./QuillEditor"), { ssr: false });
 import styles from "./project-board.module.css";
@@ -19,7 +20,8 @@ import {
   ProjectData,
   updateProjectTaskFull,
   updateProjectShareSettings,
-  updateProjectColumns
+  updateProjectColumns,
+  addNotification
 } from "@/lib/firebase/firestore";
 import { auth, db } from "@/lib/firebase/client";
 import { onAuthStateChanged } from "firebase/auth";
@@ -55,9 +57,9 @@ function BoardContent() {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
 
-  // Modal State
   const [showModal, setShowModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showTeamModal, setShowTeamModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isPublicShare, setIsPublicShare] = useState(false);
   const [currentUserName, setCurrentUserName] = useState("User");
@@ -96,7 +98,7 @@ function BoardContent() {
   }, [handleMouseMove, handleMouseUp]);
   const [editingTask, setEditingTask] = useState<ProjectTask | null>(null);
   const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>("Not started");
-  const [formData, setFormData] = useState({ title: "", description: "" });
+  const [formData, setFormData] = useState({ title: "", description: "", assigneeIds: [] as string[] });
   
   const [previewApiReq, setPreviewApiReq] = useState<any>(null);
 
@@ -202,7 +204,7 @@ function BoardContent() {
   const openNewTaskModal = (status: TaskStatus) => {
     setNewTaskStatus(status);
     setEditingTask(null);
-    setFormData({ title: "", description: "" });
+    setFormData({ title: "", description: "", assigneeIds: [] });
     loadApiCollections();
     setShowModal(true);
   };
@@ -210,7 +212,7 @@ function BoardContent() {
   const openEditTaskModal = (task: ProjectTask) => {
     setEditingTask(task);
     setNewTaskStatus(task.status);
-    setFormData({ title: task.title, description: task.description });
+    setFormData({ title: task.title, description: task.description, assigneeIds: task.assigneeIds || [] });
     loadApiCollections();
     setShowModal(true);
   };
@@ -236,17 +238,33 @@ function BoardContent() {
       if (editingTask && editingTask.id) {
         const updatePayload: any = {
           title: formData.title,
-          description: formData.description
+          description: formData.description,
+          assigneeIds: formData.assigneeIds
         };
         await updateProjectTaskFull(projectId, editingTask.id, updatePayload);
+        
+        const oldAssignees = editingTask.assigneeIds || [];
+        const newAssignees = formData.assigneeIds.filter(id => !oldAssignees.includes(id));
+        for (const uid of newAssignees) {
+          if (uid !== userId) {
+            await addNotification(uid, "New Task Assigned", `You have been assigned to task: ${formData.title} in project ${project?.projectName}`);
+          }
+        }
       } else {
         const newTask: ProjectTask = {
           projectId,
           title: formData.title,
           description: formData.description,
-          status: newTaskStatus
+          status: newTaskStatus,
+          assigneeIds: formData.assigneeIds
         };
         await saveProjectTask(newTask, userId || "");
+        
+        for (const uid of formData.assigneeIds) {
+          if (uid !== userId) {
+            await addNotification(uid, "New Task Assigned", `You have been assigned to task: ${formData.title} in project ${project?.projectName}`);
+          }
+        }
       }
       await loadData(projectId);
       setShowModal(false);
@@ -430,12 +448,33 @@ function BoardContent() {
     );
   }
 
+  const uniqueMembers = project.members ? Array.from(new Map(project.members.map(m => [m.userId, m])).values()) : [];
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.titleBox}>
           <h1>{project.projectName}</h1>
-          <p>Kanban Board & Progress Notes</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+            <p style={{ margin: 0 }}>Kanban Board & Progress Notes</p>
+            {uniqueMembers.length > 0 && (
+              <div style={{ display: 'flex', marginLeft: 16 }}>
+                <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 'bold', border: '2px solid white', zIndex: 10 }} title="Owner">
+                  {project.createdBy?.substring(0, 2).toUpperCase() || "OW"}
+                </div>
+                {uniqueMembers.filter(m => m.userId !== project.createdBy).slice(0, 4).map((m, i) => (
+                  <div key={`${m.userId}-${i}`} style={{ width: 24, height: 24, borderRadius: '50%', background: '#64748b', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 'bold', border: '2px solid white', marginLeft: -8, zIndex: 9 - i }} title={m.userId}>
+                    {m.userId.substring(0, 2).toUpperCase()}
+                  </div>
+                ))}
+                {uniqueMembers.length > 5 && (
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#e2e8f0', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 'bold', border: '2px solid white', marginLeft: -8, zIndex: 0 }}>
+                    +{uniqueMembers.length - 5}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         
         <div className={styles.headerActions}>
@@ -444,6 +483,10 @@ function BoardContent() {
               <button className={styles.btnShare} onClick={openAddColumnModal} style={{ background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--color-primary)' }}>add_box</span>
                 Add Column Header
+              </button>
+              <button className={styles.btnShare} onClick={() => setShowTeamModal(true)}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>group</span>
+                Team
               </button>
               <button className={styles.btnShare} onClick={() => setShowShareModal(true)}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>share</span>
@@ -528,7 +571,18 @@ function BoardContent() {
                         </p>
                       )}
                       <div className={styles.cardFooter}>
-                        <span>{task.createdAt ? new Date(task.createdAt).toLocaleDateString() : ""}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span>{task.createdAt ? new Date(task.createdAt).toLocaleDateString() : ""}</span>
+                          {task.assigneeIds && task.assigneeIds.length > 0 && (
+                            <div style={{ display: 'flex', marginLeft: 8 }}>
+                              {task.assigneeIds.slice(0, 3).map((id, i) => (
+                                <div key={id} style={{ width: 18, height: 18, borderRadius: '50%', background: '#64748b', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 'bold', border: '1px solid white', marginLeft: i > 0 ? -6 : 0, zIndex: 5 - i }} title="Assignee">
+                                  {id.substring(0, 2).toUpperCase()}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                         {isOwner && <span className="material-symbols-outlined" style={{ fontSize: 16 }}>drag_indicator</span>}
                       </div>
                     </div>
@@ -575,6 +629,41 @@ function BoardContent() {
                   disabled={saving}
                 />
               </div>
+              
+              <div className={styles.formGroup}>
+                <label>Assign To</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                  {formData.assigneeIds.map(id => (
+                    <span key={id} style={{ fontSize: 12, padding: '4px 8px', background: 'var(--bg-secondary)', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {id.substring(0, 4)}...
+                      <button type="button" onClick={() => setFormData(p => ({...p, assigneeIds: p.assigneeIds.filter(x => x !== id)}))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>close</span>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <select 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val && !formData.assigneeIds.includes(val)) {
+                      setFormData(p => ({...p, assigneeIds: [...p.assigneeIds, val]}));
+                    }
+                    e.target.value = "";
+                  }}
+                  style={{ padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: 6, backgroundColor: 'var(--color-surface)' }}
+                  disabled={saving}
+                  defaultValue=""
+                >
+                  <option value="" disabled>+ Add Assignee</option>
+                  {project?.createdBy && !formData.assigneeIds.includes(project.createdBy) && (
+                    <option value={project.createdBy}>Owner ({project.createdBy.substring(0, 6)}...)</option>
+                  )}
+                  {project?.members?.filter(m => m.userId !== project.createdBy && !formData.assigneeIds.includes(m.userId)).map(m => (
+                    <option key={m.userId} value={m.userId}>Member ({m.userId.substring(0, 6)}...)</option>
+                  ))}
+                </select>
+              </div>
+
               <div className={styles.formGroupEditor}>
                 <label>Description / Notes</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid var(--color-outline)', borderRadius: 8, overflow: 'hidden' }}>
@@ -781,6 +870,15 @@ function BoardContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {showTeamModal && projectId && userId && project && (
+        <TeamManagerModal 
+          project={project} 
+          currentUserUid={userId} 
+          onClose={() => setShowTeamModal(false)}
+          onRefresh={() => loadData(projectId)}
+        />
       )}
     </div>
   );
