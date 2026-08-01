@@ -315,8 +315,14 @@ export interface ProjectTask {
   status: TaskStatus;
   createdAt?: any;
   createdBy?: string;
+  apiDocs?: {
+    method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+    url: string;
+    headers?: string;
+    body?: string;
+    response?: string;
+  };
 }
-
 export async function saveProjectTask(task: ProjectTask, userId?: string) {
   const { doc, getDoc, updateDoc } = await import("firebase/firestore");
   const docRef = doc(db, "projects", task.projectId);
@@ -467,6 +473,7 @@ export interface DirectMessage {
     messageId: string;
     text: string;
     senderName?: string;
+    attachmentUrl?: string;
   };
 }
 
@@ -491,7 +498,7 @@ export async function sendDirectMessage(
   receiverId: string, 
   text: string,
   attachment?: { url: string; publicId: string; type: string; },
-  replyTo?: { messageId: string; text: string; senderName?: string; }
+  replyTo?: { messageId: string; text: string; senderName?: string; attachmentUrl?: string; }
 ) {
   const { collection, addDoc, serverTimestamp, setDoc, doc } = await import("firebase/firestore");
   const chatId = getDirectChatId(senderId, receiverId);

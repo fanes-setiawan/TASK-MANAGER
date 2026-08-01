@@ -751,6 +751,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.replyQuoteImg {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+@keyframes highlight-fade {
+  0% { background-color: var(--color-surface-container-highest); opacity: 0.5; transform: scale(1.02); }
+  30% { opacity: 1; }
+  100% { background-color: transparent; transform: scale(1); }
+}
+
+.highlightMessage {
+  animation: highlight-fade 2s ease-out;
+  border-radius: 12px;
 }
 
 /* Reply Action Button on Hover */

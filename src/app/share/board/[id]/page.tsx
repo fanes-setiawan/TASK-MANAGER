@@ -87,6 +87,22 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<ProjectTask | null>(null);
 
+  // API Docs State
+  const [showApiDocs, setShowApiDocs] = useState(false);
+  const [apiFormData, setApiFormData] = useState<{
+    method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+    url: string;
+    headers: string;
+    body: string;
+    response: string;
+  }>({
+    method: "GET",
+    url: "",
+    headers: "{\n  \n}",
+    body: "{\n  \n}",
+    response: "{\n  \n}"
+  });
+
   useEffect(() => {
     if (projectId) {
       loadData(projectId);
@@ -117,6 +133,8 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
     setEditingTask(null);
     setNewTaskStatus(status || activeColumns[0]?.name || "Not started");
     setFormData({ title: "", description: "" });
+    setShowApiDocs(false);
+    setApiFormData({ method: "GET", url: "", headers: "{\n  \n}", body: "{\n  \n}", response: "{\n  \n}" });
     setTaskModalOpen(true);
   };
 
@@ -125,6 +143,19 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
     setEditingTask(task);
     setNewTaskStatus(task.status);
     setFormData({ title: task.title, description: task.description || "" });
+    if (task.apiDocs) {
+      setShowApiDocs(true);
+      setApiFormData({
+        method: task.apiDocs.method,
+        url: task.apiDocs.url,
+        headers: task.apiDocs.headers || "{\n  \n}",
+        body: task.apiDocs.body || "{\n  \n}",
+        response: task.apiDocs.response || "{\n  \n}"
+      });
+    } else {
+      setShowApiDocs(false);
+      setApiFormData({ method: "GET", url: "", headers: "{\n  \n}", body: "{\n  \n}", response: "{\n  \n}" });
+    }
     setTaskModalOpen(true);
   };
 
@@ -133,17 +164,29 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
     if (!formData.title.trim() || !projectId) return;
     setSaving(true);
     try {
+      const apiDocsPayload = showApiDocs ? {
+        method: apiFormData.method,
+        url: apiFormData.url,
+        headers: apiFormData.headers,
+        body: apiFormData.body,
+        response: apiFormData.response
+      } : null;
+
       if (editingTask && editingTask.id) {
-        await updateProjectTaskFull(projectId, editingTask.id, {
+        const updatePayload: any = {
           title: formData.title.trim(),
           description: formData.description,
           status: newTaskStatus as TaskStatus
-        });
+        };
+        if (apiDocsPayload) {
+          updatePayload.apiDocs = apiDocsPayload;
+        } else {
+          updatePayload.apiDocs = null;
+        }
+        await updateProjectTaskFull(projectId, editingTask.id, updatePayload);
         setTasks(prev => prev.map(t => t.id === editingTask.id ? {
           ...t,
-          title: formData.title.trim(),
-          description: formData.description,
-          status: newTaskStatus as TaskStatus
+          ...updatePayload
         } : t));
       } else {
         const newTask: ProjectTask = {
@@ -153,6 +196,9 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
           status: newTaskStatus as TaskStatus,
           createdAt: new Date().toISOString()
         };
+        if (apiDocsPayload) {
+          newTask.apiDocs = apiDocsPayload;
+        }
         const savedId = await saveProjectTask(newTask, "public_guest");
         setTasks(prev => [...prev, { ...newTask, id: savedId || undefined }]);
       }
@@ -313,6 +359,15 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
                         </div>
                       </div>
 
+                      {task.apiDocs && (
+                        <div className={styles.apiBadge}>
+                          <span className={`${styles.apiMethod} ${styles[task.apiDocs.method.toLowerCase()]}`}>
+                            {task.apiDocs.method}
+                          </span>
+                          <span className={styles.apiUrl}>{task.apiDocs.url || "/"}</span>
+                        </div>
+                      )}
+
                       {task.description && (
                         <p className={styles.cardDesc}>
                           {task.description.replace(/<[^>]+>/g, '')}
@@ -383,6 +438,79 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
                   />
                 </div>
               </div>
+
+              <div className={styles.apiToggleRow}>
+                <label className={styles.toggleSwitch}>
+                  <input 
+                    type="checkbox" 
+                    checked={showApiDocs} 
+                    onChange={e => setShowApiDocs(e.target.checked)} 
+                    disabled={saving}
+                  />
+                  <span className={styles.toggleSlider}></span>
+                </label>
+                <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-on-surface)' }}>Include API Documentation</span>
+              </div>
+
+              {showApiDocs && (
+                <div className={styles.apiDocsSection}>
+                  <div className={styles.apiEndpointRow}>
+                    <select 
+                      className={`${styles.apiMethodSelect} ${styles[apiFormData.method.toLowerCase()]}`}
+                      value={apiFormData.method}
+                      onChange={e => setApiFormData({...apiFormData, method: e.target.value as any})}
+                      disabled={saving}
+                    >
+                      <option value="GET">GET</option>
+                      <option value="POST">POST</option>
+                      <option value="PUT">PUT</option>
+                      <option value="PATCH">PATCH</option>
+                      <option value="DELETE">DELETE</option>
+                    </select>
+                    <input 
+                      className={styles.apiUrlInput}
+                      placeholder="/api/v1/resource"
+                      value={apiFormData.url}
+                      onChange={e => setApiFormData({...apiFormData, url: e.target.value})}
+                      disabled={saving}
+                    />
+                  </div>
+
+                  <div className={styles.apiJsonSection}>
+                    <div className={styles.apiJsonCol}>
+                      <label>Headers (JSON)</label>
+                      <textarea 
+                        className={styles.apiJsonTextarea} 
+                        value={apiFormData.headers}
+                        onChange={e => setApiFormData({...apiFormData, headers: e.target.value})}
+                        disabled={saving}
+                        spellCheck={false}
+                      />
+                    </div>
+                    <div className={styles.apiJsonCol}>
+                      <label>Request Body (JSON)</label>
+                      <textarea 
+                        className={styles.apiJsonTextarea} 
+                        value={apiFormData.body}
+                        onChange={e => setApiFormData({...apiFormData, body: e.target.value})}
+                        disabled={saving}
+                        spellCheck={false}
+                      />
+                    </div>
+                    <div className={styles.apiJsonCol} style={{ gridColumn: "1 / -1" }}>
+                      <label>Response (JSON)</label>
+                      <textarea 
+                        className={styles.apiJsonTextarea} 
+                        value={apiFormData.response}
+                        onChange={e => setApiFormData({...apiFormData, response: e.target.value})}
+                        disabled={saving}
+                        spellCheck={false}
+                        style={{ minHeight: 120 }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className={styles.modalFooter}>
                 {editingTask ? (

@@ -610,3 +610,119 @@ input:checked+.toggleSlider:before {
 .fabChat .material-symbols-outlined {
   font-size: 28px;
 }
+
+/* API Docs Toggle and Section */
+.apiToggleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 16px 0;
+  padding: 0;
+  background-color: transparent;
+  border: none;
+}
+
+.apiDocsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0;
+  background-color: transparent;
+  border: none;
+  margin-bottom: 24px;
+}
+
+.apiEndpointRow {
+  display: flex;
+  gap: 8px;
+}
+
+.apiMethodSelect {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-outline);
+  background-color: var(--color-surface);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.apiMethodSelect.get { color: #10b981; border-color: #10b981; background-color: rgba(16, 185, 129, 0.1); }
+.apiMethodSelect.post { color: #3b82f6; border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.1); }
+.apiMethodSelect.put { color: #f59e0b; border-color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); }
+.apiMethodSelect.patch { color: #8b5cf6; border-color: #8b5cf6; background-color: rgba(139, 92, 246, 0.1); }
+.apiMethodSelect.delete { color: #ef4444; border-color: #ef4444; background-color: rgba(239, 68, 68, 0.1); }
+
+.apiUrlInput {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-outline);
+  font-family: monospace;
+  font-size: 14px;
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+}
+
+.apiJsonSection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.apiJsonCol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.apiJsonCol label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+}
+
+.apiJsonTextarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-outline);
+  background-color: #1e293b;
+  color: #e2e8f0;
+  font-family: monospace;
+  font-size: 13px;
+  resize: vertical;
+}
+.apiJsonTextarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* API Badge on Task Card */
+.apiBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-family: monospace;
+  font-size: 11px;
+}
+.apiMethod {
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: white;
+}
+.apiMethod.get { background-color: #10b981; }
+.apiMethod.post { background-color: #3b82f6; }
+.apiMethod.put { background-color: #f59e0b; }
+.apiMethod.patch { background-color: #8b5cf6; }
+.apiMethod.delete { background-color: #ef4444; }
+
+.apiUrl {
+  color: var(--color-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

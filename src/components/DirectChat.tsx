@@ -287,6 +287,15 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
     }
   };
 
+  const scrollToMessage = (msgId: string) => {
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add(styles.highlightMessage);
+      setTimeout(() => el.classList.remove(styles.highlightMessage), 2000);
+    }
+  };
+
   // ── Handlers ──────────────────────────────────────────────────────
   const openChatWith = (user: UserProfile) => {
     if (!activeUserId) return;
@@ -342,7 +351,8 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
         replyData = {
           messageId: replyingTo.id!,
           text: replyingTo.text || (replyingTo.attachment ? "Gambar" : ""),
-          senderName
+          senderName,
+          attachmentUrl: replyingTo.attachment?.url
         };
       }
 
@@ -598,14 +608,24 @@ export default function DirectChat({ currentUserId: propUserId }: DirectChatProp
                 messages.map((msg) => {
                   const isMine = msg.senderId === activeUserId;
                   return (
-                    <div key={msg.id} className={`${styles.messageRow} ${isMine ? styles.isMine : ""}`}>
+                    <div key={msg.id} id={`msg-${msg.id}`} className={`${styles.messageRow} ${isMine ? styles.isMine : ""}`}>
                       <div className={styles.messageBubbleWrap}>
                         <div className={styles.messageContent}>
                           <div className={styles.bubble}>
                             {msg.replyTo && (
-                              <div className={styles.replyQuote}>
+                              <div 
+                                className={styles.replyQuote} 
+                                onClick={() => scrollToMessage(msg.replyTo!.messageId)}
+                                style={{ cursor: "pointer" }}
+                                title="Lihat pesan asli"
+                              >
                                 <div className={styles.replyQuoteName}>{msg.replyTo.senderName}</div>
-                                <div className={styles.replyQuoteText}>{msg.replyTo.text}</div>
+                                <div className={styles.replyQuoteText}>
+                                  {msg.replyTo.attachmentUrl && (
+                                    <img src={msg.replyTo.attachmentUrl} alt="Reply Attachment" className={styles.replyQuoteImg} />
+                                  )}
+                                  <span>{msg.replyTo.text}</span>
+                                </div>
                               </div>
                             )}
                             {msg.attachment && msg.attachment.type === "image" && (

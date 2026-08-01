@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
 import BoardSetup from "./BoardSetup";
 
-const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
+const QuillEditor = dynamic(() => import("./QuillEditor"), { ssr: false });
 import styles from "./project-board.module.css";
 import { 
   ProjectTask, 
@@ -39,41 +39,7 @@ const PRESET_COLORS = [
   "#fca5a5", "#93c5fd", "#fde047", "#f9a8d4", "#d8b4fe", "#86efac", "#cbd5e1", "#2563eb", "#059669"
 ];
 
-const quillModules = {
-  toolbar: {
-    container: [
-      [{ header: [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ list: 'ordered' }, { list: 'bullet' }],
-      ['link', 'image'],
-      ['table', 'insertRowBelow', 'deleteRow', 'insertColRight', 'deleteCol'],
-      ['clean'],
-    ],
-    handlers: {
-      table: function () {
-        // @ts-ignore
-        this.quill.getModule('table').insertTable(2, 2);
-      },
-      insertRowBelow: function () {
-        // @ts-ignore
-        this.quill.getModule('table').insertRowBelow();
-      },
-      deleteRow: function () {
-        // @ts-ignore
-        this.quill.getModule('table').deleteRow();
-      },
-      insertColRight: function () {
-        // @ts-ignore
-        this.quill.getModule('table').insertColumnRight();
-      },
-      deleteCol: function () {
-        // @ts-ignore
-        this.quill.getModule('table').deleteColumn();
-      },
-    }
-  },
-  table: true
-};
+
 
 function BoardContent() {
   const router = useRouter();
@@ -131,6 +97,19 @@ function BoardContent() {
   const [editingTask, setEditingTask] = useState<ProjectTask | null>(null);
   const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>("Not started");
   const [formData, setFormData] = useState({ title: "", description: "" });
+  
+  const [previewApiReq, setPreviewApiReq] = useState<any>(null);
+
+  const [apiTesterCollections, setApiTesterCollections] = useState<any[]>([]);
+
+  const loadApiCollections = () => {
+    try {
+      const saved = localStorage.getItem("api_tester_collections");
+      if (saved) {
+        setApiTesterCollections(JSON.parse(saved));
+      }
+    } catch (e) {}
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -224,6 +203,7 @@ function BoardContent() {
     setNewTaskStatus(status);
     setEditingTask(null);
     setFormData({ title: "", description: "" });
+    loadApiCollections();
     setShowModal(true);
   };
 
@@ -231,6 +211,7 @@ function BoardContent() {
     setEditingTask(task);
     setNewTaskStatus(task.status);
     setFormData({ title: task.title, description: task.description });
+    loadApiCollections();
     setShowModal(true);
   };
 
@@ -253,10 +234,11 @@ function BoardContent() {
     setSaving(true);
     try {
       if (editingTask && editingTask.id) {
-        await updateProjectTaskFull(projectId, editingTask.id, {
+        const updatePayload: any = {
           title: formData.title,
           description: formData.description
-        });
+        };
+        await updateProjectTaskFull(projectId, editingTask.id, updatePayload);
       } else {
         const newTask: ProjectTask = {
           projectId,
@@ -542,7 +524,7 @@ function BoardContent() {
                       <h4 className={styles.cardTitle}>{task.title}</h4>
                       {task.description && (
                         <p className={styles.cardDesc}>
-                          {task.description.replace(/<[^>]+>/g, '')}
+                          {task.description.replace(/<[^>]+>/g, '').replace(/@\S+/g, '🔗 API Tag')}
                         </p>
                       )}
                       <div className={styles.cardFooter}>
@@ -595,18 +577,31 @@ function BoardContent() {
               </div>
               <div className={styles.formGroupEditor}>
                 <label>Description / Notes</label>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <ReactQuill 
-                    theme="snow" 
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid var(--color-outline)', borderRadius: 8, overflow: 'hidden' }}>
+                  <QuillEditor 
                     value={formData.description} 
                     onChange={(content) => setFormData({...formData, description: content})} 
                     readOnly={saving}
-                    modules={quillModules}
-                    placeholder="Details, progress, or any notes..."
-                    style={{ flex: 1, backgroundColor: 'var(--color-surface)' }}
+                    placeholder="Details, progress, or any notes... Type '@' to mention APIs"
+                    apiTesterCollections={apiTesterCollections}
+                    onMentionClick={(id, text) => {
+                      // Find the API request
+                      if (apiTesterCollections) {
+                        for (const folder of apiTesterCollections) {
+                          if (folder.requests) {
+                            const req = folder.requests.find((r: any) => String(r.id) === id);
+                            if (req) {
+                              setPreviewApiReq(req);
+                              return;
+                            }
+                          }
+                        }
+                      }
+                    }}
                   />
                 </div>
               </div>
+
               <div className={styles.modalActions} style={{ marginTop: 'auto' }}>
                 <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)} disabled={saving}>
                   {isOwner ? 'Cancel' : 'Close'}
@@ -727,6 +722,62 @@ function BoardContent() {
             <div style={{ fontSize: 13, color: 'var(--color-on-surface-variant)', backgroundColor: 'var(--color-surface-container-low)', padding: 12, borderRadius: 8 }}>
               <span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'text-bottom', marginRight: 4 }}>info</span>
               People with the link will only have <strong>view access</strong>. They cannot edit or delete notes.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {previewApiReq && (
+        <div className={styles.modalOverlay} onClick={() => setPreviewApiReq(null)} style={{zIndex: 9999}}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()} style={{ width: 600, maxWidth: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{margin:0}}>API Preview: {previewApiReq.name}</h2>
+              <button onClick={() => setPreviewApiReq(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-on-surface-variant)' }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <span style={{ fontWeight: 700, padding: '4px 8px', borderRadius: 6, color: 'white', backgroundColor: previewApiReq.method === 'GET' ? '#0ea5e9' : previewApiReq.method === 'POST' ? '#16a34a' : '#d97706', fontSize: 12 }}>
+                {previewApiReq.method}
+              </span>
+              <span style={{ padding: '4px 8px', backgroundColor: '#f1f5f9', borderRadius: 6, fontSize: 13, flex: 1, fontFamily: 'monospace' }}>
+                {previewApiReq.url}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {previewApiReq.headers && previewApiReq.headers.some((h: any) => h.active) && (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>Headers</label>
+                  <div style={{ background: '#1e293b', color: '#e2e8f0', padding: 12, borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}>
+                    {previewApiReq.headers.filter((h: any) => h.active).map((h: any) => (
+                      <div key={h.id}>
+                        <span style={{ color: '#93c5fd' }}>"{h.key}"</span>: <span style={{ color: '#86efac' }}>"{h.value}"</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {previewApiReq.body && (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>Body</label>
+                  <pre style={{ background: '#1e293b', color: '#e2e8f0', padding: 12, borderRadius: 8, fontSize: 12, fontFamily: 'monospace', overflowX: 'auto', margin: 0 }}>
+                    {previewApiReq.body}
+                  </pre>
+                </div>
+              )}
+            </div>
+            
+            <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end' }}>
+              <button 
+                className={styles.btnSubmit}
+                onClick={() => {
+                  window.open('/dashboard/api-tester', '_blank');
+                }}
+              >
+                Open in API Tester
+              </button>
             </div>
           </div>
         </div>
