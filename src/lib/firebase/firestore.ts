@@ -85,6 +85,12 @@ export interface ProjectData {
     estimatedDuration?: string;
     projectDescription?: string;
   };
+  memberIds?: string[];
+  members?: {
+    userId: string;
+    role: "owner" | "editor" | "viewer";
+    joinedAt?: any;
+  }[];
 }
 
 export async function saveProject(project: ProjectData, userId: string) {
@@ -95,6 +101,12 @@ export async function saveProject(project: ProjectData, userId: string) {
     ...project,
     createdBy: userId,
     createdAt: serverTimestamp(),
+    memberIds: [userId],
+    members: [{
+      userId,
+      role: "owner",
+      joinedAt: new Date().toISOString()
+    }]
   });
   
   return docRef.id;
@@ -128,12 +140,15 @@ export async function updateProjectDocumentSettings(projectId: string, settings:
 
 
 export async function getProjects(userId?: string) {
-  const { collection, getDocs, query, where } = await import("firebase/firestore");
+  const { collection, getDocs, query, where, or } = await import("firebase/firestore");
   const projectsRef = collection(db, "projects");
   
   let q;
   if (userId) {
-    q = query(projectsRef, where("createdBy", "==", userId));
+    q = query(projectsRef, or(
+      where("createdBy", "==", userId),
+      where("memberIds", "array-contains", userId)
+    ));
   } else {
     q = query(projectsRef);
   }
@@ -315,8 +330,16 @@ export interface ProjectTask {
   status: TaskStatus;
   createdAt?: any;
   createdBy?: string;
+  apiDocs?: {
+    method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+    url: string;
+    headers?: string;
+    body?: string;
+    response?: string;
+  };
+  assigneeIds?: string[];
+  comments?: any[];
 }
-
 export async function saveProjectTask(task: ProjectTask, userId?: string) {
   const { doc, getDoc, updateDoc } = await import("firebase/firestore");
   const docRef = doc(db, "projects", task.projectId);
@@ -402,6 +425,43 @@ export async function updateProjectTaskFull(projectId: string, taskId: string, u
   }
 }
 
+export async function searchUsersByEmail(emailQuery: string): Promise<UserProfile[]> {
+  const { collection, getDocs, query, where } = await import("firebase/firestore");
+  const usersRef = collection(db, "users");
+  const q = query(usersRef, where("email", "==", emailQuery));
+  const snap = await getDocs(q);
+  const users: UserProfile[] = [];
+  snap.forEach(d => users.push(d.data() as UserProfile));
+  return users;
+}
+
+export async function addTeamMember(projectId: string, userId: string, role: "editor" | "viewer") {
+  const { doc, updateDoc, arrayUnion } = await import("firebase/firestore");
+  const pRef = doc(db, "projects", projectId);
+  
+  const memberObj = {
+    userId,
+    role,
+    joinedAt: new Date().toISOString()
+  };
+  
+  await updateDoc(pRef, {
+    memberIds: arrayUnion(userId),
+    members: arrayUnion(memberObj)
+  });
+}
+
+export async function removeTeamMember(projectId: string, userId: string, memberObj: any) {
+  const { doc, updateDoc, arrayRemove } = await import("firebase/firestore");
+  const pRef = doc(db, "projects", projectId);
+  
+  await updateDoc(pRef, {
+    memberIds: arrayRemove(userId),
+    members: arrayRemove(memberObj)
+  });
+}
+
+
 // --- Presence & Online Status ---
 export async function updateUserPresence(userId: string, isOnline: boolean) {
   const { doc, updateDoc, serverTimestamp } = await import("firebase/firestore");
@@ -467,17 +527,26 @@ export interface DirectMessage {
     messageId: string;
     text: string;
     senderName?: string;
+    attachmentUrl?: string;
   };
 }
 
 export async function getAllUsers(): Promise<UserProfile[]> {
-  const { collection, getDocs, query, orderBy } = await import("firebase/firestore");
-  const q = query(collection(db, "users"), orderBy("displayName", "asc"));
-  const snapshot = await getDocs(q);
+  const { collection, getDocs } = await import("firebase/firestore");
+  const usersRef = collection(db, "users");
+  const snapshot = await getDocs(usersRef);
   const users: UserProfile[] = [];
   snapshot.forEach(doc => {
-    users.push(doc.data() as UserProfile);
+    users.push({ uid: doc.id, ...doc.data() } as UserProfile);
   });
+  
+  // Sort locally by email or displayName to ensure all users are returned
+  users.sort((a, b) => {
+    const nameA = a.displayName || a.email || "";
+    const nameB = b.displayName || b.email || "";
+    return nameA.localeCompare(nameB);
+  });
+  
   return users;
 }
 
@@ -491,7 +560,7 @@ export async function sendDirectMessage(
   receiverId: string, 
   text: string,
   attachment?: { url: string; publicId: string; type: string; },
-  replyTo?: { messageId: string; text: string; senderName?: string; }
+  replyTo?: { messageId: string; text: string; senderName?: string; attachmentUrl?: string; }
 ) {
   const { collection, addDoc, serverTimestamp, setDoc, doc } = await import("firebase/firestore");
   const chatId = getDirectChatId(senderId, receiverId);

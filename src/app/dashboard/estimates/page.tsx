@@ -155,6 +155,21 @@ export default function EstimatesPage() {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.substring(0, 3) }).format(amount);
   };
 
+  const formatDuration = (totalDays: number) => {
+    if (totalDays === 0) return "0 days";
+    const weeks = Math.floor(totalDays / 5);
+    const days = totalDays % 5;
+    
+    if (weeks > 0 && days > 0) {
+      return `${weeks} ${weeks === 1 ? 'week' : 'weeks'}, ${days} ${days === 1 ? 'day' : 'days'}`;
+    } else if (weeks > 0) {
+      return `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+    } else {
+      return `${days} ${days === 1 ? 'day' : 'days'}`;
+    }
+  };
+
+
   const handleRowClick = (idx: number, mod: any) => {
     if (expandedRow === idx) {
       setExpandedRow(null);
@@ -163,8 +178,8 @@ export default function EstimatesPage() {
     setExpandedRow(idx);
     setEditName(mod.name || "");
     setEditComplexity(mod.complexity || "Medium");
-    setEditCost(mod.price !== undefined ? mod.price : (mod.points || 0) * project.ratePerPoint);
-    setEditTasks(mod.tasks || []);
+    setEditCost(getModuleCost(mod));
+    setEditTasks(mod.subtasks || mod.tasks || []);
     setNewTaskName("");
     setNewTaskPrice("");
   };
@@ -179,7 +194,7 @@ export default function EstimatesPage() {
       name: editName,
       complexity: editComplexity,
       price: editCost,
-      tasks: editTasks
+      subtasks: editTasks
     };
 
     const newConfigJson = JSON.stringify({ modules: updatedModules });
@@ -317,7 +332,7 @@ export default function EstimatesPage() {
             <span className="material-symbols-outlined" style={{ color: "var(--color-secondary)" }}>calendar_today</span>
           </div>
           {/* Rough estimate */}
-          <p className={styles.statValue}>{totalDays} <span className={styles.statUnit}>days</span></p>
+          <p className={styles.statValue} style={{ fontSize: "1.5rem" }}>{formatDuration(totalDays)}</p>
           <div className={styles.statTrendRow}>
             <span className={`material-symbols-outlined ${styles.trendUp}`} style={{ fontSize: 16 }}>check_circle</span>
             <span className={`${styles.trendText} ${styles.trendUp}`}>Calculated Estimate</span>
@@ -336,15 +351,15 @@ export default function EstimatesPage() {
               <tr className={styles.tr}>
                 <th className={styles.th}>Module Name</th>
                 <th className={styles.th}>Complexity</th>
-                <th className={styles.th} style={{ textAlign: "center" }}>Est. Days</th>
+                <th className={styles.th} style={{ textAlign: "center" }}>Est. Duration</th>
                 <th className={styles.th} style={{ textAlign: "right" }}>Cost</th>
                 <th className={styles.th} style={{ textAlign: "right" }}>Weight</th>
               </tr>
             </thead>
             <tbody>
               {modules.map((mod, idx) => {
-                const cost = mod.price !== undefined ? mod.price : (mod.points || 0) * project.ratePerPoint;
-                const days = Math.ceil((cost / project.ratePerPoint * 2) / 8);
+                const cost = getModuleCost(mod);
+                const days = Math.ceil((cost / (project.ratePerPoint || 1) * 2) / 8);
                 const weight = totalCost > 0 ? Math.round((cost / totalCost) * 100) : 0;
                 
                 const isExpanded = expandedRow === idx;
@@ -373,7 +388,7 @@ export default function EstimatesPage() {
                         </div>
                       </td>
                       <td className={styles.td} style={{ textTransform: "capitalize" }}>{mod.complexity || "Medium"}</td>
-                      <td className={styles.td} style={{ textAlign: "center" }}>{days}</td>
+                      <td className={styles.td} style={{ textAlign: "center", whiteSpace: "nowrap" }}>{formatDuration(days)}</td>
                       <td className={`${styles.td} ${styles.tdCost}`} style={{ textAlign: "right" }}>{formatCurrency(cost)}</td>
                       <td className={styles.td}>
                         <div className={styles.weightBar}>
@@ -535,7 +550,7 @@ export default function EstimatesPage() {
             <tfoot className={styles.tfoot}>
               <tr className={styles.tr}>
                 <td className={styles.td} colSpan={2} style={{ color: "var(--color-on-surface)" }}>Total Estimates</td>
-                <td className={styles.td} style={{ textAlign: "center" }}>{totalDays}</td>
+                <td className={styles.td} style={{ textAlign: "center", whiteSpace: "nowrap" }}>{formatDuration(totalDays)}</td>
                 <td className={styles.td} style={{ textAlign: "right", color: "var(--color-primary)" }}>{formatCurrency(totalCost)}</td>
                 <td className={styles.td} style={{ textAlign: "right" }}>100%</td>
               </tr>
@@ -570,7 +585,7 @@ export default function EstimatesPage() {
                     </span>
                   </div>
                   <span className={styles.legendPercent}>
-                    {totalCost > 0 ? Math.round(((mod.price !== undefined ? mod.price : (mod.points || 0) * project.ratePerPoint) / totalCost) * 100) : 0}%
+                    {totalCost > 0 ? Math.round((getModuleCost(mod) / totalCost) * 100) : 0}%
                   </span>
                 </div>
               ))}
@@ -586,26 +601,53 @@ export default function EstimatesPage() {
           </div>
           
           <div className={styles.barChart}>
-            <div className={styles.barCol}>
-              <div className={styles.bar} style={{ height: "40%", backgroundColor: "var(--color-surface-container)" }}></div>
-              <span className={styles.barLabel}>W1</span>
-            </div>
-            <div className={styles.barCol}>
-              <div className={styles.bar} style={{ height: "60%", backgroundColor: "var(--color-surface-container)" }}></div>
-              <span className={styles.barLabel}>W2</span>
-            </div>
-            <div className={styles.barCol}>
-              <div className={styles.bar} style={{ height: "85%", backgroundColor: "var(--color-primary)" }}></div>
-              <span className={styles.barLabel}>W3</span>
-            </div>
-            <div className={styles.barCol}>
-              <div className={styles.bar} style={{ height: "55%", backgroundColor: "var(--color-surface-container)" }}></div>
-              <span className={styles.barLabel}>W4</span>
-            </div>
-            <div className={styles.barCol}>
-              <div className={styles.bar} style={{ height: "95%", backgroundColor: "var(--color-secondary)" }}></div>
-              <span className={styles.barLabel}>W5</span>
-            </div>
+            {(() => {
+              const forecastWeeks: { label: string, days: number }[] = [];
+              let currentWeekDays = 0;
+              let weekIndex = 1;
+              
+              modules.forEach(mod => {
+                const cost = getModuleCost(mod);
+                let daysLeft = Math.ceil((cost / (project.ratePerPoint || 1) * 2) / 8);
+                
+                while (daysLeft > 0) {
+                  const spaceInWeek = 5 - currentWeekDays;
+                  const daysToTake = Math.min(daysLeft, spaceInWeek);
+                  
+                  currentWeekDays += daysToTake;
+                  daysLeft -= daysToTake;
+                  
+                  if (currentWeekDays === 5) {
+                    forecastWeeks.push({ label: `W${weekIndex}`, days: currentWeekDays });
+                    currentWeekDays = 0;
+                    weekIndex++;
+                  }
+                }
+              });
+
+              if (currentWeekDays > 0) {
+                forecastWeeks.push({ label: `W${weekIndex}`, days: currentWeekDays });
+              }
+              
+              if (forecastWeeks.length === 0) {
+                return (
+                  <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 13 }}>No forecast data</div>
+                );
+              }
+
+              return forecastWeeks.map((fw, i) => (
+                <div className={styles.barCol} key={i}>
+                  <div 
+                    className={styles.bar} 
+                    style={{ 
+                      height: `${Math.max((fw.days / 5) * 100, 10)}%`, 
+                      backgroundColor: fw.days === 5 ? "var(--color-primary)" : "var(--color-secondary)" 
+                    }}
+                  ></div>
+                  <span className={styles.barLabel}>{fw.label}</span>
+                </div>
+              ));
+            })()}
           </div>
         </div>
 
