@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-const QuillEditor = dynamic(() => import("@/components/QuillEditor"), { ssr: false });
+const QuillEditor = dynamic(() => import("@/app/dashboard/project-board/QuillEditor"), { ssr: false });
 import styles from "./share-board.module.css";
 import {
   ProjectTask,
@@ -31,14 +31,7 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
   // Modal State for Task Viewing
   const [taskModalOpen, setTaskModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<ProjectTask | null>(null);
-  const [newTaskStatus, setNewTaskStatus] = useState<string>("Not started");
-  const [formData, setFormData] = useState({ title: "", description: "" });
-  const [saving, setSaving] = useState(false);
-
-  // Delete Confirmation Modal
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<ProjectTask | null>(null);
+  const [viewingTask, setViewingTask] = useState<ProjectTask | null>(null);
 
   useEffect(() => {
     if (projectId) {
@@ -66,109 +59,9 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
     ? project.boardColumns
     : LEGACY_COLUMNS;
 
-  const handleOpenAddModal = (status?: string) => {
-    setEditingTask(null);
-    setNewTaskStatus(status || activeColumns[0]?.name || "Not started");
-    setFormData({ title: "", description: "" });
+  const handleOpenViewModal = (task: ProjectTask) => {
+    setViewingTask(task);
     setTaskModalOpen(true);
-  };
-
-  const handleOpenEditModal = (task: ProjectTask, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setEditingTask(task);
-    setNewTaskStatus(task.status);
-    setFormData({ title: task.title, description: task.description || "" });
-    setTaskModalOpen(true);
-  };
-
-  const handleSaveTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.title.trim() || !projectId) return;
-    setSaving(true);
-    try {
-      if (editingTask && editingTask.id) {
-        await updateProjectTaskFull(projectId, editingTask.id, {
-          title: formData.title.trim(),
-          description: formData.description,
-          status: newTaskStatus as TaskStatus
-        });
-        setTasks(prev => prev.map(t => t.id === editingTask.id ? {
-          ...t,
-          title: formData.title.trim(),
-          description: formData.description,
-          status: newTaskStatus as TaskStatus
-        } : t));
-      } else {
-        const newTask: ProjectTask = {
-          projectId,
-          title: formData.title.trim(),
-          description: formData.description,
-          status: newTaskStatus as TaskStatus,
-          createdAt: new Date().toISOString()
-        };
-        const savedId = await saveProjectTask(newTask, "public_guest");
-        setTasks(prev => [...prev, { ...newTask, id: savedId || undefined }]);
-      }
-      setTaskModalOpen(false);
-    } catch (err) {
-      console.error("Failed to save task:", err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const confirmDeleteTask = (task: ProjectTask, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setTaskToDelete(task);
-    setDeleteModalOpen(true);
-  };
-
-  const handleDeleteTask = async () => {
-    if (!taskToDelete || !taskToDelete.id) return;
-    try {
-      await deleteProjectTask(projectId, taskToDelete.id);
-      setTasks(prev => prev.filter(t => t.id !== taskToDelete.id));
-      setDeleteModalOpen(false);
-      setTaskToDelete(null);
-      if (editingTask && editingTask.id === taskToDelete.id) {
-        setTaskModalOpen(false);
-      }
-    } catch (err) {
-      console.error("Failed to delete task:", err);
-    }
-  };
-
-  // Drag & Drop Handlers
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
-    setDraggedTaskId(taskId);
-    e.dataTransfer.setData("text/plain", taskId);
-  };
-
-  const handleDragOver = (e: React.DragEvent, status: string) => {
-    e.preventDefault();
-    setDragOverStatus(status);
-  };
-
-  const handleDragLeave = () => {
-    setDragOverStatus(null);
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetStatus: string) => {
-    e.preventDefault();
-    setDragOverStatus(null);
-    if (!draggedTaskId) return;
-
-    // Optimistic UI update
-    setTasks(prev => prev.map(t => t.id === draggedTaskId ? { ...t, status: targetStatus as TaskStatus } : t));
-
-    try {
-      await updateProjectTaskStatus(projectId, draggedTaskId, targetStatus as TaskStatus);
-    } catch (err) {
-      console.error("Failed to update status:", err);
-      if (projectId) loadData(projectId);
-    } finally {
-      setDraggedTaskId(null);
-    }
   };
 
   if (loading) {
@@ -279,14 +172,11 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
 
             <div className={styles.formGroup}>
               <label>Description / Notes</label>
-              <div style={{ background: 'white', borderRadius: 8 }}>
-                <ReactQuill
-                  theme="snow"
-                  value={formData.description}
-                  onChange={(content) => setFormData(prev => ({ ...prev, description: content }))}
-                  modules={quillModules}
-                  placeholder="Add detailed task notes or description..."
-                  style={{ height: 180, marginBottom: 40 }}
+              <div style={{ background: 'white', borderRadius: 8, padding: 0 }}>
+                <QuillEditor 
+                  value={viewingTask.description || ""}
+                  onChange={() => {}}
+                  readOnly={true}
                 />
               </div>
             </div>
