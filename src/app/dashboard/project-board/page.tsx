@@ -3,10 +3,7 @@
 import React, { useState, useEffect, Suspense, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import "react-quill-new/dist/quill.snow.css";
-import BoardSetup from "./BoardSetup";
-
-const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
+const QuillEditor = dynamic(() => import("@/components/QuillEditor"), { ssr: false });
 import styles from "./project-board.module.css";
 import { 
   ProjectTask, 
@@ -39,41 +36,7 @@ const PRESET_COLORS = [
   "#fca5a5", "#93c5fd", "#fde047", "#f9a8d4", "#d8b4fe", "#86efac", "#cbd5e1", "#2563eb", "#059669"
 ];
 
-const quillModules = {
-  toolbar: {
-    container: [
-      [{ header: [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ list: 'ordered' }, { list: 'bullet' }],
-      ['link', 'image'],
-      ['table', 'insertRowBelow', 'deleteRow', 'insertColRight', 'deleteCol'],
-      ['clean'],
-    ],
-    handlers: {
-      table: function () {
-        // @ts-ignore
-        this.quill.getModule('table').insertTable(2, 2);
-      },
-      insertRowBelow: function () {
-        // @ts-ignore
-        this.quill.getModule('table').insertRowBelow();
-      },
-      deleteRow: function () {
-        // @ts-ignore
-        this.quill.getModule('table').deleteRow();
-      },
-      insertColRight: function () {
-        // @ts-ignore
-        this.quill.getModule('table').insertColumnRight();
-      },
-      deleteCol: function () {
-        // @ts-ignore
-        this.quill.getModule('table').deleteColumn();
-      },
-    }
-  },
-  table: true
-};
+import BoardSetup from "./BoardSetup";
 
 function BoardContent() {
   const router = useRouter();
@@ -596,12 +559,10 @@ function BoardContent() {
               <div className={styles.formGroupEditor}>
                 <label>Description / Notes</label>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <ReactQuill 
-                    theme="snow" 
+                  <QuillEditor 
                     value={formData.description} 
                     onChange={(content) => setFormData({...formData, description: content})} 
                     readOnly={saving}
-                    modules={quillModules}
                     placeholder="Details, progress, or any notes..."
                     style={{ flex: 1, backgroundColor: 'var(--color-surface)' }}
                   />

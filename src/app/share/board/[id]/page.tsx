@@ -3,21 +3,15 @@
 import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import "react-quill-new/dist/quill.snow.css";
+const QuillEditor = dynamic(() => import("@/components/QuillEditor"), { ssr: false });
 import styles from "./share-board.module.css";
 import { 
   ProjectTask, 
   TaskStatus,
   getProjectTasks, 
-  saveProjectTask,
-  updateProjectTaskFull,
-  updateProjectTaskStatus,
-  deleteProjectTask,
   getProjectById, 
   ProjectData
 } from "@/lib/firebase/firestore";
-
-const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 const LEGACY_COLUMNS = [
   { name: "Not started", color: "#fca5a5" },
@@ -28,42 +22,6 @@ const LEGACY_COLUMNS = [
   { name: "Done", color: "#86efac" }
 ];
 
-const quillModules = {
-  toolbar: {
-    container: [
-      [{ header: [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ list: 'ordered' }, { list: 'bullet' }],
-      ['link', 'image'],
-      ['table', 'insertRowBelow', 'deleteRow', 'insertColRight', 'deleteCol'],
-      ['clean'],
-    ],
-    handlers: {
-      table: function () {
-        // @ts-ignore
-        this.quill.getModule('table').insertTable(2, 2);
-      },
-      insertRowBelow: function () {
-        // @ts-ignore
-        this.quill.getModule('table').insertRowBelow();
-      },
-      deleteRow: function () {
-        // @ts-ignore
-        this.quill.getModule('table').deleteRow();
-      },
-      insertColRight: function () {
-        // @ts-ignore
-        this.quill.getModule('table').insertColumnRight();
-      },
-      deleteCol: function () {
-        // @ts-ignore
-        this.quill.getModule('table').deleteColumn();
-      },
-    }
-  },
-  table: true
-};
-
 export default function PublicBoardPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id: projectId } = use(params);
@@ -71,21 +29,9 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true);
   const [project, setProject] = useState<ProjectData | null>(null);
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
-  
-  // Drag State
-  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
-  const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
-
-  // Modal State for Task CRUD
+  // Modal State for Task Viewing
   const [taskModalOpen, setTaskModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<ProjectTask | null>(null);
-  const [newTaskStatus, setNewTaskStatus] = useState<string>("Not started");
-  const [formData, setFormData] = useState({ title: "", description: "" });
-  const [saving, setSaving] = useState(false);
-
-  // Delete Confirmation Modal
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<ProjectTask | null>(null);
+  const [viewingTask, setViewingTask] = useState<ProjectTask | null>(null);
 
   useEffect(() => {
     if (projectId) {
@@ -113,109 +59,10 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
     ? project.boardColumns 
     : LEGACY_COLUMNS;
 
-  const handleOpenAddModal = (status?: string) => {
-    setEditingTask(null);
-    setNewTaskStatus(status || activeColumns[0]?.name || "Not started");
-    setFormData({ title: "", description: "" });
-    setTaskModalOpen(true);
-  };
-
-  const handleOpenEditModal = (task: ProjectTask, e?: React.MouseEvent) => {
+  const handleOpenViewModal = (task: ProjectTask, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setEditingTask(task);
-    setNewTaskStatus(task.status);
-    setFormData({ title: task.title, description: task.description || "" });
+    setViewingTask(task);
     setTaskModalOpen(true);
-  };
-
-  const handleSaveTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.title.trim() || !projectId) return;
-    setSaving(true);
-    try {
-      if (editingTask && editingTask.id) {
-        await updateProjectTaskFull(projectId, editingTask.id, {
-          title: formData.title.trim(),
-          description: formData.description,
-          status: newTaskStatus as TaskStatus
-        });
-        setTasks(prev => prev.map(t => t.id === editingTask.id ? {
-          ...t,
-          title: formData.title.trim(),
-          description: formData.description,
-          status: newTaskStatus as TaskStatus
-        } : t));
-      } else {
-        const newTask: ProjectTask = {
-          projectId,
-          title: formData.title.trim(),
-          description: formData.description,
-          status: newTaskStatus as TaskStatus,
-          createdAt: new Date().toISOString()
-        };
-        const savedId = await saveProjectTask(newTask, "public_guest");
-        setTasks(prev => [...prev, { ...newTask, id: savedId || undefined }]);
-      }
-      setTaskModalOpen(false);
-    } catch (err) {
-      console.error("Failed to save task:", err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const confirmDeleteTask = (task: ProjectTask, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setTaskToDelete(task);
-    setDeleteModalOpen(true);
-  };
-
-  const handleDeleteTask = async () => {
-    if (!taskToDelete || !taskToDelete.id) return;
-    try {
-      await deleteProjectTask(projectId, taskToDelete.id);
-      setTasks(prev => prev.filter(t => t.id !== taskToDelete.id));
-      setDeleteModalOpen(false);
-      setTaskToDelete(null);
-      if (editingTask && editingTask.id === taskToDelete.id) {
-        setTaskModalOpen(false);
-      }
-    } catch (err) {
-      console.error("Failed to delete task:", err);
-    }
-  };
-
-  // Drag & Drop Handlers
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
-    setDraggedTaskId(taskId);
-    e.dataTransfer.setData("text/plain", taskId);
-  };
-
-  const handleDragOver = (e: React.DragEvent, status: string) => {
-    e.preventDefault();
-    setDragOverStatus(status);
-  };
-
-  const handleDragLeave = () => {
-    setDragOverStatus(null);
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetStatus: string) => {
-    e.preventDefault();
-    setDragOverStatus(null);
-    if (!draggedTaskId) return;
-
-    // Optimistic UI update
-    setTasks(prev => prev.map(t => t.id === draggedTaskId ? { ...t, status: targetStatus as TaskStatus } : t));
-
-    try {
-      await updateProjectTaskStatus(projectId, draggedTaskId, targetStatus as TaskStatus);
-    } catch (err) {
-      console.error("Failed to update status:", err);
-      if (projectId) loadData(projectId);
-    } finally {
-      setDraggedTaskId(null);
-    }
   };
 
   if (loading) {
@@ -255,10 +102,6 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
           <h1>{project.projectName}</h1>
           <p>Kanban Board & Progress Notes</p>
         </div>
-        <button className={styles.btnPrimary} onClick={() => handleOpenAddModal()}>
-          <span className="material-symbols-outlined">add</span>
-          New Task
-        </button>
       </header>
 
       <div className={styles.boardScroll} style={{ marginTop: 16 }}>
@@ -266,15 +109,10 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
           {activeColumns.map(col => {
             const status = col.name;
             const columnTasks = tasks.filter(t => t.status === status);
-            const isDragOver = dragOverStatus === status;
-
             return (
               <div 
                 key={status} 
-                className={`${styles.column} ${isDragOver ? styles.columnDragOver : ''}`}
-                onDragOver={(e) => handleDragOver(e, status)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, status)}
+                className={styles.column}
               >
                 <div className={styles.columnHeader}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -289,28 +127,10 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
                     <div 
                       key={task.id} 
                       className={styles.card}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, task.id!)}
-                      onClick={() => handleOpenEditModal(task)}
+                      onClick={() => handleOpenViewModal(task)}
                     >
                       <div className={styles.cardHeader}>
                         <h4 className={styles.cardTitle}>{task.title}</h4>
-                        <div className={styles.cardActions}>
-                          <button 
-                            className={styles.cardActionBtn} 
-                            onClick={(e) => handleOpenEditModal(task, e)}
-                            title="Edit Task"
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
-                          </button>
-                          <button 
-                            className={`${styles.cardActionBtn} ${styles.delete}`} 
-                            onClick={(e) => confirmDeleteTask(task, e)}
-                            title="Delete Task"
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
-                          </button>
-                        </div>
                       </div>
 
                       {task.description && (
@@ -323,14 +143,6 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
                       </div>
                     </div>
                   ))}
-
-                  <button 
-                    className={styles.addCardBtn}
-                    onClick={() => handleOpenAddModal(status)}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-                    Add Task
-                  </button>
                 </div>
               </div>
             );
@@ -338,105 +150,41 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      {/* Task Add / Edit Modal */}
-      {taskModalOpen && (
+      {/* Task View Modal */}
+      {taskModalOpen && viewingTask && (
         <div className={styles.modalOverlay} onClick={() => setTaskModalOpen(false)}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <h2>{editingTask ? "Edit Task" : "Create New Task"}</h2>
-            <form onSubmit={handleSaveTask}>
-              <div className={styles.formGroup}>
-                <label>Task Title</label>
-                <input 
-                  type="text" 
-                  className={styles.input}
-                  placeholder="Enter task title..."
-                  value={formData.title}
-                  onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  required
-                  autoFocus
+            <h2>{viewingTask.title}</h2>
+            <div className={styles.formGroup}>
+              <label>Status</label>
+              <div style={{ padding: '8px 12px', background: 'var(--color-surface-container-low)', borderRadius: 8, fontSize: 14 }}>
+                {viewingTask.status}
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Description / Notes</label>
+              <div style={{ background: 'white', borderRadius: 8, padding: 0 }}>
+                <QuillEditor 
+                  value={viewingTask.description || ""}
+                  onChange={() => {}}
+                  readOnly={true}
+                  style={{ minHeight: 100 }}
                 />
               </div>
+            </div>
 
-              <div className={styles.formGroup}>
-                <label>Status / Column</label>
-                <select 
-                  className={styles.select}
-                  value={newTaskStatus}
-                  onChange={e => setNewTaskStatus(e.target.value)}
+            <div className={styles.modalFooter}>
+              <div className={styles.modalActionsRight} style={{ marginLeft: 'auto' }}>
+                <button 
+                  type="button" 
+                  className={styles.btnCancel} 
+                  onClick={() => setTaskModalOpen(false)}
+                  style={{ marginTop: 0 }}
                 >
-                  {activeColumns.map(col => (
-                    <option key={col.name} value={col.name}>{col.name}</option>
-                  ))}
-                </select>
+                  Close
+                </button>
               </div>
-
-              <div className={styles.formGroup}>
-                <label>Description / Notes</label>
-                <div style={{ background: 'white', borderRadius: 8 }}>
-                  <ReactQuill 
-                    theme="snow"
-                    value={formData.description}
-                    onChange={(content) => setFormData(prev => ({ ...prev, description: content }))}
-                    modules={quillModules}
-                    placeholder="Add detailed task notes or description..."
-                    style={{ height: 180, marginBottom: 40 }}
-                  />
-                </div>
-              </div>
-
-              <div className={styles.modalFooter}>
-                {editingTask ? (
-                  <button 
-                    type="button" 
-                    className={styles.btnDanger}
-                    onClick={() => confirmDeleteTask(editingTask)}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
-                    Delete
-                  </button>
-                ) : <div />}
-
-                <div className={styles.modalActionsRight}>
-                  <button 
-                    type="button" 
-                    className={styles.btnCancel} 
-                    onClick={() => setTaskModalOpen(false)}
-                    style={{ marginTop: 0 }}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className={styles.btnSave} disabled={saving}>
-                    {saving ? "Saving..." : (editingTask ? "Update Task" : "Create Task")}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deleteModalOpen && (
-        <div className={styles.modalOverlay} onClick={() => setDeleteModalOpen(false)}>
-          <div className={styles.modal} style={{ maxWidth: 450, height: 'auto', alignSelf: 'center', borderRadius: 16 }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ marginBottom: 12 }}>Delete Task</h2>
-            <p style={{ color: 'var(--color-on-surface-variant)', marginBottom: 24, fontSize: 14 }}>
-              Are you sure you want to delete <strong>{taskToDelete?.title}</strong>? This action cannot be undone.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <button 
-                className={styles.btnCancel} 
-                onClick={() => setDeleteModalOpen(false)}
-                style={{ marginTop: 0 }}
-              >
-                Cancel
-              </button>
-              <button 
-                className={styles.btnDanger}
-                onClick={handleDeleteTask}
-              >
-                Yes, Delete
-              </button>
             </div>
           </div>
         </div>
