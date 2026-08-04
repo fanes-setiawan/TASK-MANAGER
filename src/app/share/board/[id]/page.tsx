@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect, use, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 const QuillEditor = dynamic(() => import("@/app/dashboard/project-board/QuillEditor"), { ssr: false });
@@ -58,6 +58,32 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
   // Modal State for Task Viewing
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [viewingTask, setViewingTask] = useState<ProjectTask | null>(null);
+
+  const [drawerWidth, setDrawerWidth] = useState(400);
+  const isResizing = useRef(false);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing.current) return;
+    const newWidth = window.innerWidth - e.clientX;
+    if (newWidth > 300 && newWidth < window.innerWidth - 50) {
+      setDrawerWidth(newWidth);
+    }
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    isResizing.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'default';
+  }, [handleMouseMove]);
+
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+  }, [handleMouseMove, handleMouseUp]);
 
   useEffect(() => {
     if (projectId) {
@@ -200,7 +226,12 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
       {/* Task View Modal */}
       {taskModalOpen && viewingTask && (
         <div className={styles.modalOverlay} onClick={() => setTaskModalOpen(false)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+          <div 
+            className={styles.modal} 
+            onClick={e => e.stopPropagation()}
+            style={{ width: drawerWidth, maxWidth: '100%' }}
+          >
+            <div className={styles.resizer} onMouseDown={startResizing} />
             <h2>{viewingTask.title}</h2>
             <div className={styles.formGroup}>
               <label>Status</label>
