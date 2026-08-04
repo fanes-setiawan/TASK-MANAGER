@@ -41,6 +41,31 @@ const PRESET_COLORS = [
   "#fca5a5", "#93c5fd", "#fde047", "#f9a8d4", "#d8b4fe", "#86efac", "#cbd5e1", "#2563eb", "#059669"
 ];
 
+const formatCardDescription = (htmlString: string) => {
+  if (!htmlString) return '';
+  let text = htmlString.replace(/<[^>]+>/g, ' ');
+  text = text.replace(/&nbsp;/g, ' ')
+             .replace(/&amp;/g, '&')
+             .replace(/&lt;/g, '<')
+             .replace(/&gt;/g, '>')
+             .replace(/&quot;/g, '"')
+             .replace(/&#39;/g, "'")
+             .replace(/\s+/g, ' ')
+             .trim();
+  text = text.replace(/@\S+/g, '🔗 API Tag');
+  
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  let linkCount = 0;
+  text = text.replace(urlRegex, (match) => {
+    linkCount++;
+    if (linkCount <= 2) {
+      return `🔗 Link`;
+    }
+    return ''; 
+  });
+
+  return text;
+};
 
 
 function BoardContent() {
@@ -567,7 +592,7 @@ function BoardContent() {
                       <h4 className={styles.cardTitle}>{task.title}</h4>
                       {task.description && (
                         <p className={styles.cardDesc}>
-                          {task.description.replace(/<[^>]+>/g, '').replace(/@\S+/g, '🔗 API Tag')}
+                          {formatCardDescription(task.description)}
                         </p>
                       )}
                       <div className={styles.cardFooter}>
@@ -691,10 +716,27 @@ function BoardContent() {
                 </div>
               </div>
 
-              <div className={styles.modalActions} style={{ marginTop: 'auto' }}>
-                <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)} disabled={saving}>
-                  {isOwner ? 'Cancel' : 'Close'}
-                </button>
+              <div className={styles.modalActions} style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {editingTask && (
+                    <button 
+                      type="button" 
+                      className={styles.btnCancel} 
+                      onClick={() => {
+                        const url = `${window.location.origin}/share/board/${project?.id}?taskId=${editingTask.id}`;
+                        navigator.clipboard.writeText(url);
+                        alert("Share link copied to clipboard!");
+                      }} 
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>link</span>
+                      Share
+                    </button>
+                  )}
+                  <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)} disabled={saving}>
+                    {isOwner ? 'Cancel' : 'Close'}
+                  </button>
+                </div>
                 {isOwner && (
                   <button type="submit" className={styles.btnSubmit} disabled={saving || !formData.title.trim()}>
                     {saving ? 'Saving...' : 'Save Note'}

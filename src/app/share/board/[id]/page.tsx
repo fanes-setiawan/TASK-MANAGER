@@ -22,6 +22,32 @@ const LEGACY_COLUMNS = [
   { name: "Done", color: "#86efac" }
 ];
 
+const formatCardDescription = (htmlString: string) => {
+  if (!htmlString) return '';
+  let text = htmlString.replace(/<[^>]+>/g, ' ');
+  text = text.replace(/&nbsp;/g, ' ')
+             .replace(/&amp;/g, '&')
+             .replace(/&lt;/g, '<')
+             .replace(/&gt;/g, '>')
+             .replace(/&quot;/g, '"')
+             .replace(/&#39;/g, "'")
+             .replace(/\s+/g, ' ')
+             .trim();
+  text = text.replace(/@\S+/g, '🔗 API Tag');
+  
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  let linkCount = 0;
+  text = text.replace(urlRegex, (match) => {
+    linkCount++;
+    if (linkCount <= 2) {
+      return `🔗 Link`;
+    }
+    return ''; 
+  });
+
+  return text;
+};
+
 export default function PublicBoardPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id: projectId } = use(params);
@@ -47,6 +73,19 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
         setProject(proj);
         const t = await getProjectTasks(pid);
         setTasks(t);
+        
+        // Check if taskId is in URL to auto-open
+        if (typeof window !== 'undefined') {
+          const searchParams = new URLSearchParams(window.location.search);
+          const taskIdParam = searchParams.get('taskId');
+          if (taskIdParam) {
+            const taskToOpen = t.find(task => task.id === taskIdParam);
+            if (taskToOpen) {
+              setViewingTask(taskToOpen);
+              setTaskModalOpen(true);
+            }
+          }
+        }
       }
     } catch (err) {
       console.error(err);
@@ -143,7 +182,7 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
 
                       {task.description && (
                         <p className={styles.cardDesc}>
-                          {task.description.replace(/<[^>]+>/g, '')}
+                          {formatCardDescription(task.description)}
                         </p>
                       )}
                       <div className={styles.cardFooter}>
@@ -182,7 +221,20 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
             </div>
 
             <div className={styles.modalFooter}>
-              <div className={styles.modalActionsRight} style={{ marginLeft: 'auto' }}>
+              <div className={styles.modalActionsRight} style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+                <button 
+                  type="button" 
+                  className={styles.btnCancel} 
+                  onClick={() => {
+                    const url = `${window.location.origin}/share/board/${project?.id}?taskId=${viewingTask.id}`;
+                    navigator.clipboard.writeText(url);
+                    alert("Share link copied to clipboard!");
+                  }} 
+                  style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>link</span>
+                  Share
+                </button>
                 <button
                   type="button"
                   className={styles.btnCancel}
