@@ -761,11 +761,21 @@ function BoardContent() {
                 <input 
                   autoFocus
                   required
+                  list="status-options"
                   placeholder="e.g. Backlog, Testing, Released..."
                   value={columnNameInput}
                   onChange={e => setColumnNameInput(e.target.value)}
                   style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--color-outline-variant)' }}
                 />
+                <datalist id="status-options">
+                  <option value="To Do" />
+                  <option value="In Progress" />
+                  <option value="In Review" />
+                  <option value="Done" />
+                  <option value="Backlog" />
+                  <option value="Testing" />
+                  <option value="Blocked" />
+                </datalist>
               </div>
 
               <div className={styles.formGroup} style={{ marginBottom: 24 }}>
