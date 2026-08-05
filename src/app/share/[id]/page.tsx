@@ -157,9 +157,9 @@ function SharePreviewContent() {
             console.error("Failed to fetch fallback client logo", e);
           }
         }
-        if (finalData?.shareSettings?.isPublic) {
+        if (finalData?.shareSettings?.isPublic !== false) {
           setProjectData(finalData);
-          setPermission(finalData.shareSettings.permission || "view");
+          setPermission(finalData.shareSettings?.permission || "view");
           if (finalData.documentSettings) {
             const ds = finalData.documentSettings;
             if (ds.logoUrl !== undefined) setLogoUrl(ds.logoUrl);
@@ -529,7 +529,17 @@ function SharePreviewContent() {
                             </p>
                             <div className={styles.pdfDuration} style={{ marginTop: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span className="material-symbols-outlined" style={{ fontSize: 16, color: themeColor }}>schedule</span>
-                              <span>Estimated Duration: <strong>{estimatedDuration}</strong></span>
+                              <span>Estimated Duration: <strong>
+                                {(() => {
+                                  if (estimatedDuration.includes(" - ")) {
+                                    const parts = estimatedDuration.split(" - ");
+                                    if (parts.length === 2 && parts[0].match(/^\d{4}-\d{2}-\d{2}$/) && parts[1].match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                      return `${new Date(parts[0]).toLocaleDateString("id-ID", {day: 'numeric', month: 'short', year:'numeric'})} - ${new Date(parts[1]).toLocaleDateString("id-ID", {day: 'numeric', month: 'short', year:'numeric'})}`;
+                                    }
+                                  }
+                                  return estimatedDuration;
+                                })()}
+                              </strong></span>
                             </div>
                           </div>
                         </div>

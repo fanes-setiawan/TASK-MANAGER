@@ -671,7 +671,17 @@ function ProposalPreviewContent() {
                             </p>
                             <div className={styles.pdfDuration} style={{ marginTop: 16, fontSize: 13, display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span className="material-symbols-outlined" style={{ fontSize: 16, color: themeColor }}>schedule</span>
-                              <span>Estimated Duration: <strong>{estimatedDuration}</strong></span>
+                              <span>Estimated Duration: <strong>
+                                {(() => {
+                                  if (estimatedDuration.includes(" - ")) {
+                                    const parts = estimatedDuration.split(" - ");
+                                    if (parts.length === 2 && parts[0].match(/^\d{4}-\d{2}-\d{2}$/) && parts[1].match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                      return `${new Date(parts[0]).toLocaleDateString("id-ID", {day: 'numeric', month: 'short', year:'numeric'})} - ${new Date(parts[1]).toLocaleDateString("id-ID", {day: 'numeric', month: 'short', year:'numeric'})}`;
+                                    }
+                                  }
+                                  return estimatedDuration;
+                                })()}
+                              </strong></span>
                             </div>
                           </div>
                         </div>
@@ -914,7 +924,27 @@ function ProposalPreviewContent() {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
                 <label className={styles.propLabel}>Estimated Duration</label>
-                <input className={styles.inputField} type="text" value={estimatedDuration} onChange={(e) => setEstimatedDuration(e.target.value)} placeholder="e.g. 4 - 6 Weeks" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input 
+                    className={styles.inputField} 
+                    type="date" 
+                    value={estimatedDuration.split(" - ")[0]?.match(/^\d{4}-\d{2}-\d{2}$/) ? estimatedDuration.split(" - ")[0] : ""} 
+                    onChange={(e) => {
+                      const d2 = estimatedDuration.split(" - ")[1]?.match(/^\d{4}-\d{2}-\d{2}$/) ? estimatedDuration.split(" - ")[1] : "";
+                      setEstimatedDuration(`${e.target.value} - ${d2}`);
+                    }} 
+                  />
+                  <span>-</span>
+                  <input 
+                    className={styles.inputField} 
+                    type="date" 
+                    value={estimatedDuration.split(" - ")[1]?.match(/^\d{4}-\d{2}-\d{2}$/) ? estimatedDuration.split(" - ")[1] : ""} 
+                    onChange={(e) => {
+                      const d1 = estimatedDuration.split(" - ")[0]?.match(/^\d{4}-\d{2}-\d{2}$/) ? estimatedDuration.split(" - ")[0] : "";
+                      setEstimatedDuration(`${d1} - ${e.target.value}`);
+                    }} 
+                  />
+                </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
                 <label className={styles.propLabel}>Additional Notes</label>

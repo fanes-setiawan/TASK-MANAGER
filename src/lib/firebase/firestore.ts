@@ -63,6 +63,8 @@ export interface ProjectData {
   createdAt?: any;
   createdBy?: string;
   status?: string;
+  isPinned?: boolean;
+  rowColor?: string;
   boardColumns?: { name: string; color: string }[];
   shareSettings?: {
     isPublic: boolean;
@@ -136,6 +138,12 @@ export async function updateProjectDocumentSettings(projectId: string, settings:
   await updateDoc(docRef, {
     documentSettings: settings
   });
+}
+
+export async function updateProjectRowSettings(projectId: string, updates: { isPinned?: boolean, rowColor?: string }) {
+  const { doc, updateDoc } = await import("firebase/firestore");
+  const docRef = doc(db, "projects", projectId);
+  await updateDoc(docRef, updates);
 }
 
 

@@ -185,6 +185,14 @@ export default function DashboardLayout({
             <span className={styles.navLabel}>History</span>
           </Link>
           <Link
+            href="/dashboard/payment"
+            className={`${styles.navItem} ${pathname === "/dashboard/payment" ? styles.active : ""
+              }`}
+          >
+            <span className="material-symbols-outlined">payments</span>
+            <span className={styles.navLabel}>Payment</span>
+          </Link>
+          <Link
             href="/dashboard/api-tester"
             className={`${styles.navItem} ${pathname === "/dashboard/api-tester" ? styles.active : ""
               }`}
