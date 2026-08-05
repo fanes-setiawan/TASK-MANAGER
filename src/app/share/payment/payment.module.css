@@ -237,7 +237,7 @@
   background: white;
   border-radius: 16px;
   border: 1px solid #e2e8f0;
-  overflow: hidden;
+  overflow-x: auto;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
@@ -375,11 +375,18 @@
   background: #e2e8f0;
   border-radius: 3px;
   overflow: hidden;
-  width: 80px;
+  min-width: 60px;
+  max-width: 120px;
+  width: 100%;
 }
+@keyframes fillAnimation {
+  from { width: 0; }
+}
+
 .progressFill {
   height: 100%;
   border-radius: 3px;
+  animation: fillAnimation 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 .progressFill.green { background: #22c55e; }
 .progressFill.yellow { background: #eab308; }
