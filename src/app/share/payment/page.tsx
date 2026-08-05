@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, Suspense } from "react";
 import styles from "./payment.module.css";
 import { getProjects, ProjectData } from "@/lib/firebase/firestore";
 import { useSearchParams } from "next/navigation";
@@ -63,7 +63,7 @@ const calculateTotalPrice = (project: ProjectData) => {
   return (totalPoints * rate) + totalFixedCost;
 };
 
-export default function SharedPaymentPage() {
+function SharedPaymentPageContent() {
   const searchParams = useSearchParams();
   const userId = searchParams.get("u");
   const targetCompany = searchParams.get("c"); // DO NOT default to "All" to prevent unauthorized access
@@ -555,5 +555,13 @@ export default function SharedPaymentPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SharedPaymentPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>}>
+      <SharedPaymentPageContent />
+    </Suspense>
   );
 }

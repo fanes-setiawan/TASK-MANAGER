@@ -157,7 +157,7 @@ function SharePreviewContent() {
             console.error("Failed to fetch fallback client logo", e);
           }
         }
-        if (finalData?.shareSettings?.isPublic !== false) {
+        if (finalData && finalData.shareSettings?.isPublic !== false) {
           setProjectData(finalData);
           setPermission(finalData.shareSettings?.permission || "view");
           if (finalData.documentSettings) {
