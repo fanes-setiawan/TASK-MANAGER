@@ -557,7 +557,7 @@ export default function PaymentPage() {
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value: number) => [value + ' Projects', 'Count']} 
+                    formatter={(value: any) => [Number(value) + ' Projects', 'Count']} 
                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
                   />
                 </PieChart>
@@ -586,7 +586,7 @@ export default function PaymentPage() {
                   <Tooltip 
                     cursor={{ fill: '#f1f5f9' }}
                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
-                    formatter={(value: number) => [`Rp ${value.toLocaleString('id-ID')}`, 'Revenue']}
+                    formatter={(value: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, 'Revenue']}
                   />
                   <Bar dataKey="revenue" radius={[4, 4, 0, 0]} animationBegin={200} animationDuration={1000}>
                     {chartData.barData.map((entry, index) => (
