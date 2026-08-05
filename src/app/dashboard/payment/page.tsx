@@ -6,6 +6,7 @@ import { getProjects, ProjectData, deleteProject, updateProject, updateProjectRo
 import { auth } from "@/lib/firebase/client";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 
 // Helper to generate consistent mock data based on project ID
 const generateMockData = (projectId: string, createdAtSecs: number | undefined) => {
@@ -193,6 +194,55 @@ export default function PaymentPage() {
 
     return { totalIncome, outstanding, paidCount, overdueCount };
   }, [projects]);
+
+  const chartData = useMemo(() => {
+    const statusCounts = { paid: 0, pending: 0, unpaid: 0, active: 0 };
+    const revenueByGroup: Record<string, number> = {};
+
+    projects.forEach(p => {
+      const s = (p.status || "Active").toLowerCase();
+      if (s === "paid") statusCounts.paid++;
+      else if (s.includes("pending") || s.includes("unpaid")) statusCounts.pending++;
+      else if (s === "cancelled" || s === "failed") statusCounts.unpaid++;
+      else statusCounts.active++;
+
+      if (s === "paid") {
+         const price = calculateTotalPrice(p);
+         if (selectedCompany !== "All") {
+            let dateVal = 0;
+            if ((p as any).paymentPaidDate) dateVal = Date.parse((p as any).paymentPaidDate);
+            else if (p.createdAt?.toMillis) dateVal = p.createdAt.toMillis();
+            else if ((p as any).createdAtSecs) dateVal = (p as any).createdAtSecs * 1000;
+            
+            const d = dateVal ? new Date(dateVal) : new Date();
+            const month = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+            revenueByGroup[month] = (revenueByGroup[month] || 0) + price;
+         } else {
+            const company = p.clientName || p.company || "Unknown";
+            revenueByGroup[company] = (revenueByGroup[company] || 0) + price;
+         }
+      }
+    });
+
+    const pieData = [
+      { name: 'Paid', value: statusCounts.paid, color: '#22c55e' },
+      { name: 'Pending', value: statusCounts.pending, color: '#eab308' },
+      { name: 'Action Required', value: statusCounts.unpaid, color: '#ef4444' },
+      { name: 'In Progress', value: statusCounts.active, color: '#3b82f6' }
+    ].filter(d => d.value > 0);
+
+    const barData = Object.keys(revenueByGroup).map(key => ({
+       name: key.length > 15 && selectedCompany === "All" ? key.substring(0, 15) + '...' : key,
+       revenue: revenueByGroup[key],
+       fullName: key
+    }));
+
+    if (selectedCompany === "All") {
+       barData.sort((a, b) => b.revenue - a.revenue);
+    }
+
+    return { pieData, barData };
+  }, [projects, selectedCompany]);
 
   const handleStatusChange = async (projectId: string | undefined, newStatus: string) => {
     if (!projectId) return;
@@ -480,6 +530,74 @@ export default function PaymentPage() {
             <span className={styles.trendDown}>2</span> from last month
           </div>
         </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className={styles.chartsGrid}>
+        {/* Status Distribution */}
+        {chartData.pieData.length > 0 && (
+          <div className={styles.chartCard}>
+            <h3 className={styles.chartTitle}>Status Distribution</h3>
+            <div style={{ width: '100%', height: 250 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={chartData.pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    animationBegin={200}
+                    animationDuration={1000}
+                  >
+                    {chartData.pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number) => [value + ' Projects', 'Count']} 
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className={styles.chartLegend}>
+              {chartData.pieData.map((entry, index) => (
+                <div key={index} className={styles.legendItem}>
+                  <div className={styles.legendColor} style={{ backgroundColor: entry.color }}></div>
+                  <span className={styles.legendText}>{entry.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Revenue Chart */}
+        {chartData.barData.length > 0 && (
+          <div className={styles.chartCard}>
+            <h3 className={styles.chartTitle}>{selectedCompany === "All" ? "Top Revenue by Client" : "Revenue by Month"}</h3>
+            <div style={{ width: '100%', height: 280 }}>
+              <ResponsiveContainer>
+                <BarChart data={chartData.barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <YAxis hide />
+                  <Tooltip 
+                    cursor={{ fill: '#f1f5f9' }}
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
+                    formatter={(value: number) => [`Rp ${value.toLocaleString('id-ID')}`, 'Revenue']}
+                  />
+                  <Bar dataKey="revenue" radius={[4, 4, 0, 0]} animationBegin={200} animationDuration={1000}>
+                    {chartData.barData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill="#3b82f6" />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Filter Bar */}
