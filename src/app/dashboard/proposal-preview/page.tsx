@@ -248,6 +248,33 @@ function ProposalPreviewContent() {
         estimatedDuration,
         projectDescription
       });
+      await updateProject(projectId, {
+        projectName: customProjectName,
+        clientName: customClientName
+      });
+      setProjectData(prev => prev ? {
+        ...prev,
+        projectName: customProjectName,
+        clientName: customClientName,
+        documentSettings: {
+          ...prev.documentSettings,
+          logoUrl,
+          themeColor,
+          customProjectName,
+          customClientName,
+          notes,
+          isDraft,
+          showPageNumbers,
+          showToc,
+          watermarkType,
+          watermarkText,
+          watermarkImageUrl,
+          watermarkSize,
+          watermarkOpacity,
+          estimatedDuration,
+          projectDescription
+        }
+      } : prev);
       alert("Document settings saved!");
     } catch (err: any) {
       alert("Failed to save document settings: " + err.message);
