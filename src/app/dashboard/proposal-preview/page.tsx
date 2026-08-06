@@ -50,6 +50,20 @@ function ProposalPreviewContent() {
   const [jsonEditorValue, setJsonEditorValue] = useState("");
   const [isSavingJson, setIsSavingJson] = useState(false);
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        const newZoom = Math.floor(((window.innerWidth - 32) / 794) * 100);
+        setZoomLevel(Math.min(newZoom, 100));
+      } else {
+        setZoomLevel(100);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const handleCopyJsonScope = () => {
     if (projectData?.configJson) {
       navigator.clipboard.writeText(projectData.configJson);

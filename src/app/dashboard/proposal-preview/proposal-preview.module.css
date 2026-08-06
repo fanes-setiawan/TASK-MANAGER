@@ -1109,9 +1109,6 @@
     padding: 16px !important;
     overflow-x: hidden;
   }
-  .pdfPage {
-    zoom: calc((100vw - 32px) / 794) !important;
-  }
 }
 
 .mobileSidebarToggle {
