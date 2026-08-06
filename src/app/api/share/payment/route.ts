@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/server';
 import { Filter } from 'firebase-admin/firestore';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -11,7 +14,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    const projectsRef = getAdminDb().collection('projects');
+    let projectsRef;
+    try {
+      projectsRef = getAdminDb().collection('projects');
+    } catch (e: any) {
+      return NextResponse.json({ error: 'Firebase Init Error', message: e.message, stack: e.stack }, { status: 500 });
+    }
     const snapshot = await projectsRef.where(
       Filter.or(
         Filter.where("createdBy", "==", userId),
@@ -49,6 +57,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ projects }, { status: 200 });
   } catch (error: any) {
     console.error('Error fetching shared projects:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error', message: error.message, stack: error.stack }, { status: 500 });
   }
 }
