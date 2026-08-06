@@ -185,7 +185,7 @@ export default function PaymentPage() {
       if (s === "paid") {
         totalIncome += amt;
         paidCount++;
-      } else if (s.includes("pending") || s.includes("unpaid")) {
+      } else if (s.includes("pending") || s.includes("unpaid") || s === "active") {
         outstanding += amt;
       } else if (s === "cancelled" || s === "failed" || s.includes("overdue")) {
         overdueCount++;
@@ -197,9 +197,10 @@ export default function PaymentPage() {
 
   const chartData = useMemo(() => {
     const statusCounts = { paid: 0, pending: 0, unpaid: 0, active: 0 };
-    const revenueByGroup: Record<string, number> = {};
+    const revenueByGroup: Record<string, { total: number; timestamp: number }> = {};
 
     projects.forEach(p => {
+      // Status counts are for all projects
       const s = (p.status || "Active").toLowerCase();
       if (s === "paid") statusCounts.paid++;
       else if (s.includes("pending") || s.includes("unpaid")) statusCounts.pending++;
@@ -207,20 +208,23 @@ export default function PaymentPage() {
       else statusCounts.active++;
 
       if (s === "paid") {
-         const price = calculateTotalPrice(p);
-         if (selectedCompany !== "All") {
-            let dateVal = 0;
-            if ((p as any).paymentPaidDate) dateVal = Date.parse((p as any).paymentPaidDate);
-            else if (p.createdAt?.toMillis) dateVal = p.createdAt.toMillis();
-            else if ((p as any).createdAtSecs) dateVal = (p as any).createdAtSecs * 1000;
-            
-            const d = dateVal ? new Date(dateVal) : new Date();
-            const month = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
-            revenueByGroup[month] = (revenueByGroup[month] || 0) + price;
-         } else {
-            const company = p.clientName || p.company || "Unknown";
-            revenueByGroup[company] = (revenueByGroup[company] || 0) + price;
+         // If a specific company is selected, filter the revenue chart to just that company
+         if (selectedCompany !== "All" && (p.clientName || p.company) !== selectedCompany) {
+            return;
          }
+         const price = calculateTotalPrice(p);
+         let dateVal = 0;
+         if ((p as any).paymentPaidDate) dateVal = Date.parse((p as any).paymentPaidDate);
+         else if (p.createdAt?.toMillis) dateVal = p.createdAt.toMillis();
+         else if ((p as any).createdAtSecs) dateVal = (p as any).createdAtSecs * 1000;
+         
+         const d = dateVal ? new Date(dateVal) : new Date();
+         const dateString = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+         
+         if (!revenueByGroup[dateString]) {
+            revenueByGroup[dateString] = { total: 0, timestamp: d.getTime() };
+         }
+         revenueByGroup[dateString].total += price;
       }
     });
 
@@ -232,14 +236,13 @@ export default function PaymentPage() {
     ].filter(d => d.value > 0);
 
     const barData = Object.keys(revenueByGroup).map(key => ({
-       name: key.length > 15 && selectedCompany === "All" ? key.substring(0, 15) + '...' : key,
-       revenue: revenueByGroup[key],
-       fullName: key
+       name: key,
+       revenue: revenueByGroup[key].total,
+       timestamp: revenueByGroup[key].timestamp
     }));
 
-    if (selectedCompany === "All") {
-       barData.sort((a, b) => b.revenue - a.revenue);
-    }
+    // Sort chronologically
+    barData.sort((a, b) => a.timestamp - b.timestamp);
 
     return { pieData, barData };
   }, [projects, selectedCompany]);
@@ -577,12 +580,12 @@ export default function PaymentPage() {
         {/* Revenue Chart */}
         {chartData.barData.length > 0 && (
           <div className={styles.chartCard}>
-            <h3 className={styles.chartTitle}>{selectedCompany === "All" ? "Top Revenue by Client" : "Revenue by Month"}</h3>
+            <h3 className={styles.chartTitle}>Revenue by Date</h3>
             <div style={{ width: '100%', height: 280 }}>
               <ResponsiveContainer>
-                <LineChart data={chartData.barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <LineChart data={chartData.barData} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                  <YAxis hide />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(value) => value >= 1000000 ? (value/1000000).toFixed(1) + 'M' : value >= 1000 ? (value/1000).toFixed(0) + 'k' : value} width={60} />
                   <Tooltip 
                     cursor={{ stroke: '#e2e8f0', strokeWidth: 1, strokeDasharray: '3 3' }}
                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
