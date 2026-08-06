@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo, Suspense } from "react";
 import styles from "./payment.module.css";
-import { getProjects, ProjectData } from "@/lib/firebase/firestore";
+import { ProjectData } from "@/lib/firebase/firestore";
 import { useSearchParams } from "next/navigation";
 
 // Helper to generate consistent mock data based on project ID
@@ -97,7 +97,16 @@ function SharedPaymentPageContent() {
     }
     const fetchProjects = async () => {
       try {
-        const data = await getProjects(userId);
+        const res = await fetch(`/api/share/payment?u=${userId}`);
+        if (!res.ok) throw new Error("Failed to fetch");
+        const json = await res.json();
+        const data: ProjectData[] = json.projects.map((p: any) => ({
+          ...p,
+          createdAt: p.createdAt ? {
+            seconds: p.createdAt.seconds,
+            toMillis: () => p.createdAt.seconds * 1000
+          } : undefined
+        }));
         let visible = data.filter(p => !(p as any).paymentHidden);
         if (targetCompany !== "All") {
           visible = visible.filter(p => (p.clientName || p.company) === targetCompany);
