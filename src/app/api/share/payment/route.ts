@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase/server';
+import { getAdminDb } from '@/lib/firebase/server';
 import { Filter } from 'firebase-admin/firestore';
 
 export async function GET(request: Request) {
@@ -11,7 +11,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    const projectsRef = adminDb.collection('projects');
+    const projectsRef = getAdminDb().collection('projects');
     const snapshot = await projectsRef.where(
       Filter.or(
         Filter.where("createdBy", "==", userId),
