@@ -619,13 +619,16 @@ function ProposalPreviewContent() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 64, alignItems: 'center' }}>
               {pages.map((page, pageIdx) => (
-                <div
-                  key={pageIdx}
-                  className={styles.pdfPage}
-                  style={{
-                    zoom: zoomLevel / 100,
-                  }}
-                >
+                <div key={pageIdx} style={{ width: 794 * (zoomLevel / 100), height: 1123 * (zoomLevel / 100), position: 'relative' }}>
+                  <div
+                    className={styles.pdfPage}
+                    style={{
+                      transform: `scale(${zoomLevel / 100})`,
+                      transformOrigin: 'top left',
+                      width: 794,
+                      minHeight: 1123,
+                    }}
+                  >
                   {isDraft && (watermarkType === 'text' && watermarkText ? (
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 50, overflow: 'hidden' }}>
                       <div style={{ transform: 'rotate(-45deg)', fontSize: watermarkSize, fontWeight: 900, color: `rgba(0,0,0,${watermarkOpacity / 100})`, letterSpacing: 20, whiteSpace: 'nowrap' }}>{watermarkText}</div>
