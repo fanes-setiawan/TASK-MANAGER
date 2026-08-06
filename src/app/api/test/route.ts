@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminDb } from '@/lib/firebase/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  return NextResponse.json({ message: 'API is working', fb: typeof getFirestore }, { status: 200 });
+  try {
+    const db = getAdminDb();
+    return NextResponse.json({ message: 'Firebase Admin initialized successfully!' }, { status: 200 });
+  } catch (error: any) {
+    return NextResponse.json({ message: 'Failed to init Firebase Admin', error: error.message }, { status: 500 });
+  }
 }
