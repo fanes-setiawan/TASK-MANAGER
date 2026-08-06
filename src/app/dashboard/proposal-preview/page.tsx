@@ -801,12 +801,13 @@ function ProposalPreviewContent() {
                         </div>
                       </div>
                     )}
+                  </div>
 
-                    {showPageNumbers && (
-                      <div style={{ position: 'absolute', bottom: 16, right: 24, fontSize: 11, color: '#999' }}>
-                        {pageIdx + 1} / {pages.length}
-                      </div>
-                    )}
+                  {showPageNumbers && (
+                    <div style={{ position: 'absolute', bottom: 16, right: 24, fontSize: 11, color: '#999' }}>
+                      {pageIdx + 1} / {pages.length}
+                    </div>
+                  )}
 
                   </div>
                 </div>
