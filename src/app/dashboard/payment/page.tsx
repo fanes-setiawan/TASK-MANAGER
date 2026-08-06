@@ -6,7 +6,7 @@ import { getProjects, ProjectData, deleteProject, updateProject, updateProjectRo
 import { auth } from "@/lib/firebase/client";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 
 // Helper to generate consistent mock data based on project ID
 const generateMockData = (projectId: string, createdAtSecs: number | undefined) => {
@@ -580,20 +580,16 @@ export default function PaymentPage() {
             <h3 className={styles.chartTitle}>{selectedCompany === "All" ? "Top Revenue by Client" : "Revenue by Month"}</h3>
             <div style={{ width: '100%', height: 280 }}>
               <ResponsiveContainer>
-                <BarChart data={chartData.barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <LineChart data={chartData.barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
                   <YAxis hide />
                   <Tooltip 
-                    cursor={{ fill: '#f1f5f9' }}
+                    cursor={{ stroke: '#e2e8f0', strokeWidth: 1, strokeDasharray: '3 3' }}
                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
                     formatter={(value: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, 'Revenue']}
                   />
-                  <Bar dataKey="revenue" radius={[4, 4, 0, 0]} animationBegin={200} animationDuration={1000}>
-                    {chartData.barData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill="#3b82f6" />
-                    ))}
-                  </Bar>
-                </BarChart>
+                  <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 6 }} animationBegin={200} animationDuration={1000} />
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
