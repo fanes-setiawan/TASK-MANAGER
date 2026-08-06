@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/server';
-import { Filter } from 'firebase-admin/firestore';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -20,17 +19,23 @@ export async function GET(request: Request) {
     } catch (e: any) {
       return NextResponse.json({ error: 'Firebase Init Error', message: e.message, stack: e.stack }, { status: 500 });
     }
-    const snapshot = await projectsRef.where(
-      Filter.or(
-        Filter.where("createdBy", "==", userId),
-        Filter.where("memberIds", "array-contains", userId)
-      )
-    ).get();
+    
+    // Do two queries and merge them, avoiding Filter class entirely
+    const createdBySnapshot = await projectsRef.where("createdBy", "==", userId).get();
+    const memberIdsSnapshot = await projectsRef.where("memberIds", "array-contains", userId).get();
+
+    const projectsMap = new Map();
+    
+    createdBySnapshot.forEach(doc => {
+      projectsMap.set(doc.id, doc.data());
+    });
+    
+    memberIdsSnapshot.forEach(doc => {
+      projectsMap.set(doc.id, doc.data());
+    });
 
     const projects: any[] = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      
+    projectsMap.forEach((data, id) => {
       // Convert Firestore Timestamps to plain objects for JSON serialization
       let createdAt = null;
       if (data.createdAt) {
@@ -41,7 +46,7 @@ export async function GET(request: Request) {
       }
       
       projects.push({ 
-        id: doc.id, 
+        id, 
         ...data,
         createdAt
       });
