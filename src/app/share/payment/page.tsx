@@ -97,55 +97,72 @@ function SharedPaymentPageContent() {
       setLoading(false);
       return;
     }
-    const fetchProjects = async () => {
+    let unsubscribe1: () => void;
+    let unsubscribe2: () => void;
+
+    const setupListeners = async () => {
       try {
-        // Use client-side Firestore to avoid API 500 errors
-        const { collection, query, where, getDocs } = await import("firebase/firestore");
+        const { collection, query, where, onSnapshot } = await import("firebase/firestore");
         const { db } = await import("@/lib/firebase/client");
         
         const projectsRef = collection(db, "projects");
         const q1 = query(projectsRef, where("createdBy", "==", userId));
         const q2 = query(projectsRef, where("memberIds", "array-contains", userId));
         
-        const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-        const projectsMap = new Map();
-        
-        snap1.forEach(doc => projectsMap.set(doc.id, { id: doc.id, ...doc.data() }));
-        snap2.forEach(doc => projectsMap.set(doc.id, { id: doc.id, ...doc.data() }));
-        
-        const data = Array.from(projectsMap.values()).sort((a, b) => {
-          const timeA = a.createdAt?.seconds || 0;
-          const timeB = b.createdAt?.seconds || 0;
-          return timeB - timeA;
-        });
+        const projectsMap1 = new Map();
+        const projectsMap2 = new Map();
 
-        let visible = data.filter(p => !(p as any).paymentHidden);
-        
-        let dbg = {
-           rawCount: data.length,
-           visibleBeforeCompanyFilter: visible.length,
-           targetCompany,
-           companiesFound: data.map(p => p.company || p.clientName)
+        const updateProjects = () => {
+           const mergedMap = new Map();
+           projectsMap1.forEach((data, id) => mergedMap.set(id, data));
+           projectsMap2.forEach((data, id) => mergedMap.set(id, data));
+
+           const data = Array.from(mergedMap.values()).sort((a, b) => {
+             const timeA = a.createdAt?.seconds || 0;
+             const timeB = b.createdAt?.seconds || 0;
+             return timeB - timeA;
+           });
+
+           let visible = data.filter(p => !(p as any).paymentHidden);
+           if (targetCompany !== "All") {
+             const target = targetCompany.trim().toLowerCase();
+             visible = visible.filter(p => {
+               const comp = (p.clientName || p.company || "").trim().toLowerCase();
+               return comp.includes(target) || target.includes(comp);
+             });
+           }
+           setProjects(visible);
+           setLoading(false);
         };
 
-        if (targetCompany !== "All") {
-          const target = targetCompany.trim().toLowerCase();
-          visible = visible.filter(p => {
-            const comp = (p.clientName || p.company || "").trim().toLowerCase();
-            return comp.includes(target) || target.includes(comp);
-          });
-        }
-        
-        setDebugInfo({ ...dbg, finalVisible: visible.length });
-        setProjects(visible);
+        unsubscribe1 = onSnapshot(q1, (snap) => {
+           snap.forEach(doc => projectsMap1.set(doc.id, { id: doc.id, ...doc.data() }));
+           updateProjects();
+        }, (err) => {
+           console.error("q1 error", err);
+           setLoading(false);
+        });
+
+        unsubscribe2 = onSnapshot(q2, (snap) => {
+           snap.forEach(doc => projectsMap2.set(doc.id, { id: doc.id, ...doc.data() }));
+           updateProjects();
+        }, (err) => {
+           console.error("q2 error", err);
+           setLoading(false);
+        });
+
       } catch (error: any) {
-        setDebugInfo((prev: any) => ({ ...prev, caughtError: error.message }));
-        console.error("Failed to fetch projects client-side", error);
-      } finally {
+        console.error("Failed to setup listeners", error);
         setLoading(false);
       }
     };
-    fetchProjects();
+
+    setupListeners();
+
+    return () => {
+      if (unsubscribe1) unsubscribe1();
+      if (unsubscribe2) unsubscribe2();
+    };
   }, [userId, targetCompany]);
 
   const companies = useMemo(() => {
