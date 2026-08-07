@@ -90,6 +90,8 @@ function SharedPaymentPageContent() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+
   useEffect(() => {
     if (!userId || !targetCompany) {
       setLoading(false);
@@ -98,7 +100,11 @@ function SharedPaymentPageContent() {
     const fetchProjects = async () => {
       try {
         const res = await fetch(`/api/share/payment?u=${userId}`);
-        if (!res.ok) throw new Error("Failed to fetch");
+        if (!res.ok) {
+          const errText = await res.text();
+          setDebugInfo({ error: `API Error ${res.status}: ${errText}` });
+          throw new Error("Failed to fetch");
+        }
         const json = await res.json();
         const data: ProjectData[] = json.projects.map((p: any) => ({
           ...p,
@@ -108,6 +114,14 @@ function SharedPaymentPageContent() {
           } : undefined
         }));
         let visible = data.filter(p => !(p as any).paymentHidden);
+        
+        let dbg = {
+           rawCount: data.length,
+           visibleBeforeCompanyFilter: visible.length,
+           targetCompany,
+           companiesFound: data.map(p => p.company || p.clientName)
+        };
+
         if (targetCompany !== "All") {
           const target = targetCompany.trim().toLowerCase();
           visible = visible.filter(p => {
@@ -115,8 +129,11 @@ function SharedPaymentPageContent() {
             return comp.includes(target) || target.includes(comp);
           });
         }
+        
+        setDebugInfo({ ...dbg, finalVisible: visible.length });
         setProjects(visible);
-      } catch (error) {
+      } catch (error: any) {
+        setDebugInfo((prev: any) => ({ ...prev, caughtError: error.message }));
         console.error("Failed to fetch projects", error);
       } finally {
         setLoading(false);
@@ -264,6 +281,11 @@ function SharedPaymentPageContent() {
           Tautan yang Anda akses salah, telah diubah, atau sudah tidak berlaku. 
           Silakan periksa kembali URL tautan yang diberikan.
         </p>
+        {debugInfo && (
+          <pre style={{ textAlign: "left", fontSize: "11px", color: "red", marginTop: 20, maxWidth: "600px", overflow: "auto", background: "#fee2e2", padding: "10px", borderRadius: "8px" }}>
+            Debug Info: {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+        )}
       </div>
     );
   }
