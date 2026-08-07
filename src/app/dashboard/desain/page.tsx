@@ -245,6 +245,44 @@ export default function DesainMockupPage() {
     };
   }, [draggingLayer, zoom, canvasSize]);
 
+  React.useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            const url = URL.createObjectURL(file);
+            
+            if (activeLayer === "Background") {
+               updatePageProperty({ canvasBgImage: url });
+            } else {
+               const activeEl = elements.find(el => el.id === activeLayer);
+               if (activeEl && (activeEl.type === 'mockup' || activeEl.type === 'image_card' || activeEl.type === 'badge')) {
+                  if (activeEl.type === 'mockup') {
+                    setScreenshotUrl(url);
+                  } else {
+                    handlePropChange('imageUrl', url);
+                  }
+               } else {
+                  const newId = `Gambar ${elements.length + 1}`;
+                  setElements(prev => [...prev, { id: newId, type: 'image_card', x: 100, y: 100, w: 320, h: 320, imageUrl: url }]);
+                  setActiveLayer(newId);
+               }
+            }
+          }
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [activeLayer, elements, setScreenshotUrl]);
+
+
   const toggleVisibility = (layerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setElements((prev: CanvasElement[]) => prev.map(el => {
@@ -492,10 +530,17 @@ export default function DesainMockupPage() {
                 <option value="1600x2560">10-inch Tablet (1600 x 2560)</option>
                 <option value="1920x1080">Chromebook (1920 x 1080)</option>
               </optgroup>
+              <optgroup label="Apple App Store (iOS)">
+                <option value="1024x1024">App Icon (1024 x 1024)</option>
+                <option value="1320x2868">iPhone 6.9" (1320 x 2868)</option>
+                <option value="1290x2796">iPhone 6.3"/6.1" (1290 x 2796)</option>
+                <option value="1242x2688">iPhone 6.5" (1242 x 2688)</option>
+                <option value="1179x2556">iPhone 6.1" (1179 x 2556)</option>
+                <option value="2064x2752">13-inch iPad (2064 x 2752)</option>
+                <option value="2048x2732">12.9-inch iPad Pro (2048 x 2732)</option>
+              </optgroup>
               <optgroup label="Lainnya">
                 <option value="500x1024">Custom Portrait (500 x 1024)</option>
-                <option value="1242x2688">App Store 6.5" (1242 x 2688)</option>
-                <option value="1242x2208">App Store 5.5" (1242 x 2208)</option>
                 <option value="1080x1080">Square / Instagram (1080 x 1080)</option>
               </optgroup>
             </select>
