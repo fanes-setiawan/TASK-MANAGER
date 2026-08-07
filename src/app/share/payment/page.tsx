@@ -99,20 +99,26 @@ function SharedPaymentPageContent() {
     }
     const fetchProjects = async () => {
       try {
-        const res = await fetch(`/api/share/payment?u=${userId}`);
-        if (!res.ok) {
-          const errText = await res.text();
-          setDebugInfo({ error: `API Error ${res.status}: ${errText}` });
-          throw new Error("Failed to fetch");
-        }
-        const json = await res.json();
-        const data: ProjectData[] = json.projects.map((p: any) => ({
-          ...p,
-          createdAt: p.createdAt ? {
-            seconds: p.createdAt.seconds,
-            toMillis: () => p.createdAt.seconds * 1000
-          } : undefined
-        }));
+        // Use client-side Firestore to avoid API 500 errors
+        const { collection, query, where, getDocs } = await import("firebase/firestore");
+        const { db } = await import("@/lib/firebase/client");
+        
+        const projectsRef = collection(db, "projects");
+        const q1 = query(projectsRef, where("createdBy", "==", userId));
+        const q2 = query(projectsRef, where("memberIds", "array-contains", userId));
+        
+        const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+        const projectsMap = new Map();
+        
+        snap1.forEach(doc => projectsMap.set(doc.id, { id: doc.id, ...doc.data() }));
+        snap2.forEach(doc => projectsMap.set(doc.id, { id: doc.id, ...doc.data() }));
+        
+        const data = Array.from(projectsMap.values()).sort((a, b) => {
+          const timeA = a.createdAt?.seconds || 0;
+          const timeB = b.createdAt?.seconds || 0;
+          return timeB - timeA;
+        });
+
         let visible = data.filter(p => !(p as any).paymentHidden);
         
         let dbg = {
@@ -134,7 +140,7 @@ function SharedPaymentPageContent() {
         setProjects(visible);
       } catch (error: any) {
         setDebugInfo((prev: any) => ({ ...prev, caughtError: error.message }));
-        console.error("Failed to fetch projects", error);
+        console.error("Failed to fetch projects client-side", error);
       } finally {
         setLoading(false);
       }
