@@ -159,13 +159,13 @@ function SharePreviewContent() {
         }
         if (finalData && finalData.shareSettings?.isPublic !== false) {
           setProjectData(finalData);
-          setPermission(finalData.shareSettings?.permission || "view");
+          setPermission(finalData?.shareSettings?.permission || "view");
           if (finalData.documentSettings) {
             const ds = finalData.documentSettings;
             if (ds.logoUrl !== undefined) setLogoUrl(ds.logoUrl);
             if (ds.themeColor !== undefined) setThemeColor(ds.themeColor);
             if (ds.customProjectName !== undefined) setCustomProjectName(ds.customProjectName);
-            else setCustomProjectName(finalData?.projectName || "");
+            else setCustomProjectName(finalData.projectName || "");
             if (ds.customClientName !== undefined) setCustomClientName(ds.customClientName);
             else setCustomClientName(finalData?.clientName || finalData?.company || "");
             if (ds.notes !== undefined) setNotes(ds.notes);
