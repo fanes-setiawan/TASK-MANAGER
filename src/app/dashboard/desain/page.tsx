@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import styles from "./desain.module.css";
-import domtoimage from "dom-to-image";
+import * as htmlToImage from "html-to-image";
 export type ElementType = 'text' | 'mockup' | 'badge' | 'logo' | 'background' | 'image_card';
 
 export interface CanvasElement {
@@ -325,9 +325,13 @@ export default function DesainMockupPage() {
       const originalTransform = canvasRef.current.style.transform;
       canvasRef.current.style.transform = 'scale(1)';
 
-      const dataUrl = await domtoimage.toPng(canvasRef.current, {
+      // Beri sedikit jeda agar React sempat merender state isExporting (misal untuk menghilangkan backdrop-filter)
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      const dataUrl = await htmlToImage.toPng(canvasRef.current, {
         quality: 1,
-        bgcolor: canvasBackground || undefined // ensure background color is captured if any
+        backgroundColor: canvasBackground || undefined, // ensure background color is captured if any
+        pixelRatio: 2 // Meningkatkan ketajaman hasil export
       });
 
       // Restore transform
@@ -586,15 +590,15 @@ export default function DesainMockupPage() {
                         cursor: 'move',
                         outline: activeLayer === el.id ? '2px dashed #2563eb' : 'none',
                         color: el.color === 'black' ? '#ffffff' : (el.color || '#ffffff'),
-                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                        backdropFilter: 'blur(10px)',
+                        backgroundColor: isExporting ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)',
+                        backdropFilter: isExporting ? 'none' : 'blur(10px)',
                         border: '1px solid rgba(255, 255, 255, 0.3)',
                         display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 20
                       }}
                       onMouseDown={(e) => { e.stopPropagation(); setActiveLayer(el.id); setDraggingLayer(el.id); }}
                     >
                        {(el.imageUrl || el.icon) && (
-                         <div className={styles.badgeIcon} style={{ background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', overflow: 'hidden' }}>
+                         <div className={styles.badgeIcon} style={{ background: isExporting ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', overflow: 'hidden' }}>
                            {el.imageUrl ? (
                              <img src={el.imageUrl} alt="Custom Logo" style={{ width: 24, height: 24, objectFit: 'contain' }} />
                            ) : (
