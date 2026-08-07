@@ -29,9 +29,42 @@ export default function DashboardPage() {
     return () => unsubscribe();
   }, []);
 
+  const calculateTotalPrice = (project: ProjectData) => {
+    let totalPoints = 0;
+    let totalFixedCost = 0;
+    const rate = project.ratePerPoint || 0;
+    
+    if (project.configJson) {
+      try {
+        const parsed = JSON.parse(project.configJson);
+        const modules = Array.isArray(parsed.modules) ? parsed.modules : [];
+        modules.forEach((mod: any) => {
+          const modFixed = mod.price ?? mod.cost ?? mod.fixedPrice ?? mod.fixed_price;
+          if (modFixed !== undefined && modFixed !== null && modFixed !== "") {
+            totalFixedCost += Number(modFixed) || 0;
+          } else if (mod.subtasks && Array.isArray(mod.subtasks)) {
+            mod.subtasks.forEach((sub: any) => {
+              const fixed = sub.price ?? sub.cost ?? sub.fixedPrice ?? sub.fixed_price;
+              if (fixed !== undefined && fixed !== null && fixed !== "") {
+                totalFixedCost += Number(fixed) || 0;
+              } else {
+                totalPoints += (sub.points || 0);
+              }
+            });
+          } else {
+            totalPoints += (mod.points || 0);
+          }
+        });
+      } catch (e) {
+        console.error("Failed to parse configJson for project", project.id, e);
+      }
+    }
+    return totalFixedCost + (totalPoints * rate);
+  };
+
   const totalProposals = projects.length;
-  // A simple mockup calculation for total revenue for display purposes
-  const totalRevenue = projects.reduce((sum, p) => sum + (p.ratePerPoint * 100), 0);
+  // Calculate total revenue correctly
+  const totalRevenue = projects.reduce((sum, p) => sum + calculateTotalPrice(p), 0);
   
   // Format currency
   const formatCurrency = (amount: number, currencyCode: string = "IDR") => {
@@ -208,7 +241,7 @@ export default function DashboardPage() {
                             <span className={styles.statusActive}>Active</span>
                           </td>
                           <td className={styles.td} style={{ textAlign: "right", fontWeight: 700 }}>
-                            {formatCurrency(project.ratePerPoint * 100, project.currency)}
+                            {formatCurrency(calculateTotalPrice(project), project.currency)}
                           </td>
                           <td className={styles.td} style={{ textAlign: "center" }}>
                             <button 
