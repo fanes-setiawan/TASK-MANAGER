@@ -109,7 +109,11 @@ function SharedPaymentPageContent() {
         }));
         let visible = data.filter(p => !(p as any).paymentHidden);
         if (targetCompany !== "All") {
-          visible = visible.filter(p => (p.clientName || p.company) === targetCompany);
+          const target = targetCompany.trim().toLowerCase();
+          visible = visible.filter(p => {
+            const comp = p.clientName || p.company || "";
+            return comp.trim().toLowerCase() === target;
+          });
         }
         setProjects(visible);
       } catch (error) {
