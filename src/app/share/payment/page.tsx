@@ -111,8 +111,8 @@ function SharedPaymentPageContent() {
         if (targetCompany !== "All") {
           const target = targetCompany.trim().toLowerCase();
           visible = visible.filter(p => {
-            const comp = p.clientName || p.company || "";
-            return comp.trim().toLowerCase() === target;
+            const comp = (p.clientName || p.company || "").trim().toLowerCase();
+            return comp.includes(target) || target.includes(comp);
           });
         }
         setProjects(visible);
