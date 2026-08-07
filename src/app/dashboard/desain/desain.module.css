@@ -303,11 +303,112 @@
   padding: 24px;
 }
 
+/* BOTTOM THUMBNAILS BAR */
+.thumbnailsRow {
+  height: 120px;
+  background-color: #f1f5f9;
+  border-top: 1px solid var(--color-outline-variant);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.thumbnailCard {
+  width: 130px;
+  height: 80px;
+  background-color: white;
+  border-radius: 8px;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.thumbnailCard.active {
+  border: 2px solid #2563eb;
+}
+.thumbnailCard:not(.active) {
+  border: 1px solid #cbd5e1;
+}
+
+.thumbnailNumber {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: rgba(0,0,0,0.5);
+  color: white;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.thumbnailActions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 10;
+}
+
+.thumbnailCard:hover .thumbnailActions {
+  opacity: 1;
+}
+
+.thumbnailActionBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thumbnailActionBtn:hover {
+  color: #2563eb;
+}
+.thumbnailActionBtn.deleteBtn:hover {
+  color: #ef4444;
+}
+
+.thumbnailAdd {
+  width: 80px;
+  height: 80px;
+  background-color: #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  color: #475569;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.thumbnailAdd:hover {
+  background-color: #cbd5e1;
+}
+
 .mockupPoster {
   width: 480px;
   height: 800px;
   background: linear-gradient(180deg, #1e40af 0%, #047857 100%);
-  border-radius: 12px;
+  border-radius: 0;
   box-shadow: 0 10px 25px rgba(0,0,0,0.1);
   position: relative;
   overflow: visible;
@@ -378,18 +479,22 @@
   transform: translateX(-50%);
   width: 260px;
   height: 520px;
-  background-color: #1e293b;
-  border-radius: 36px;
-  border: 8px solid #0f172a;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  background-color: #0f172a;
+  border-radius: 40px;
+  border: 12px solid #0f172a;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3), inset 0 0 0 1px #334155;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
 }
 
 .phoneScreen {
   flex: 1;
   background-color: #f8fafc;
+  border-radius: 28px;
+  overflow: hidden;
+  position: relative;
 }
 
 .phoneNotch {
@@ -397,12 +502,33 @@
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 100px;
-  height: 25px;
+  width: 120px;
+  height: 26px;
   background-color: #0f172a;
   border-bottom-left-radius: 16px;
   border-bottom-right-radius: 16px;
-  z-index: 2;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.phoneNotch::before {
+  content: '';
+  width: 40px;
+  height: 4px;
+  background: #1e293b;
+  border-radius: 2px;
+}
+
+.phoneNotch::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: #020617;
+  border-radius: 50%;
+  box-shadow: inset 0 0 2px rgba(255,255,255,0.2);
 }
 
 .featureBadge {
