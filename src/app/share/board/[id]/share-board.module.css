@@ -3,7 +3,7 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(to top, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.5) 30%, rgba(255, 255, 255, 0) 60%), var(--color-surface);
+  background-color: var(--color-surface);
   overflow: hidden;
   font-family: inherit;
 }
