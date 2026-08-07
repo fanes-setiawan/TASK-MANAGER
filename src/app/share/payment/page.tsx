@@ -287,11 +287,6 @@ function SharedPaymentPageContent() {
           Tautan yang Anda akses salah, telah diubah, atau sudah tidak berlaku. 
           Silakan periksa kembali URL tautan yang diberikan.
         </p>
-        {debugInfo && (
-          <pre style={{ textAlign: "left", fontSize: "11px", color: "red", marginTop: 20, maxWidth: "600px", overflow: "auto", background: "#fee2e2", padding: "10px", borderRadius: "8px" }}>
-            Debug Info: {JSON.stringify(debugInfo, null, 2)}
-          </pre>
-        )}
       </div>
     );
   }
