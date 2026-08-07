@@ -155,29 +155,8 @@ export default function DesainMockupPage() {
 
   const applyTemplate = (templateId: string) => {
     if (templateId === 'klasik') {
-      setElements([
-        { id: "Judul", type: "text", text: "Exam Sekolahkita", fontSize: 36, color: "#FFFFFF", x: 120, y: 150, w: 240, fontWeight: "bold" },
-        { id: "Subtitle", type: "text", text: "Exambro Ujian Online Lebih Aman, Cepat & Efisien", fontSize: 16, color: "#a7f3d0", x: 120, y: 220, w: 240, fontWeight: "normal" },
-        { id: "Mockup", type: "mockup", x: 50, y: 300 },
-        { id: "Badge Aman", type: "badge", text: "Lebih Aman", icon: "check", x: -10, y: 380, hidden: false },
-        { id: "Badge Cepat", type: "badge", text: "Lebih Cepat", icon: "check", x: 330, y: 480, hidden: false },
-        { id: "Badge Efisien", type: "badge", text: "Lebih Efisien", icon: "check", x: -10, y: 580, hidden: false },
-        { id: "Badge Hemat", type: "badge", text: "Hemat Kertas", icon: "check", x: 330, y: 680, hidden: false },
-      ]);
-      updatePageProperty({ canvasBackground: 'linear-gradient(180deg, #1e40af 0%, #047857 100%)' });
       setIs3D(false);
     } else {
-      setElements([
-        { id: "Header Label", type: "badge", text: "Sekolahkita.net", icon: "school", x: 120, y: 60, w: 240, color: "black" },
-        { id: "Judul", type: "text", text: "Platform Manajemen Sekolah Terlengkap", fontSize: 28, color: "#FFFFFF", x: 40, y: 140, w: 400, fontWeight: "bold" },
-        { id: "Subtitle", type: "text", text: "Aman • Cepat • Terintegrasi", fontSize: 18, color: "#FFFFFF", x: 40, y: 250, w: 400, fontWeight: 500 },
-        { id: "Mockup", type: "mockup", x: 50, y: 310 },
-        { id: "Badge Aman", type: "badge", text: "Lebih Aman", icon: "check", x: -10, y: 380, hidden: true },
-        { id: "Badge Cepat", type: "badge", text: "Lebih Cepat", icon: "check", x: 330, y: 480, hidden: true },
-        { id: "Badge Efisien", type: "badge", text: "Lebih Efisien", icon: "check", x: -10, y: 580, hidden: true },
-        { id: "Badge Hemat", type: "badge", text: "Hemat Kertas", icon: "check", x: 330, y: 680, hidden: true },
-      ]);
-      updatePageProperty({ canvasBackground: 'linear-gradient(135deg, #1d4ed8 0%, #10b981 100%)' });
       setIs3D(true);
     }
   };
@@ -254,24 +233,28 @@ export default function DesainMockupPage() {
         if (items[i].type.indexOf('image') !== -1) {
           const file = items[i].getAsFile();
           if (file) {
-            const url = URL.createObjectURL(file);
-            
-            if (activeLayer === "Background") {
-               updatePageProperty({ canvasBgImage: url });
-            } else {
-               const activeEl = elements.find(el => el.id === activeLayer);
-               if (activeEl && (activeEl.type === 'mockup' || activeEl.type === 'image_card' || activeEl.type === 'badge')) {
-                  if (activeEl.type === 'mockup') {
-                    setScreenshotUrl(url);
-                  } else {
-                    handlePropChange('imageUrl', url);
-                  }
-               } else {
-                  const newId = `Gambar ${elements.length + 1}`;
-                  setElements(prev => [...prev, { id: newId, type: 'image_card', x: 100, y: 100, w: 320, h: 320, imageUrl: url }]);
-                  setActiveLayer(newId);
-               }
-            }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const url = event.target?.result as string;
+              
+              if (activeLayer === "Background") {
+                 updatePageProperty({ canvasBgImage: url });
+              } else {
+                 const activeEl = elements.find(el => el.id === activeLayer);
+                 if (activeEl && (activeEl.type === 'mockup' || activeEl.type === 'image_card' || activeEl.type === 'badge')) {
+                    if (activeEl.type === 'mockup') {
+                      setScreenshotUrl(url);
+                    } else {
+                      handlePropChange('imageUrl', url);
+                    }
+                 } else {
+                    const newId = `Gambar ${elements.length + 1}`;
+                    setElements(prev => [...prev, { id: newId, type: 'image_card', x: 100, y: 100, w: 320, h: 320, imageUrl: url }]);
+                    setActiveLayer(newId);
+                 }
+              }
+            };
+            reader.readAsDataURL(file);
           }
           break;
         }
@@ -381,7 +364,7 @@ export default function DesainMockupPage() {
       link.click();
     } catch (err) {
       console.error("Export failed", err);
-      alert("Gagal mengekspor gambar");
+      alert(`Gagal mengekspor gambar: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsExporting(false);
     }
@@ -864,7 +847,11 @@ export default function DesainMockupPage() {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      updatePageProperty({ canvasBgImage: URL.createObjectURL(file) });
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        updatePageProperty({ canvasBgImage: event.target?.result as string });
+                      };
+                      reader.readAsDataURL(file);
                     }
                   }}
                   style={{
@@ -986,12 +973,16 @@ export default function DesainMockupPage() {
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            const url = URL.createObjectURL(file);
-                            if (activeData.type === 'mockup') {
-                               setScreenshotUrl(url);
-                            } else {
-                               handlePropChange('imageUrl', url);
-                            }
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              const url = event.target?.result as string;
+                              if (activeData.type === 'mockup') {
+                                 setScreenshotUrl(url);
+                              } else {
+                                 handlePropChange('imageUrl', url);
+                              }
+                            };
+                            reader.readAsDataURL(file);
                           }
                         }}
                         style={{
