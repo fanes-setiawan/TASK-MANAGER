@@ -208,6 +208,14 @@ export default function DashboardLayout({
             <span className="material-symbols-outlined">auto_awesome_motion</span>
             <span className={styles.navLabel}>Templates</span>
           </Link>
+          <Link
+            href="/dashboard/desain"
+            className={`${styles.navItem} ${pathname === "/dashboard/desain" ? styles.active : ""
+              }`}
+          >
+            <span className="material-symbols-outlined">palette</span>
+            <span className={styles.navLabel}>Desain</span>
+          </Link>
 
         </nav>
 
