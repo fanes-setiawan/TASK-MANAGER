@@ -844,14 +844,27 @@ export default function DesainMockupPage() {
                 <input 
                   type="file" 
                   accept="image/*"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        updatePageProperty({ canvasBgImage: event.target?.result as string });
-                      };
-                      reader.readAsDataURL(file);
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      formData.append("upload_preset", "desain_preset");
+                      
+                      try {
+                        const res = await fetch("https://api.cloudinary.com/v1_1/gyewfsfw/image/upload", {
+                          method: "POST",
+                          body: formData,
+                        });
+                        const data = await res.json();
+                        const url = data.secure_url;
+                        if (url) {
+                          updatePageProperty({ canvasBgImage: url });
+                        }
+                      } catch (error) {
+                        console.error("Gagal mengunggah gambar background:", error);
+                        alert("Gagal mengunggah gambar background.");
+                      }
                     }
                   }}
                   style={{
@@ -970,19 +983,32 @@ export default function DesainMockupPage() {
                       <input 
                         type="file" 
                         accept="image/*"
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (event) => {
-                              const url = event.target?.result as string;
-                              if (activeData.type === 'mockup') {
-                                 setScreenshotUrl(url);
-                              } else {
-                                 handlePropChange('imageUrl', url);
+                            const formData = new FormData();
+                            formData.append("file", file);
+                            formData.append("upload_preset", "desain_preset");
+                            
+                            try {
+                              const res = await fetch("https://api.cloudinary.com/v1_1/gyewfsfw/image/upload", {
+                                method: "POST",
+                                body: formData,
+                              });
+                              const data = await res.json();
+                              const url = data.secure_url;
+                              
+                              if (url) {
+                                if (activeData.type === 'mockup') {
+                                   setScreenshotUrl(url);
+                                } else {
+                                   handlePropChange('imageUrl', url);
+                                }
                               }
-                            };
-                            reader.readAsDataURL(file);
+                            } catch (error) {
+                              console.error("Gagal mengunggah gambar layer:", error);
+                              alert("Gagal mengunggah gambar.");
+                            }
                           }
                         }}
                         style={{
