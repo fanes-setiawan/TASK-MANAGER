@@ -35,6 +35,7 @@ export interface PageData {
   canvasBgScale: number;
   canvasBgPattern?: string;
   mockupFrame: 'iphone15' | 'iphone13' | 'android';
+  is3D?: boolean;
 }
 
 export interface Project {
@@ -70,7 +71,8 @@ export default function DesainMockupPage() {
       canvasBgMode: 'cover',
       canvasBgScale: 100,
       canvasBgPattern: 'none',
-      mockupFrame: 'iphone15'
+      mockupFrame: 'iphone15',
+      is3D: true
     }
   ]);
   const [activePageId, setActivePageId] = useState<string>('Page 1');
@@ -125,16 +127,7 @@ export default function DesainMockupPage() {
     return () => unsubscribe();
   }, []);
 
-  const activePageData = pages.find(p => p.id === activePageId) || pages[0];
-  const elements = activePageData.elements;
-  const canvasSize = activePageData.canvasSize;
-  const canvasBackground = activePageData.canvasBackground;
-  const canvasBgImage = activePageData.canvasBgImage;
-  const canvasBgOpacity = activePageData.canvasBgOpacity;
-  const canvasBgMode = activePageData.canvasBgMode;
-  const canvasBgScale = activePageData.canvasBgScale;
-  const canvasBgPattern = activePageData.canvasBgPattern || 'none';
-  const mockupFrame = activePageData.mockupFrame || 'iphone13';
+// Variables relocated slightly below where activePageData is initially defined.
 
 const getPatternStyle = (pattern: string) => {
   switch(pattern) {
@@ -203,8 +196,19 @@ const getPatternStyle = (pattern: string) => {
   const [textAlign, setTextAlign] = useState("center");
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
   
-  const [is3D, setIs3D] = useState(true);
   const [guides, setGuides] = useState<{x: number | null, y: number | null}>({x: null, y: null});
+
+  const activePageData = pages.find(p => p.id === activePageId) || pages[0];
+  const elements = activePageData.elements;
+  const canvasSize = activePageData.canvasSize;
+  const canvasBackground = activePageData.canvasBackground;
+  const canvasBgImage = activePageData.canvasBgImage;
+  const canvasBgOpacity = activePageData.canvasBgOpacity;
+  const canvasBgMode = activePageData.canvasBgMode;
+  const canvasBgScale = activePageData.canvasBgScale;
+  const canvasBgPattern = activePageData.canvasBgPattern || 'none';
+  const mockupFrame = activePageData.mockupFrame || 'iphone13';
+  const is3D = activePageData.is3D ?? false;
 
   const activeData = elements.find(el => el.id === activeLayer) || { type: 'background' } as any;
 
@@ -219,12 +223,12 @@ const getPatternStyle = (pattern: string) => {
 
   const applyTemplate = (templateId: string) => {
     if (templateId === 'klasik') {
-      setIs3D(false);
+      updatePageProperty({ is3D: false });
     } else if (templateId === 'modern') {
-      setIs3D(true);
+      updatePageProperty({ is3D: true });
     } else if (templateId === 'streaming') {
-      setIs3D(false);
       updatePageProperty({ 
+        is3D: false,
         canvasBackground: 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)', 
         canvasBgPattern: 'none', 
         canvasBgImage: null
@@ -236,6 +240,165 @@ const getPatternStyle = (pattern: string) => {
         if (el.type === 'badge' || el.id === 'Header Label') return { ...el, hidden: true };
         return el;
       }));
+    }
+  };
+
+  const applyBundle = (bundleType: string) => {
+    if (bundleType === 'modern_bundle') {
+      const baseBg = 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)';
+      const bundlePages: PageData[] = [
+        {
+          id: "Page 1",
+          canvasSize: '500x1024',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: true,
+          elements: [
+            { id: "Judul", type: "text", text: "APLIKASI TRANSFER FILE FANTASTIS", fontSize: 36, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
+            { id: "Subtitle", type: "text", text: "Kecepatan transfer luar biasa 42MB/s", fontSize: 16, color: "#dbeafe", x: 20, y: 170, w: 460, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 60, y: 280, w: 320, h: 650 },
+            { id: "Bintang", type: "badge", text: "Favorit Pilihan", icon: "thumb_up", x: -20, y: 650, color: "white" }
+          ]
+        },
+        {
+          id: "Page 2",
+          canvasSize: '500x1024',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: true,
+          elements: [
+            { id: "Judul", type: "text", text: "0 KONSUMSI DATA", fontSize: 40, color: "#FFFFFF", x: 20, y: 100, w: 460, fontWeight: "bold" },
+            { id: "Subtitle", type: "text", text: "Tidak butuh koneksi internet", fontSize: 18, color: "#dbeafe", x: 20, y: 180, w: 460, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 60, y: 300, w: 320, h: 650 },
+            { id: "Label Data", type: "image_card", x: 180, y: 400, w: 220, h: 90 },
+            { id: "Wifi Offline", type: "badge", text: "Offline", icon: "wifi_off", x: 300, y: 700, color: "white" }
+          ]
+        },
+        {
+          id: "Page 3",
+          canvasSize: '500x1024',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Video Downloader", fontSize: 32, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
+            { id: "Subtitle", type: "text", text: "Download media sekali klik dari mana saja", fontSize: 16, color: "#dbeafe", x: 20, y: 140, w: 460, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 100, y: 220, w: 300, h: 600 },
+            { id: "Social Card", type: "image_card", x: 40, y: 350, w: 420, h: 120 },
+            { id: "Download Icon", type: "badge", text: "Unduh", icon: "download", x: 320, y: 680, color: "white" }
+          ]
+        },
+        {
+          id: "Page 4",
+          canvasSize: '500x1024',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Aplikasi Mini Terpadu", fontSize: 32, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
+            { id: "Subtitle", type: "text", text: "Tidak ada unduhan tambahan, hemat memori", fontSize: 16, color: "#dbeafe", x: 20, y: 140, w: 460, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 100, y: 220, w: 300, h: 600 },
+            { id: "Tools Card", type: "image_card", x: 40, y: 400, w: 380, h: 250 },
+            { id: "Briefcase", type: "badge", text: "Alat", icon: "work", x: 340, y: 720, color: "white" }
+          ]
+        },
+        {
+          id: "Page 5",
+          canvasSize: '500x1024',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Generator Foto AI", fontSize: 32, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
+            { id: "Subtitle", type: "text", text: "Generasi sekali klik dengan gaya kekinian", fontSize: 16, color: "#dbeafe", x: 20, y: 140, w: 460, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 100, y: 220, w: 300, h: 600 },
+            { id: "Badge AI", type: "badge", text: "Magic", icon: "auto_awesome", x: 320, y: 650, color: "white" }
+          ]
+        },
+        {
+          id: "Page 6",
+          canvasSize: '500x1024',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Pemutar Musik Aktif", fontSize: 32, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
+            { id: "Subtitle", type: "text", text: "Mainkan dan dengarkan musik favorit kapan saja", fontSize: 16, color: "#dbeafe", x: 20, y: 140, w: 460, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 100, y: 220, w: 300, h: 600 },
+            { id: "Music Icon", type: "badge", text: "Lagu", icon: "music_note", x: 300, y: 680, color: "white" }
+          ]
+        },
+        {
+          id: "Page 7",
+          canvasSize: '500x1024',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Safebox Pribadi", fontSize: 32, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
+            { id: "Subtitle", type: "text", text: "Tempat terbaik untuk menyembunyikan media", fontSize: 16, color: "#dbeafe", x: 20, y: 140, w: 460, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 100, y: 220, w: 300, h: 600 },
+            { id: "Lock Card", type: "image_card", x: 140, y: 400, w: 260, h: 260 },
+            { id: "Lock Icon", type: "badge", text: "Aman", icon: "lock", x: 280, y: 700, color: "white" }
+          ]
+        },
+        {
+          id: "Page 8",
+          canvasSize: '500x1024',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Pemutar Video HD", fontSize: 32, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
+            { id: "Subtitle", type: "text", text: "Nikmati film, acara TV, dan MV kapan saja", fontSize: 16, color: "#dbeafe", x: 20, y: 140, w: 460, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 100, y: 220, w: 300, h: 600 },
+            { id: "Video Card", type: "image_card", x: 60, y: 480, w: 380, h: 180 },
+            { id: "Play Icon", type: "badge", text: "Tonton", icon: "play_arrow", x: 320, y: 650, color: "white" }
+          ]
+        }
+      ];
+      setPages(bundlePages);
+      setActivePageId("Page 1");
     }
   };
 
@@ -673,6 +836,23 @@ const getPatternStyle = (pattern: string) => {
                  }}>
                     <div style={{fontSize: 13, fontWeight: 600, color: canvasBackground === 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '#1e40af' : 'var(--color-textColor)', marginBottom: 2}}>Streaming App</div>
                     <div style={{fontSize: 11, color: 'var(--color-outline)', lineHeight: 1.4}}>Background merah gelap dengan judul tegas di atas mockup.</div>
+                 </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 style={{fontSize: 11, color: 'var(--color-outline)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700}}>Pilih Bundle (1 Set)</h3>
+              <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+                 <div onClick={() => {
+                   if(window.confirm('PERINGATAN: Menerapkan bundle akan menimpa seluruh halaman (Page 1-8) di proyek ini. Lanjutkan?')) {
+                     applyBundle('modern_bundle');
+                   }
+                 }} style={{
+                   padding: 12, borderRadius: 8, cursor: 'pointer', border: '1px solid var(--color-outline-variant)', background: '#f8fafc', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
+                 }}>
+                    <div style={{position: 'absolute', top: 0, right: 0, background: '#3b82f6', color: 'white', fontSize: 9, padding: '2px 6px', borderBottomLeftRadius: 8, fontWeight: 'bold'}}>8 PAGES</div>
+                    <div style={{fontSize: 13, fontWeight: 600, color: 'var(--color-textColor)', marginBottom: 2}}>Bundle App Biru</div>
+                    <div style={{fontSize: 11, color: 'var(--color-outline)', lineHeight: 1.4}}>Set lengkap bergaya ShareIT (Hero 3D, fitur pop-up flat).</div>
                  </div>
               </div>
             </div>
