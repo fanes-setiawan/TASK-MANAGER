@@ -197,6 +197,7 @@ const getPatternStyle = (pattern: string) => {
 
   const [activeLayer, setActiveLayer] = useState("Mockup");
   const [zoom, setZoom] = useState(45);
+  const activeZoom = (isExporting || isExportingMultiple) ? 100 : zoom;
   const [shadowEnabled, setShadowEnabled] = useState(false);
   const [textAlign, setTextAlign] = useState("center");
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
@@ -666,9 +667,8 @@ const getPatternStyle = (pattern: string) => {
     try {
       setIsExporting(true);
       
-      // Temporarily reset the scale of the outer container for a full resolution capture
-      const originalTransform = canvasRef.current.style.transform;
-      canvasRef.current.style.transform = 'scale(1)';
+      // Fetch Google Fonts CSS to bypass html-to-image CORS cssRules crash
+      const fontCSS = await fetch('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap').then(res => res.text()).catch(() => '');
 
       // Beri sedikit jeda agar React sempat merender state isExporting (misal untuk menghilangkan backdrop-filter)
       await new Promise(resolve => setTimeout(resolve, 150));
@@ -676,11 +676,9 @@ const getPatternStyle = (pattern: string) => {
       const dataUrl = await htmlToImage.toPng(canvasRef.current, {
         quality: 1,
         backgroundColor: canvasBackground || undefined, // ensure background color is captured if any
-        pixelRatio: 2 // Meningkatkan ketajaman hasil export
+        pixelRatio: 2, // Meningkatkan ketajaman hasil export
+        fontEmbedCSS: fontCSS
       });
-
-      // Restore transform
-      canvasRef.current.style.transform = originalTransform;
 
       const link = document.createElement('a');
       link.download = `Mockup-${activePageId}.png`;
@@ -702,9 +700,10 @@ const getPatternStyle = (pattern: string) => {
       const { saveAs } = await import('file-saver');
       const zip = new JSZip();
       
+      // Fetch Google Fonts CSS to bypass html-to-image CORS cssRules crash
+      const fontCSS = await fetch('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap').then(res => res.text()).catch(() => '');
+      
       const originalPageId = activePageId;
-      const originalTransform = canvasRef.current.style.transform;
-      canvasRef.current.style.transform = 'scale(1)';
       
       for (let i = 0; i < selectedExportPages.length; i++) {
         const pageId = selectedExportPages[i];
@@ -718,7 +717,8 @@ const getPatternStyle = (pattern: string) => {
         const blob = await htmlToImage.toBlob(canvasRef.current, {
           quality: 1,
           backgroundColor: pageData?.canvasBackground || undefined,
-          pixelRatio: 3 // High Quality HD
+          pixelRatio: 3, // High Quality HD
+          fontEmbedCSS: fontCSS
         });
         
         if (blob) {
@@ -728,7 +728,6 @@ const getPatternStyle = (pattern: string) => {
       
       setExportProgress(100);
       
-      canvasRef.current.style.transform = originalTransform;
       setActivePageId(originalPageId);
       
       const zipContent = await zip.generateAsync({ type: 'blob' });
@@ -991,8 +990,8 @@ const getPatternStyle = (pattern: string) => {
 
           <div className={styles.canvasContainer} onClick={() => setActiveLayer("Background")}>
             <div style={{
-              width: (canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480) * (zoom / 100),
-              height: ((canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480) * (parseInt(canvasSize.split('x')[1]) / parseInt(canvasSize.split('x')[0]))) * (zoom / 100),
+              width: (canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480) * (activeZoom / 100),
+              height: ((canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480) * (parseInt(canvasSize.split('x')[1]) / parseInt(canvasSize.split('x')[0]))) * (activeZoom / 100),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1000,7 +999,7 @@ const getPatternStyle = (pattern: string) => {
               transition: 'all 0.2s ease-out'
             }}>
               <div ref={canvasRef} className={styles.mockupPoster} style={{ 
-                transform: `scale(${zoom / 100})`, 
+                transform: `scale(${activeZoom / 100})`, 
                 transformOrigin: 'center',
                 boxShadow: shadowEnabled ? '0 20px 40px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.1)',
                 background: canvasBackground,
