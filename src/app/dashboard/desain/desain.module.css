@@ -1,10 +1,11 @@
 .editorContainer {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 72px); /* Adjust based on dashboard header height */
-  background-color: #f8fafc; /* Very light slate background */
+  height: calc(100vh - 72px);
+  background-color: #f8fafc;
   font-family: var(--font-body-md);
-  margin-top: -16px; /* Offset dashboard default padding if needed, assuming no padding */
+  margin-top: -16px;
+  overflow: hidden;
 }
 
 /* TOP TOOLBAR */
@@ -526,6 +527,55 @@
   content: '';
   width: 8px;
   height: 8px;
+  background: #020617;
+  border-radius: 50%;
+  box-shadow: inset 0 0 2px rgba(255,255,255,0.2);
+}
+
+.phoneDynamicIsland {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 26px;
+  background-color: #0f172a;
+  border-radius: 16px;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.phoneDynamicIsland::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: #020617;
+  border-radius: 50%;
+  box-shadow: inset 0 0 2px rgba(255,255,255,0.2);
+}
+
+.phoneHolePunch {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  background-color: #0f172a;
+  border-radius: 50%;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.phoneHolePunch::after {
+  content: '';
+  width: 6px;
+  height: 6px;
   background: #020617;
   border-radius: 50%;
   box-shadow: inset 0 0 2px rgba(255,255,255,0.2);

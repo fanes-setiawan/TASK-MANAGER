@@ -2,7 +2,10 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import styles from "./desain.module.css";
+import { DraggableDialog } from "@/components/DraggableDialog";
 import * as htmlToImage from "html-to-image";
+import { auth } from "@/lib/firebase/client";
+import { onAuthStateChanged, User } from "firebase/auth";
 export type ElementType = 'text' | 'mockup' | 'badge' | 'logo' | 'background' | 'image_card';
 
 export interface CanvasElement {
@@ -30,6 +33,8 @@ export interface PageData {
   canvasBgOpacity: number;
   canvasBgMode: 'cover' | 'pattern';
   canvasBgScale: number;
+  canvasBgPattern?: string;
+  mockupFrame: 'iphone15' | 'iphone13' | 'android';
 }
 
 export interface Project {
@@ -56,17 +61,30 @@ export default function DesainMockupPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [pages, setPages] = useState<PageData[]>([
     { 
-      id: 'Page 1', 
-      elements: initialElements,
-      canvasSize: "500x1024",
-      canvasBackground: 'linear-gradient(135deg, #1d4ed8 0%, #10b981 100%)',
+      id: "Page 1", 
+      elements: initialElements, 
+      canvasSize: '500x1024', 
+      canvasBackground: 'linear-gradient(135deg, #1e40af 0%, #047857 100%)',
       canvasBgImage: null,
-      canvasBgOpacity: 0.15,
-      canvasBgMode: 'pattern',
-      canvasBgScale: 100
+      canvasBgOpacity: 1,
+      canvasBgMode: 'cover',
+      canvasBgScale: 100,
+      canvasBgPattern: 'none',
+      mockupFrame: 'iphone15'
     }
   ]);
   const [activePageId, setActivePageId] = useState<string>('Page 1');
+  const [showLayers, setShowLayers] = useState(true);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showProperties, setShowProperties] = useState(true);
+  const [zIndices, setZIndices] = useState({ layers: 100, templates: 101, properties: 102 });
+
+  const bringToFront = (key: 'layers' | 'templates' | 'properties') => {
+    const maxZ = Math.max(zIndices.layers, zIndices.templates, zIndices.properties);
+    if (zIndices[key] !== maxZ) {
+      setZIndices(prev => ({ ...prev, [key]: maxZ + 1 }));
+    }
+  };
 
   // NEW STATES
   const [projects, setProjects] = useState<Project[]>([]);
@@ -74,37 +92,37 @@ export default function DesainMockupPage() {
   const [projectName, setProjectName] = useState<string>("Proyek Baru");
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showOpenModal, setShowOpenModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const savedProjects = localStorage.getItem('draftProjects');
-    const savedActiveProject = localStorage.getItem('activeProjectId');
-    
-    if (savedProjects) {
-      try {
-        const parsedProjects = JSON.parse(savedProjects) as Project[];
-        setProjects(parsedProjects);
-        
-        if (savedActiveProject) {
-          const project = parsedProjects.find(p => p.id === savedActiveProject);
-          if (project) {
-            setActiveProjectId(project.id);
-            setProjectName(project.name);
-            setPages(project.pages);
-            if (project.pages.length > 0) setActivePageId(project.pages[0].id);
-          }
-        }
-      } catch (e) {
-        console.error("Failed to parse draft projects", e);
-      }
-    } else {
-      // Legacy support for draftPages
-      const savedPages = localStorage.getItem('draftPages');
-      if (savedPages) {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      if (user) {
         try {
-           setPages(JSON.parse(savedPages));
-        } catch (e) {}
+          const res = await fetch(`/api/mockups?userId=${user.uid}`);
+          if (res.ok) {
+            const data = await res.json();
+            setProjects(data.projects || []);
+            
+            const savedActiveProject = localStorage.getItem('activeProjectId');
+            if (savedActiveProject) {
+              const project = data.projects?.find((p: Project) => p.id === savedActiveProject);
+              if (project) {
+                setActiveProjectId(project.id);
+                setProjectName(project.name);
+                setPages(project.pages);
+                if (project.pages.length > 0) setActivePageId(project.pages[0].id);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load projects via API", error);
+        }
+      } else {
+        setProjects([]);
       }
-    }
+    });
+    return () => unsubscribe();
   }, []);
 
   const activePageData = pages.find(p => p.id === activePageId) || pages[0];
@@ -115,6 +133,52 @@ export default function DesainMockupPage() {
   const canvasBgOpacity = activePageData.canvasBgOpacity;
   const canvasBgMode = activePageData.canvasBgMode;
   const canvasBgScale = activePageData.canvasBgScale;
+  const canvasBgPattern = activePageData.canvasBgPattern || 'none';
+  const mockupFrame = activePageData.mockupFrame || 'iphone13';
+
+const getPatternStyle = (pattern: string) => {
+  switch(pattern) {
+    case 'grid':
+      return {
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)',
+        backgroundSize: '20px 20px'
+      };
+    case 'dots':
+      return {
+        backgroundImage: 'radial-gradient(rgba(255,255,255,0.4) 2px, transparent 2px)',
+        backgroundSize: '20px 20px'
+      };
+    case 'isometric':
+      return {
+        backgroundImage: `linear-gradient(30deg, rgba(255,255,255,0.15) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.15) 87.5%, rgba(255,255,255,0.15)),
+                          linear-gradient(150deg, rgba(255,255,255,0.15) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.15) 87.5%, rgba(255,255,255,0.15)),
+                          linear-gradient(30deg, rgba(255,255,255,0.15) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.15) 87.5%, rgba(255,255,255,0.15)),
+                          linear-gradient(150deg, rgba(255,255,255,0.15) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.15) 87.5%, rgba(255,255,255,0.15)),
+                          linear-gradient(60deg, rgba(255,255,255,0.2) 25%, transparent 25.5%, transparent 75%, rgba(255,255,255,0.2) 75%, rgba(255,255,255,0.2)),
+                          linear-gradient(60deg, rgba(255,255,255,0.2) 25%, transparent 25.5%, transparent 75%, rgba(255,255,255,0.2) 75%, rgba(255,255,255,0.2))`,
+        backgroundSize: '40px 70px',
+        backgroundPosition: '0 0, 0 0, 20px 35px, 20px 35px, 0 0, 20px 35px'
+      };
+    case 'waves':
+      return {
+        backgroundImage: `radial-gradient(circle at 100% 50%, transparent 20%, rgba(255,255,255,0.15) 21%, rgba(255,255,255,0.15) 34%, transparent 35%, transparent),
+                          radial-gradient(circle at 0% 50%, transparent 20%, rgba(255,255,255,0.15) 21%, rgba(255,255,255,0.15) 34%, transparent 35%, transparent)`,
+        backgroundSize: '40px 40px',
+        backgroundPosition: '0 0, 20px 20px'
+      };
+    case 'polygons':
+      return {
+        backgroundImage: `linear-gradient(135deg, rgba(255,255,255,0.15) 25%, transparent 25%),
+                          linear-gradient(225deg, rgba(255,255,255,0.15) 25%, transparent 25%),
+                          linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%),
+                          linear-gradient(315deg, rgba(255,255,255,0.15) 25%, transparent 25%)`,
+        backgroundSize: '40px 40px',
+        backgroundPosition: '20px 0, 20px 0, 0 0, 0 0'
+      }
+    default:
+      return {};
+  }
+};
 
   const updatePageProperty = (updates: Partial<PageData>) => {
     setPages(prev => prev.map(p => {
@@ -134,7 +198,7 @@ export default function DesainMockupPage() {
   };
 
   const [activeLayer, setActiveLayer] = useState("Mockup");
-  const [zoom, setZoom] = useState(82);
+  const [zoom, setZoom] = useState(45);
   const [shadowEnabled, setShadowEnabled] = useState(false);
   const [textAlign, setTextAlign] = useState("center");
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
@@ -156,8 +220,22 @@ export default function DesainMockupPage() {
   const applyTemplate = (templateId: string) => {
     if (templateId === 'klasik') {
       setIs3D(false);
-    } else {
+    } else if (templateId === 'modern') {
       setIs3D(true);
+    } else if (templateId === 'streaming') {
+      setIs3D(false);
+      updatePageProperty({ 
+        canvasBackground: 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)', 
+        canvasBgPattern: 'none', 
+        canvasBgImage: null
+      });
+      setElements(prev => prev.map(el => {
+        if (el.id === 'Judul') return { ...el, text: "TEMUKAN FAVORITMU DENGAN MUDAH DI MANA PUN", fontSize: 32, y: 80, x: 20, w: 460, color: '#ffffff', fontWeight: 800 };
+        if (el.id === 'Subtitle') return { ...el, text: "CERITA, PODCAST, DAN GAME SEMUANYA DI SINI", fontSize: 16, y: 170, x: 20, w: 460, color: '#fca5a5', fontWeight: 600 };
+        if (el.id === 'Mockup') return { ...el, x: 120, y: 240, w: 260, h: 540 };
+        if (el.type === 'badge' || el.id === 'Header Label') return { ...el, hidden: true };
+        return el;
+      }));
     }
   };
 
@@ -225,7 +303,7 @@ export default function DesainMockupPage() {
   }, [draggingLayer, zoom, canvasSize]);
 
   React.useEffect(() => {
-    const handlePaste = (e: ClipboardEvent) => {
+    const handlePaste = async (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
 
@@ -233,28 +311,39 @@ export default function DesainMockupPage() {
         if (items[i].type.indexOf('image') !== -1) {
           const file = items[i].getAsFile();
           if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-              const url = event.target?.result as string;
-              
-              if (activeLayer === "Background") {
-                 updatePageProperty({ canvasBgImage: url });
-              } else {
-                 const activeEl = elements.find(el => el.id === activeLayer);
-                 if (activeEl && (activeEl.type === 'mockup' || activeEl.type === 'image_card' || activeEl.type === 'badge')) {
-                    if (activeEl.type === 'mockup') {
-                      setScreenshotUrl(url);
-                    } else {
-                      handlePropChange('imageUrl', url);
-                    }
-                 } else {
-                    const newId = `Gambar ${elements.length + 1}`;
-                    setElements(prev => [...prev, { id: newId, type: 'image_card', x: 100, y: 100, w: 320, h: 320, imageUrl: url }]);
-                    setActiveLayer(newId);
-                 }
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("upload_preset", "desain_preset");
+            
+            try {
+              const res = await fetch("https://api.cloudinary.com/v1_1/gyewfsfw/image/upload", {
+                method: "POST",
+                body: formData,
+              });
+              const data = await res.json();
+              if (data.secure_url) {
+                const url = data.secure_url;
+                if (activeLayer === "Background") {
+                   updatePageProperty({ canvasBgImage: url });
+                } else {
+                   const activeEl = elements.find(el => el.id === activeLayer);
+                   if (activeEl && (activeEl.type === 'mockup' || activeEl.type === 'image_card' || activeEl.type === 'badge')) {
+                      if (activeEl.type === 'mockup') {
+                        setScreenshotUrl(url);
+                      } else {
+                        handlePropChange('imageUrl', url);
+                      }
+                   } else {
+                      const newId = `Gambar ${elements.length + 1}`;
+                      setElements(prev => [...prev, { id: newId, type: 'image_card', x: 100, y: 100, w: 320, h: 320, imageUrl: url }]);
+                      setActiveLayer(newId);
+                   }
+                }
               }
-            };
-            reader.readAsDataURL(file);
+            } catch (err) {
+              console.error("Gagal mengunggah gambar paste:", err);
+              alert("Gagal mengunggah gambar. Silakan coba lagi.");
+            }
           }
           break;
         }
@@ -279,7 +368,11 @@ export default function DesainMockupPage() {
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 10, 200));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 10, 10));
 
-  const handleSimpan = () => {
+  const handleSimpan = async () => {
+    if (!currentUser) {
+      alert("Anda harus login untuk menyimpan proyek.");
+      return;
+    }
     if (!activeProjectId) {
       setShowSaveModal(true);
       return;
@@ -293,24 +386,79 @@ export default function DesainMockupPage() {
     });
 
     setProjects(updatedProjects);
-    localStorage.setItem('draftProjects', JSON.stringify(updatedProjects));
-    alert("Desain berhasil disimpan ke draft!");
+    
+    try {
+      const payload = {
+        id: activeProjectId,
+        userId: currentUser.uid,
+        name: projectName,
+        pages: pages,
+        updatedAt: Date.now()
+      };
+      
+      const res = await fetch('/api/mockups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!res.ok) throw new Error("Gagal menyimpan");
+      alert("Desain berhasil disimpan ke Cloud!");
+    } catch (err) {
+      console.error(err);
+      alert("Gagal menyimpan ke Cloud via API.");
+    }
   };
 
-  const submitSaveNewProject = () => {
+  const submitSaveNewProject = async () => {
+    if (!currentUser) {
+      alert("Anda harus login untuk membuat proyek.");
+      return;
+    }
+    const tempId = `proj_${Date.now()}`;
     const newProject: Project = {
-      id: `proj_${Date.now()}`,
+      id: tempId,
       name: projectName,
       updatedAt: Date.now(),
       pages: pages
     };
+    
+    // Optimistic UI update
     const newProjects = [...projects, newProject];
     setProjects(newProjects);
-    setActiveProjectId(newProject.id);
-    localStorage.setItem('draftProjects', JSON.stringify(newProjects));
-    localStorage.setItem('activeProjectId', newProject.id);
+    setActiveProjectId(tempId);
     setShowSaveModal(false);
-    alert("Proyek baru berhasil disimpan!");
+    localStorage.setItem('activeProjectId', tempId);
+
+    try {
+      const payload = {
+        userId: currentUser.uid,
+        name: projectName,
+        pages: pages,
+        updatedAt: Date.now()
+      };
+      
+      const res = await fetch('/api/mockups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        // Replace tempId with actual DB ID
+        const finalProjects = newProjects.map(p => p.id === tempId ? { ...p, id: data.id } : p);
+        setProjects(finalProjects);
+        setActiveProjectId(data.id);
+        localStorage.setItem('activeProjectId', data.id);
+        alert("Proyek baru berhasil disimpan ke Cloud!");
+      } else {
+        throw new Error("Gagal dari server");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Gagal membuat proyek di Cloud.");
+    }
   };
 
   const handleNewProject = () => {
@@ -324,7 +472,8 @@ export default function DesainMockupPage() {
       canvasBgImage: null,
       canvasBgOpacity: 0.15,
       canvasBgMode: 'pattern',
-      canvasBgScale: 100
+      canvasBgScale: 100,
+      mockupFrame: 'iphone15'
     }]);
     setActivePageId('Page 1');
   };
@@ -409,6 +558,15 @@ export default function DesainMockupPage() {
         </div>
 
         <div className={styles.topBarRight}>
+          <button className={styles.iconBtn} onClick={() => setShowLayers(true)} title="Layers">
+            <span className="material-symbols-outlined">layers</span>
+          </button>
+          <button className={styles.iconBtn} onClick={() => setShowTemplates(true)} title="Templates & Mockup">
+            <span className="material-symbols-outlined">style</span>
+          </button>
+          <button className={styles.iconBtn} onClick={() => setShowProperties(true)} title="Properties">
+            <span className="material-symbols-outlined">tune</span>
+          </button>
           <button className={styles.iconBtn} onClick={() => alert("Bantuan: Pilih elemen di kiri untuk mengedit propertinya di panel kanan.")}><span className="material-symbols-outlined">help_outline</span></button>
           <button className={styles.btnSecondary} onClick={handleSimpan}>Simpan</button>
           <button className={styles.btnPrimary} onClick={handleExport} disabled={isExporting}>
@@ -421,9 +579,18 @@ export default function DesainMockupPage() {
       {/* MAIN WORKSPACE */}
       <div className={styles.workspace}>
         
-        {/* LEFT SIDEBAR */}
-        <div className={styles.leftSidebar}>
-          <div className={styles.sidebarSection} style={{paddingBottom: 8, display: 'flex', gap: 8, padding: '16px 16px 8px 16px'}}>
+        {/* DRAGGABLE DIALOGS */}
+        <DraggableDialog 
+          title="Layers" 
+          isOpen={showLayers} 
+          onClose={() => setShowLayers(false)}
+          defaultPosition={{ x: 20, y: 80 }}
+          zIndex={zIndices.layers}
+          onFocus={() => bringToFront('layers')}
+          width={280}
+          maxHeight="50vh"
+        >
+          <div className={styles.sidebarSection} style={{paddingBottom: 8, display: 'flex', gap: 8, padding: '0 0 8px 0'}}>
             <button className={styles.btnAddElement} style={{flex: 1, padding: '8px 4px', fontSize: 12}} onClick={() => {
               const newId = `Teks ${elements.length + 1}`;
               setElements([...elements, { id: newId, type: 'text', text: "Teks Baru", x: 100, y: 100, fontSize: 24, color: "#ffffff" }]);
@@ -441,9 +608,8 @@ export default function DesainMockupPage() {
               + Popup
             </button>
           </div>
-          <h3 className={styles.layersHeader}>Layers</h3>
           
-          <div className={styles.layerList} style={{padding: '0 16px 16px 16px'}}>
+          <div className={styles.layerList} style={{padding: '0'}}>
             <div 
               className={`${styles.layerItem} ${activeLayer === "Background" ? styles.active : ''}`}
               onClick={() => setActiveLayer("Background")}
@@ -474,25 +640,76 @@ export default function DesainMockupPage() {
               </div>
             ))}
           </div>
-          
-          <div className={styles.bottomSection} style={{ borderTop: '1px solid var(--color-outline-variant)', paddingTop: 16 }}>
-            <h3 style={{fontSize: 11, color: 'var(--color-outline)', padding: '0 16px', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700}}>Pilih Template</h3>
-            <div style={{display: 'flex', flexDirection: 'column', gap: 12, padding: '0 16px', paddingBottom: 16}}>
-               <div onClick={() => applyTemplate('klasik')} style={{
-                 padding: 12, borderRadius: 8, cursor: 'pointer', border: !is3D ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: !is3D ? '#eff6ff' : 'white', transition: 'all 0.2s'
-               }}>
-                  <div style={{fontSize: 13, fontWeight: 600, color: !is3D ? '#1e40af' : 'var(--color-textColor)', marginBottom: 2}}>Klasik (Datar)</div>
-                  <div style={{fontSize: 11, color: 'var(--color-outline)', lineHeight: 1.4}}>Desain bersih dengan badge fitur melayang.</div>
-               </div>
-               <div onClick={() => applyTemplate('modern')} style={{
-                 padding: 12, borderRadius: 8, cursor: 'pointer', border: is3D ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: is3D ? '#eff6ff' : 'white', transition: 'all 0.2s'
-               }}>
-                  <div style={{fontSize: 13, fontWeight: 600, color: is3D ? '#1e40af' : 'var(--color-textColor)', marginBottom: 2}}>Modern (3D)</div>
-                  <div style={{fontSize: 11, color: 'var(--color-outline)', lineHeight: 1.4}}>Gaya terkini dengan efek memutar 3D.</div>
-               </div>
+        </DraggableDialog>
+
+        <DraggableDialog 
+          title="Templates & Mockup" 
+          isOpen={showTemplates} 
+          onClose={() => setShowTemplates(false)}
+          defaultPosition={{ x: 20, y: 400 }}
+          zIndex={zIndices.templates}
+          onFocus={() => bringToFront('templates')}
+          width={320}
+          maxHeight="50vh"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <h3 style={{fontSize: 11, color: 'var(--color-outline)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700}}>Pilih Template</h3>
+              <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+                 <div onClick={() => applyTemplate('klasik')} style={{
+                   padding: 12, borderRadius: 8, cursor: 'pointer', border: !is3D ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: !is3D ? '#eff6ff' : 'white', transition: 'all 0.2s'
+                 }}>
+                    <div style={{fontSize: 13, fontWeight: 600, color: !is3D ? '#1e40af' : 'var(--color-textColor)', marginBottom: 2}}>Klasik (Datar)</div>
+                    <div style={{fontSize: 11, color: 'var(--color-outline)', lineHeight: 1.4}}>Desain bersih dengan badge fitur melayang.</div>
+                 </div>
+                 <div onClick={() => applyTemplate('modern')} style={{
+                   padding: 12, borderRadius: 8, cursor: 'pointer', border: is3D && canvasBackground !== 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: is3D && canvasBackground !== 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '#eff6ff' : 'white', transition: 'all 0.2s'
+                 }}>
+                    <div style={{fontSize: 13, fontWeight: 600, color: is3D && canvasBackground !== 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '#1e40af' : 'var(--color-textColor)', marginBottom: 2}}>Modern (3D)</div>
+                    <div style={{fontSize: 11, color: 'var(--color-outline)', lineHeight: 1.4}}>Gaya terkini dengan efek memutar 3D.</div>
+                 </div>
+                 <div onClick={() => applyTemplate('streaming')} style={{
+                   padding: 12, borderRadius: 8, cursor: 'pointer', border: canvasBackground === 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: canvasBackground === 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '#eff6ff' : 'white', transition: 'all 0.2s'
+                 }}>
+                    <div style={{fontSize: 13, fontWeight: 600, color: canvasBackground === 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '#1e40af' : 'var(--color-textColor)', marginBottom: 2}}>Streaming App</div>
+                    <div style={{fontSize: 11, color: 'var(--color-outline)', lineHeight: 1.4}}>Background merah gelap dengan judul tegas di atas mockup.</div>
+                 </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 style={{fontSize: 11, color: 'var(--color-outline)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700}}>Pilih Mockup Frame</h3>
+              <div style={{display: 'flex', gap: 8, overflowX: 'auto'}}>
+                 <div onClick={() => updatePageProperty({ mockupFrame: 'iphone15' })} style={{
+                   width: 70, flexShrink: 0, padding: 8, borderRadius: 8, cursor: 'pointer', border: mockupFrame === 'iphone15' ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: mockupFrame === 'iphone15' ? '#eff6ff' : 'white', display: 'flex', flexDirection: 'column', alignItems: 'center'
+                 }}>
+                    <div style={{width: 30, height: 60, border: '2px solid #94a3b8', borderRadius: 6, position: 'relative', marginBottom: 8}}>
+                      <div style={{position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)', width: 12, height: 4, background: '#94a3b8', borderRadius: 4}}></div>
+                    </div>
+                    <div style={{fontSize: 10, textAlign: 'center', fontWeight: 600, color: mockupFrame === 'iphone15' ? '#1e40af' : 'var(--color-textColor)'}}>iPhone 15</div>
+                 </div>
+
+                 <div onClick={() => updatePageProperty({ mockupFrame: 'android' })} style={{
+                   width: 70, flexShrink: 0, padding: 8, borderRadius: 8, cursor: 'pointer', border: mockupFrame === 'android' ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: mockupFrame === 'android' ? '#eff6ff' : 'white', display: 'flex', flexDirection: 'column', alignItems: 'center'
+                 }}>
+                    <div style={{width: 30, height: 60, border: '2px solid #94a3b8', borderRadius: 6, position: 'relative', marginBottom: 8}}>
+                      <div style={{position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)', width: 3, height: 3, background: '#94a3b8', borderRadius: 2}}></div>
+                    </div>
+                    <div style={{fontSize: 10, textAlign: 'center', fontWeight: 600, color: mockupFrame === 'android' ? '#1e40af' : 'var(--color-textColor)'}}>Android</div>
+                 </div>
+
+                 <div onClick={() => updatePageProperty({ mockupFrame: 'iphone13' })} style={{
+                   width: 70, flexShrink: 0, padding: 8, borderRadius: 8, cursor: 'pointer', border: mockupFrame === 'iphone13' ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: mockupFrame === 'iphone13' ? '#eff6ff' : 'white', display: 'flex', flexDirection: 'column', alignItems: 'center'
+                 }}>
+                    <div style={{width: 30, height: 60, border: '2px solid #94a3b8', borderRadius: 6, position: 'relative', marginBottom: 8}}>
+                      <div style={{position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 14, height: 4, background: '#94a3b8', borderBottomLeftRadius: 2, borderBottomRightRadius: 2}}></div>
+                    </div>
+                    <div style={{fontSize: 10, textAlign: 'center', fontWeight: 600, color: mockupFrame === 'iphone13' ? '#1e40af' : 'var(--color-textColor)'}}>iPhone 13</div>
+                 </div>
+              </div>
             </div>
           </div>
-        </div>
+        </DraggableDialog>
 
         {/* CENTER CANVAS */}
         <div className={styles.canvasArea}>
@@ -531,16 +748,26 @@ export default function DesainMockupPage() {
           </div>
 
           <div className={styles.canvasContainer} onClick={() => setActiveLayer("Background")}>
-            <div ref={canvasRef} className={styles.mockupPoster} style={{ 
-              transform: `scale(${zoom / 100})`, 
-              boxShadow: shadowEnabled ? '0 20px 40px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.1)',
-              background: canvasBackground,
-              width: canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480,
-              height: (canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480) * (parseInt(canvasSize.split('x')[1]) / parseInt(canvasSize.split('x')[0])),
+            <div style={{
+              width: (canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480) * (zoom / 100),
+              height: ((canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480) * (parseInt(canvasSize.split('x')[1]) / parseInt(canvasSize.split('x')[0]))) * (zoom / 100),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               position: 'relative',
-              overflow: 'hidden',
-              outline: activeLayer === "Background" ? '4px solid #2563eb' : 'none'
+              transition: 'all 0.2s ease-out'
             }}>
+              <div ref={canvasRef} className={styles.mockupPoster} style={{ 
+                transform: `scale(${zoom / 100})`, 
+                transformOrigin: 'center',
+                boxShadow: shadowEnabled ? '0 20px 40px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.1)',
+                background: canvasBackground,
+                width: canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480,
+                height: (canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480) * (parseInt(canvasSize.split('x')[1]) / parseInt(canvasSize.split('x')[0])),
+                position: 'relative',
+                overflow: 'hidden',
+                outline: activeLayer === "Background" ? '4px solid #2563eb' : 'none'
+              }}>
               
               {/* RENDER BACKGROUND IMAGE */}
               {canvasBgImage && (
@@ -568,6 +795,17 @@ export default function DesainMockupPage() {
                      </svg>
                   )}
                 </div>
+              )}
+              
+              {/* RENDER CSS PATTERNS */}
+              {canvasBgPattern && canvasBgPattern !== 'none' && (
+                <div style={{
+                   position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                   opacity: 1, 
+                   pointerEvents: 'none',
+                   zIndex: 0, 
+                   ...getPatternStyle(canvasBgPattern)
+                }}></div>
               )}
               
               {/* RENDER GUIDES */}
@@ -685,7 +923,9 @@ export default function DesainMockupPage() {
                       }}
                       onMouseDown={(e) => { e.stopPropagation(); setActiveLayer(el.id); setDraggingLayer(el.id); }}
                     >
-                      <div className={styles.phoneNotch}></div>
+                      {mockupFrame === 'iphone13' && <div className={styles.phoneNotch}></div>}
+                      {mockupFrame === 'iphone15' && <div className={styles.phoneDynamicIsland}></div>}
+                      {mockupFrame === 'android' && <div className={styles.phoneHolePunch}></div>}
                       <div className={styles.phoneScreen} style={{ position: 'relative', overflow: 'hidden' }}>
                         {screenshotUrl ? (
                           <div style={{width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 10}}>
@@ -720,6 +960,7 @@ export default function DesainMockupPage() {
 
             </div>
           </div>
+        </div>
 
           {/* BOTTOM THUMBNAILS ROW */}
           <div className={styles.thumbnailsRow}>
@@ -786,7 +1027,8 @@ export default function DesainMockupPage() {
                     canvasBgImage: null,
                     canvasBgOpacity: 0.15,
                     canvasBgMode: 'pattern',
-                    canvasBgScale: 100
+                    canvasBgScale: 100,
+                    mockupFrame: 'iphone15'
                   }]);
                   setActivePageId(newId);
                }}
@@ -801,9 +1043,17 @@ export default function DesainMockupPage() {
           </div>
         </div>
 
-        {/* RIGHT SIDEBAR - PROPERTIES */}
-        <div className={styles.rightSidebar}>
-          
+        {/* RIGHT SIDEBAR - PROPERTIES AS DIALOG */}
+        <DraggableDialog 
+          title={`Properti: ${activeLayer}`}
+          isOpen={showProperties} 
+          onClose={() => setShowProperties(false)}
+          defaultPosition={{ x: 1000, y: 80 }}
+          zIndex={zIndices.properties}
+          onFocus={() => bringToFront('properties')}
+          width={320}
+          maxHeight="70vh"
+        >
           <div className={styles.panelSection}>
             <h4 className={styles.panelTitle}>Properti: {activeLayer}</h4>
           </div>
@@ -829,6 +1079,63 @@ export default function DesainMockupPage() {
                 ))}
               </div>
               
+              <span className={styles.controlLabel} style={{display:'block', marginTop:16, marginBottom:8}}>Gaya Arsitektur / Pola (3D & Tekstur)</span>
+              <div style={{display:'flex', gap: 8, flexWrap: 'wrap'}}>
+                {[
+                  { id: 'none', label: 'Polos' },
+                  { id: 'grid', label: 'Grid / Blueprint' },
+                  { id: 'dots', label: 'Titik (Polka)' },
+                  { id: 'isometric', label: '3D Isometrik' },
+                  { id: 'waves', label: 'Gelombang (Waves)' },
+                  { id: 'polygons', label: 'Poligon / Geometri' }
+                ].map(pat => (
+                  <div 
+                    key={pat.id} 
+                    onClick={() => updatePageProperty({ canvasBgPattern: pat.id })}
+                    style={{
+                      padding: '6px 10px', 
+                      borderRadius: 6, 
+                      fontSize: 11,
+                      cursor: 'pointer', 
+                      border: canvasBgPattern === pat.id ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                      background: canvasBgPattern === pat.id ? '#eff6ff' : 'white',
+                      color: canvasBgPattern === pat.id ? '#1e40af' : '#475569',
+                      fontWeight: canvasBgPattern === pat.id ? 600 : 400
+                    }}
+                  >
+                    {pat.label}
+                  </div>
+                ))}
+              </div>
+
+              <span className={styles.controlLabel} style={{display:'block', marginTop:16, marginBottom:8}}>Preset Latar Belakang (Ilustrasi & Arsitektur)</span>
+              <div style={{display:'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16}}>
+                {[
+                  { id: '/backgrounds/bg_corporate_glass_1786344706982.png', label: 'Gedung Kaca' },
+                  { id: '/backgrounds/bg_abstract_geometric_1786344723738.png', label: 'Geometris' },
+                  { id: '/backgrounds/bg_islamic_mosque_1786344735119.png', label: 'Masjid' },
+                  { id: '/backgrounds/bg_isometric_school_1786344744507.png', label: 'Sekolah 3D' },
+                  { id: '/backgrounds/bg_liquid_waves_1786344755305.png', label: 'Liquid' },
+                  { id: '/backgrounds/bg_cyberpunk_city_1786344765659.png', label: 'Kota Tech' }
+                ].map(bg => (
+                  <div 
+                    key={bg.id} 
+                    onClick={() => { updatePageProperty({ canvasBgImage: bg.id, canvasBgMode: 'cover', canvasBgOpacity: 1, canvasBackground: '#ffffff' }); }}
+                    style={{
+                      border: canvasBgImage === bg.id ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                      borderRadius: 6,
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      aspectRatio: '9/16',
+                      backgroundImage: `url(${bg.id})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center'
+                    }}
+                    title={bg.label}
+                  />
+                ))}
+              </div>
+
               <span className={styles.controlLabel} style={{display:'block', marginTop:16, marginBottom:8}}>Gambar Latar Belakang (Transparan)</span>
               <div style={{
                  border: '2px dashed var(--color-outline)', 
@@ -1075,7 +1382,8 @@ export default function DesainMockupPage() {
             </>
           )}
           
-        </div>
+
+        </DraggableDialog>
       </div>
       {/* MODALS */}
       {showSaveModal && (
