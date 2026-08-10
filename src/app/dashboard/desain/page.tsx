@@ -96,6 +96,11 @@ export default function DesainMockupPage() {
   const [showOpenModal, setShowOpenModal] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedExportPages, setSelectedExportPages] = useState<string[]>([]);
+  const [isExportingMultiple, setIsExportingMultiple] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -651,6 +656,13 @@ const getPatternStyle = (pattern: string) => {
   };
   const handleExport = async () => {
     if (!canvasRef.current) return;
+    
+    if (pages.length > 1) {
+      setSelectedExportPages(pages.map(p => p.id));
+      setShowExportModal(true);
+      return;
+    }
+    
     try {
       setIsExporting(true);
       
@@ -679,6 +691,56 @@ const getPatternStyle = (pattern: string) => {
       alert(`Gagal mengekspor gambar: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportMultiple = async () => {
+    if (!canvasRef.current || selectedExportPages.length === 0) return;
+    try {
+      setIsExportingMultiple(true);
+      const JSZip = (await import('jszip')).default;
+      const { saveAs } = await import('file-saver');
+      const zip = new JSZip();
+      
+      const originalPageId = activePageId;
+      const originalTransform = canvasRef.current.style.transform;
+      canvasRef.current.style.transform = 'scale(1)';
+      
+      for (let i = 0; i < selectedExportPages.length; i++) {
+        const pageId = selectedExportPages[i];
+        setExportProgress(Math.round((i / selectedExportPages.length) * 100));
+        
+        setActivePageId(pageId);
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        const pageData = pages.find(p => p.id === pageId);
+        
+        const blob = await htmlToImage.toBlob(canvasRef.current, {
+          quality: 1,
+          backgroundColor: pageData?.canvasBackground || undefined,
+          pixelRatio: 3 // High Quality HD
+        });
+        
+        if (blob) {
+          zip.file(`Mockup-${pageId.replace(/\s+/g, '-')}.png`, blob);
+        }
+      }
+      
+      setExportProgress(100);
+      
+      canvasRef.current.style.transform = originalTransform;
+      setActivePageId(originalPageId);
+      
+      const zipContent = await zip.generateAsync({ type: 'blob' });
+      saveAs(zipContent, `${projectName.replace(/\s+/g, '_')}-Mockups.zip`);
+      
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export multiple failed", err);
+      alert(`Gagal mengekspor bundle: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsExportingMultiple(false);
+      setExportProgress(0);
     }
   };
   
@@ -1610,10 +1672,68 @@ const getPatternStyle = (pattern: string) => {
                    ))}
                  </div>
                )}
-             </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+              </div>
+           </div>
+         </div>
+       )}
+
+       {showExportModal && (
+         <div style={{position: 'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center'}}>
+           <div style={{background:'white', padding:24, borderRadius:12, width: 450, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
+                <h3 style={{margin:0}}>Export HD (ZIP)</h3>
+                {!isExportingMultiple && <button className={styles.iconBtn} onClick={() => setShowExportModal(false)}><span className="material-symbols-outlined">close</span></button>}
+              </div>
+              
+              {!isExportingMultiple ? (
+                <>
+                  <div style={{display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 12, borderBottom: '1px solid #e2e8f0', marginBottom: 12}}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedExportPages.length === pages.length}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedExportPages(pages.map(p => p.id));
+                        else setSelectedExportPages([]);
+                      }}
+                      id="selectAllPages"
+                    />
+                    <label htmlFor="selectAllPages" style={{fontWeight: 'bold', cursor: 'pointer'}}>Pilih Semua Halaman</label>
+                  </div>
+                  <div style={{overflowY: 'auto', flex: 1, paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 8}}>
+                    {pages.map(p => (
+                      <div key={p.id} style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                        <input 
+                          type="checkbox" 
+                          id={`export-${p.id}`}
+                          checked={selectedExportPages.includes(p.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedExportPages([...selectedExportPages, p.id]);
+                            else setSelectedExportPages(selectedExportPages.filter(id => id !== p.id));
+                          }}
+                        />
+                        <label htmlFor={`export-${p.id}`} style={{cursor: 'pointer'}}>{p.id}</label>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{display:'flex', justifyContent:'flex-end', gap:12, marginTop:24}}>
+                    <button className={styles.btnSecondary} onClick={() => setShowExportModal(false)}>Batal</button>
+                    <button className={styles.btnPrimary} onClick={handleExportMultiple} disabled={selectedExportPages.length === 0}>
+                      Export {selectedExportPages.length} Halaman
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0'}}>
+                  <div style={{width: '100%', background: '#e2e8f0', borderRadius: 8, height: 8, overflow: 'hidden', marginBottom: 16}}>
+                    <div style={{background: '#3b82f6', height: '100%', width: `${exportProgress}%`, transition: 'width 0.3s'}} />
+                  </div>
+                  <div style={{fontWeight: 'bold'}}>Mengekspor Halaman ke ZIP...</div>
+                  <div style={{fontSize: 12, color: '#64748b', marginTop: 8}}>Mohon tunggu, proses HD render memakan waktu.</div>
+                </div>
+              )}
+           </div>
+         </div>
+       )}
+     </div>
+   );
+ }
