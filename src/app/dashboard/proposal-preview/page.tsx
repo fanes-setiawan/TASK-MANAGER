@@ -572,6 +572,13 @@ function ProposalPreviewContent() {
     });
   }, [documentViews]);
 
+  // Filter only active groups for the top bar
+  const activeGroups = React.useMemo(() => {
+    return groupedViews.filter(group => 
+      group.some(v => (Date.now() - ((v.viewedAt?.toDate ? v.viewedAt.toDate().getTime() : 0) + (v.durationSeconds * 1000))) < 20000)
+    );
+  }, [groupedViews]);
+
   // State to manage expanded accordions in the views modal
   const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>({});
 
@@ -596,37 +603,49 @@ function ProposalPreviewContent() {
         <div className={styles.toolbarCenter}>
           {documentViews.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', marginRight: 24, position: 'relative' }}>
-              <span style={{ fontSize: 12, color: 'var(--color-outline)', marginRight: 8, fontWeight: 500 }}>Viewers:</span>
-              <div style={{ display: 'flex' }} onClick={() => setShowViewsModal(!showViewsModal)}>
-                {groupedViews.slice(0, 5).map((group, i) => {
-                  const view = group[0];
-                  return (
-                    <div 
-                      key={view.email} 
-                      style={{ 
-                        width: 28, height: 28, borderRadius: '50%', backgroundColor: `hsl(${(view.email.length * 40) % 360}, 70%, 85%)`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                        marginLeft: i === 0 ? 0 : -8, border: '2px solid white',
-                        color: `hsl(${(view.email.length * 40) % 360}, 70%, 30%)`, fontWeight: 700, fontSize: 12,
-                        cursor: 'pointer', position: 'relative', zIndex: 10 - i
-                      }}
-                      title={`${view.email}\nViewed at: ${view.viewedAt?.toDate ? view.viewedAt.toDate().toLocaleString() : 'N/A'}\nDuration: ${view.durationSeconds >= 60 ? Math.floor(view.durationSeconds / 60) + 'm ' + (view.durationSeconds % 60) + 's' : view.durationSeconds + 's'}`}
-                    >
-                      {view.email.substring(0, 1).toUpperCase()}
-                    </div>
-                  );
-                })}
-                {groupedViews.length > 5 && (
-                  <div 
-                    style={{ 
-                      width: 28, height: 28, borderRadius: '50%', backgroundColor: 'var(--color-surface-container-high)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                      marginLeft: -8, border: '2px solid white',
-                      color: 'var(--color-on-surface-variant)', fontWeight: 700, fontSize: 10,
-                      cursor: 'pointer', zIndex: 0
-                    }}
-                  >
-                    +{groupedViews.length - 5}
+              <span style={{ fontSize: 12, color: 'var(--color-outline)', marginRight: 8, fontWeight: 500 }}>
+                {activeGroups.length > 0 ? 'Sedang melihat:' : 'Dilihat oleh:'}
+              </span>
+              <div style={{ display: 'flex', cursor: 'pointer' }} onClick={() => setShowViewsModal(!showViewsModal)}>
+                {activeGroups.length > 0 ? (
+                  <>
+                    {activeGroups.slice(0, 5).map((group, i) => {
+                      const view = group[0];
+                      return (
+                        <div 
+                          key={view.email} 
+                          style={{ 
+                            width: 28, height: 28, borderRadius: '50%', backgroundColor: `hsl(${(view.email.length * 40) % 360}, 70%, 85%)`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                            marginLeft: i === 0 ? 0 : -8, border: '2px solid white',
+                            color: `hsl(${(view.email.length * 40) % 360}, 70%, 30%)`, fontWeight: 700, fontSize: 12,
+                            position: 'relative', zIndex: 10 - i
+                          }}
+                          title={`${view.email} (Online)`}
+                        >
+                          {view.email.substring(0, 1).toUpperCase()}
+                          <div style={{ position: 'absolute', bottom: -2, right: -2, width: 8, height: 8, borderRadius: '50%', backgroundColor: 'var(--color-success)', border: '1.5px solid white' }}></div>
+                        </div>
+                      );
+                    })}
+                    {activeGroups.length > 5 && (
+                      <div 
+                        style={{ 
+                          width: 28, height: 28, borderRadius: '50%', backgroundColor: 'var(--color-surface-container-high)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                          marginLeft: -8, border: '2px solid white',
+                          color: 'var(--color-on-surface-variant)', fontWeight: 700, fontSize: 10,
+                          zIndex: 0
+                        }}
+                      >
+                        +{activeGroups.length - 5}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', backgroundColor: 'var(--color-surface-container-low)', borderRadius: 20, border: '1px solid var(--color-surface-container-high)', color: 'var(--color-on-surface-variant)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>history</span>
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>{groupedViews.length}</span>
                   </div>
                 )}
               </div>
