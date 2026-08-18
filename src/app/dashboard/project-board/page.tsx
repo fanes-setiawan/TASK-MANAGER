@@ -716,32 +716,34 @@ function BoardContent() {
                 </div>
               </div>
 
-              <div className={styles.modalActions} style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between' }}>
+              <div className={styles.modalActions} style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)} disabled={saving}>
+                    {isOwner ? 'Cancel' : 'Close'}
+                  </button>
+                </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {editingTask && (
                     <button 
                       type="button" 
                       className={styles.btnCancel} 
                       onClick={() => {
-                        const url = `${window.location.origin}/share/board/${project?.id}?taskId=${editingTask.id}`;
+                        const url = `${window.location.origin}/share/board/${project?.id}?taskId=${editingTask.id}&fullscreen=true`;
                         navigator.clipboard.writeText(url);
                         alert("Share link copied to clipboard!");
                       }} 
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)', border: 'none' }}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 18 }}>link</span>
-                      Share
+                      Share Fullscreen
                     </button>
                   )}
-                  <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)} disabled={saving}>
-                    {isOwner ? 'Cancel' : 'Close'}
-                  </button>
+                  {isOwner && (
+                    <button type="submit" className={styles.btnSubmit} disabled={saving || !formData.title.trim()}>
+                      {saving ? 'Saving...' : 'Save Note'}
+                    </button>
+                  )}
                 </div>
-                {isOwner && (
-                  <button type="submit" className={styles.btnSubmit} disabled={saving || !formData.title.trim()}>
-                    {saving ? 'Saving...' : 'Save Note'}
-                  </button>
-                )}
               </div>
             </form>
           </div>

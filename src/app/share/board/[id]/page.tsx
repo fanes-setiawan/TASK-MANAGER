@@ -229,9 +229,20 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
           <div 
             className={styles.modal} 
             onClick={e => e.stopPropagation()}
-            style={{ width: drawerWidth, maxWidth: '100%' }}
+            style={{ 
+              width: typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('fullscreen') === 'true' ? '100vw' : drawerWidth, 
+              height: typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('fullscreen') === 'true' ? '100vh' : 'auto',
+              maxWidth: '100vw',
+              maxHeight: typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('fullscreen') === 'true' ? '100vh' : '90vh',
+              borderRadius: typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('fullscreen') === 'true' ? 0 : 16,
+              margin: typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('fullscreen') === 'true' ? 0 : 'auto',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
           >
-            <div className={styles.resizer} onMouseDown={startResizing} />
+            {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('fullscreen') !== 'true' && (
+              <div className={styles.resizer} onMouseDown={startResizing} />
+            )}
             <h2>{viewingTask.title}</h2>
             <div className={styles.formGroup}>
               <label>Status</label>
@@ -240,9 +251,9 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
 
-            <div className={styles.formGroup}>
+            <div className={styles.formGroup} style={{ flex: typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('fullscreen') === 'true' ? 1 : 'none', display: 'flex', flexDirection: 'column' }}>
               <label>Description / Notes</label>
-              <div style={{ background: 'white', borderRadius: 8, padding: 0 }}>
+              <div style={{ background: 'white', borderRadius: 8, padding: 0, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
                 <QuillEditor 
                   value={viewingTask.description || ""}
                   onChange={() => {}}
