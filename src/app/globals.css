@@ -205,26 +205,6 @@ a {
     100% { transform: translateY(0px); }
 }
 
-/* --- Quill Editor Overrides --- */
-
-/* 1. Continuous List Numbering (allows images to interrupt lists without resetting numbers) */
-.ql-editor {
-  counter-reset: quill-list;
-}
-.ql-editor ol {
-  list-style-type: none !important; /* Hide default browser numbers */
-}
-.ql-editor ol > li {
-  counter-increment: quill-list;
-  position: relative;
-}
-.ql-editor ol > li::before {
-  content: counter(quill-list) ". ";
-  position: absolute;
-  left: -1.5em;
-  top: 0;
-  font-weight: 500;
-}
 
 /* 2. Basic Table Styling for Quill 2.0 */
 .ql-editor table {
