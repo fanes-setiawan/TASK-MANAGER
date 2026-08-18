@@ -650,7 +650,12 @@ function ProposalPreviewContent() {
                             {email.substring(0, 1).toUpperCase()}
                           </div>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-on-surface)', wordBreak: 'break-all' }}>{email}</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-on-surface)', wordBreak: 'break-all', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {email}
+                              {group.some(v => (Date.now() - ((v.viewedAt?.toDate ? v.viewedAt.toDate().getTime() : 0) + (v.durationSeconds * 1000))) < 20000) && (
+                                <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'var(--color-success)', flexShrink: 0 }} title="Sedang Aktif"></div>
+                              )}
+                            </div>
                             <div style={{ fontSize: 11, color: 'var(--color-outline)', marginTop: 2 }}>Melihat {totalViews} kali</div>
                           </div>
                           <span className="material-symbols-outlined" style={{ color: 'var(--color-outline)', fontSize: 18 }}>
@@ -661,28 +666,40 @@ function ProposalPreviewContent() {
                         {/* Group Details (Expanded) */}
                         {isExpanded && (
                           <div style={{ marginTop: 12, marginLeft: 44, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            {group.map((view, idx) => (
-                              <div key={view.id || idx} style={{ padding: 8, backgroundColor: 'var(--color-surface-container-lowest)', borderRadius: 6, border: '1px solid var(--color-surface-container-low)' }}>
-                                <div style={{ fontSize: 11, color: 'var(--color-on-surface-variant)', fontWeight: 500 }}>
-                                  {view.viewedAt?.toDate ? view.viewedAt.toDate().toLocaleString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                                </div>
-                                <div style={{ fontSize: 11, color: 'var(--color-primary)', marginTop: 2, fontWeight: 500 }}>
-                                  Durasi: {view.durationSeconds >= 60 ? Math.floor(view.durationSeconds / 60) + 'm ' + (view.durationSeconds % 60) + 's' : view.durationSeconds + 's'}
-                                </div>
-                                {view.device && (
-                                  <div style={{ fontSize: 10, color: 'var(--color-outline)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <span className="material-symbols-outlined" style={{ fontSize: 12 }}>devices</span>
-                                    {view.device}
+                            {group.map((view, idx) => {
+                              const viewTime = view.viewedAt?.toDate ? view.viewedAt.toDate().getTime() : 0;
+                              const lastActive = viewTime + (view.durationSeconds * 1000);
+                              const isActive = (Date.now() - lastActive) < 20000; // 20 seconds buffer
+                              
+                              return (
+                                <div key={view.id || idx} style={{ padding: 8, backgroundColor: 'var(--color-surface-container-lowest)', borderRadius: 6, border: isActive ? '1px solid var(--color-success)' : '1px solid var(--color-surface-container-low)', position: 'relative' }}>
+                                  {isActive && (
+                                    <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                      <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--color-success)' }}></div>
+                                      <span style={{ fontSize: 10, color: 'var(--color-success)', fontWeight: 600 }}>Sedang membaca...</span>
+                                    </div>
+                                  )}
+                                  <div style={{ fontSize: 11, color: 'var(--color-on-surface-variant)', fontWeight: 500 }}>
+                                    {view.viewedAt?.toDate ? view.viewedAt.toDate().toLocaleString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                                   </div>
-                                )}
-                                {view.location && (
-                                  <div style={{ fontSize: 10, color: 'var(--color-outline)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <span className="material-symbols-outlined" style={{ fontSize: 12 }}>location_on</span>
-                                    {view.location}
+                                  <div style={{ fontSize: 11, color: 'var(--color-primary)', marginTop: 2, fontWeight: 500 }}>
+                                    Durasi: {view.durationSeconds >= 60 ? Math.floor(view.durationSeconds / 60) + 'm ' + (view.durationSeconds % 60) + 's' : view.durationSeconds + 's'}
                                   </div>
-                                )}
-                              </div>
-                            ))}
+                                  {view.device && (
+                                    <div style={{ fontSize: 10, color: 'var(--color-outline)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                      <span className="material-symbols-outlined" style={{ fontSize: 12 }}>devices</span>
+                                      {view.device}
+                                    </div>
+                                  )}
+                                  {view.location && (
+                                    <div style={{ fontSize: 10, color: 'var(--color-outline)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                      <span className="material-symbols-outlined" style={{ fontSize: 12 }}>location_on</span>
+                                      {view.location}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
