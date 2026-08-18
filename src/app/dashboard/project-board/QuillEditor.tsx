@@ -20,6 +20,19 @@ if (typeof window !== 'undefined') {
   icons["deleteRow"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M3,3 L15,3 L15,15 L3,15 L3,3 Z"></path><line class="ql-stroke" x1="3" x2="15" y1="9" y2="9"></line><line class="ql-stroke" x1="6" x2="12" y1="6" y2="12"></line><line class="ql-stroke" x1="12" x2="6" y1="6" y2="12"></line></svg>';
   icons["insertColRight"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M3,3 L15,3 L15,15 L3,15 L3,3 Z"></path><path class="ql-fill" d="M8,3 L10,3 L10,15 L8,15 L8,3 Z"></path><line class="ql-stroke" x1="12" x2="15" y1="9" y2="9"></line><line class="ql-stroke" x1="12" x2="15" y1="6" y2="9"></line><line class="ql-stroke" x1="12" x2="15" y1="12" y2="9"></line></svg>';
   icons["deleteCol"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M3,3 L15,3 L15,15 L3,15 L3,3 Z"></path><line class="ql-stroke" x1="9" x2="9" y1="3" y2="15"></line><line class="ql-stroke" x1="6" x2="12" y1="6" y2="12"></line><line class="ql-stroke" x1="12" x2="6" y1="6" y2="12"></line></svg>';
+
+  // Register width attributor to preserve column widths when resized by blot formatter
+  const StyleAttributor = Quill.import('attributors/style');
+  if (StyleAttributor) {
+    const WidthStyle = new StyleAttributor('width', 'width', {
+      whitelist: null,
+    });
+    const HeightStyle = new StyleAttributor('height', 'height', {
+      whitelist: null,
+    });
+    Quill.register(WidthStyle, true);
+    Quill.register(HeightStyle, true);
+  }
 }
 interface QuillEditorProps {
   value: string;
