@@ -22,7 +22,7 @@ if (typeof window !== 'undefined') {
   icons["deleteCol"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M3,3 L15,3 L15,15 L3,15 L3,3 Z"></path><line class="ql-stroke" x1="9" x2="9" y1="3" y2="15"></line><line class="ql-stroke" x1="6" x2="12" y1="6" y2="12"></line><line class="ql-stroke" x1="12" x2="6" y1="6" y2="12"></line></svg>';
 
   // Register width attributor to preserve column widths when resized by blot formatter
-  const StyleAttributor = Quill.import('attributors/style');
+  const StyleAttributor = Quill.import('attributors/style') as any;
   if (StyleAttributor) {
     const WidthStyle = new StyleAttributor('width', 'width', {
       whitelist: null,
@@ -81,6 +81,23 @@ export default function QuillEditor({ value, onChange, readOnly, placeholder, on
       },
       table: true,
       blotFormatter: {},
+      keyboard: {
+        bindings: {
+          tableEnter: {
+            key: 13,
+            handler: function (range: any, context: any) {
+              if (context.format.table) {
+                // @ts-ignore
+                this.quill.insertText(range.index, '\n');
+                // @ts-ignore
+                this.quill.setSelection(range.index + 1);
+                return false;
+              }
+              return true;
+            }
+          }
+        }
+      },
       mention: {
         allowedChars: /^[A-Za-z\sÅÄÖåäö]*$/,
         mentionDenotationChars: ["@"],
