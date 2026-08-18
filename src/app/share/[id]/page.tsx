@@ -352,22 +352,37 @@ function SharePreviewContent() {
   });
 
   // Chunking logic for Pagination
-  const ROW_HEIGHT = 36;
-  const HEADER_HEIGHT = 350;
-  const FOOTER_HEIGHT = 200;
-  const PAGE_HEIGHT_LIMIT = 1000;
+  const HEADER_HEIGHT = 380;
+  const FOOTER_HEIGHT = 220;
+  const PAGE_HEIGHT_LIMIT = 820; // Lowered to prevent overflow
+  const NEW_PAGE_HEADER_HEIGHT = 80;
 
   const pages: any[] = [];
   let currentPage: any = { items: [], hasHeader: true, heightUsed: HEADER_HEIGHT, isLast: false };
   pages.push(currentPage);
 
   flatRows.forEach((row) => {
-    if (currentPage.heightUsed + ROW_HEIGHT > PAGE_HEIGHT_LIMIT) {
-      currentPage = { items: [], hasHeader: false, heightUsed: 0, isLast: false };
+    let rowHeight = 36;
+    if (row.type === 'module') {
+      rowHeight = (row.data.name && row.data.name.length > 40) ? 56 : 40;
+    } else {
+      const nameLen = row.data.name ? row.data.name.length : 0;
+      const descLen = (row.data.description || row.data.desc || row.data.deskripsi || "").length;
+      
+      // More aggressive row height estimation
+      if (descLen > 150) rowHeight = 100;
+      else if (descLen > 100) rowHeight = 80;
+      else if (nameLen > 40 || descLen > 60) rowHeight = 64;
+      else if (nameLen > 20 || descLen > 30) rowHeight = 48;
+      else rowHeight = 40;
+    }
+
+    if (currentPage.heightUsed + rowHeight > PAGE_HEIGHT_LIMIT) {
+      currentPage = { items: [], hasHeader: false, heightUsed: NEW_PAGE_HEADER_HEIGHT, isLast: false };
       pages.push(currentPage);
     }
     currentPage.items.push(row);
-    currentPage.heightUsed += ROW_HEIGHT;
+    currentPage.heightUsed += rowHeight;
   });
 
   // Check if footer fits on the last page

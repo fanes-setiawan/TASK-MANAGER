@@ -503,9 +503,9 @@ function ProposalPreviewContent() {
   });
 
   // Chunking logic for Pagination
-  const HEADER_HEIGHT = 380; // Increased to be safe
-  const FOOTER_HEIGHT = 220; // Increased to be safe
-  const PAGE_HEIGHT_LIMIT = 1000;
+  const HEADER_HEIGHT = 380;
+  const FOOTER_HEIGHT = 220;
+  const PAGE_HEIGHT_LIMIT = 820; // Lowered to prevent overflow
   const NEW_PAGE_HEADER_HEIGHT = 80;
 
   const pages: any[] = [];
@@ -519,7 +519,11 @@ function ProposalPreviewContent() {
     } else {
       const nameLen = row.data.name ? row.data.name.length : 0;
       const descLen = (row.data.description || row.data.desc || row.data.deskripsi || "").length;
-      if (nameLen > 40 || descLen > 60) rowHeight = 64;
+      
+      // More aggressive row height estimation
+      if (descLen > 150) rowHeight = 100;
+      else if (descLen > 100) rowHeight = 80;
+      else if (nameLen > 40 || descLen > 60) rowHeight = 64;
       else if (nameLen > 20 || descLen > 30) rowHeight = 48;
       else rowHeight = 40;
     }
