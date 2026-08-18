@@ -156,9 +156,46 @@ export default function QuillEditor({ value, onChange, readOnly, placeholder, on
     }
   };
 
+  const quillRef = React.useRef<ReactQuill>(null);
+
+  React.useEffect(() => {
+    if (!quillRef.current) return;
+    const editor = quillRef.current.getEditor();
+    const root = editor.root;
+
+    const observer = new MutationObserver((mutations) => {
+      let shouldTrigger = false;
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+          const target = mutation.target as HTMLElement;
+          if (target.tagName === 'TD' || target.tagName === 'TH' || target.tagName === 'TABLE') {
+            shouldTrigger = true;
+            break;
+          }
+        }
+      }
+      
+      if (shouldTrigger) {
+        // Debounce or trigger directly
+        if (onChange) {
+          onChange(root.innerHTML);
+        }
+      }
+    });
+
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ['style'],
+      subtree: true,
+    });
+
+    return () => observer.disconnect();
+  }, [onChange]);
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }} onClick={handleClick}>
       <ReactQuill 
+        ref={quillRef}
         theme="snow"
         value={value}
         onChange={onChange}
