@@ -726,6 +726,11 @@
   height: 32px; /* same as above but could be shorter if needed */
 }
 
+.treeLineFirstOnPage {
+  top: -8px !important;
+  height: 20px !important;
+}
+
 .subIndex {
   font-weight: 600;
   color: #555;
