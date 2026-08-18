@@ -598,22 +598,25 @@ function ProposalPreviewContent() {
             <div style={{ display: 'flex', alignItems: 'center', marginRight: 24, position: 'relative' }}>
               <span style={{ fontSize: 12, color: 'var(--color-outline)', marginRight: 8, fontWeight: 500 }}>Viewers:</span>
               <div style={{ display: 'flex' }} onClick={() => setShowViewsModal(!showViewsModal)}>
-                {documentViews.slice(0, 5).map((view, i) => (
-                  <div 
-                    key={view.id} 
-                    style={{ 
-                      width: 28, height: 28, borderRadius: '50%', backgroundColor: `hsl(${(view.email.length * 40) % 360}, 70%, 85%)`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                      marginLeft: i === 0 ? 0 : -8, border: '2px solid white',
-                      color: `hsl(${(view.email.length * 40) % 360}, 70%, 30%)`, fontWeight: 700, fontSize: 12,
-                      cursor: 'pointer', position: 'relative', zIndex: 10 - i
-                    }}
-                    title={`${view.email}\nViewed at: ${view.viewedAt?.toDate ? view.viewedAt.toDate().toLocaleString() : 'N/A'}\nDuration: ${view.durationSeconds >= 60 ? Math.floor(view.durationSeconds / 60) + 'm ' + (view.durationSeconds % 60) + 's' : view.durationSeconds + 's'}`}
-                  >
-                    {view.email.substring(0, 1).toUpperCase()}
-                  </div>
-                ))}
-                {documentViews.length > 5 && (
+                {groupedViews.slice(0, 5).map((group, i) => {
+                  const view = group[0];
+                  return (
+                    <div 
+                      key={view.email} 
+                      style={{ 
+                        width: 28, height: 28, borderRadius: '50%', backgroundColor: `hsl(${(view.email.length * 40) % 360}, 70%, 85%)`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                        marginLeft: i === 0 ? 0 : -8, border: '2px solid white',
+                        color: `hsl(${(view.email.length * 40) % 360}, 70%, 30%)`, fontWeight: 700, fontSize: 12,
+                        cursor: 'pointer', position: 'relative', zIndex: 10 - i
+                      }}
+                      title={`${view.email}\nViewed at: ${view.viewedAt?.toDate ? view.viewedAt.toDate().toLocaleString() : 'N/A'}\nDuration: ${view.durationSeconds >= 60 ? Math.floor(view.durationSeconds / 60) + 'm ' + (view.durationSeconds % 60) + 's' : view.durationSeconds + 's'}`}
+                    >
+                      {view.email.substring(0, 1).toUpperCase()}
+                    </div>
+                  );
+                })}
+                {groupedViews.length > 5 && (
                   <div 
                     style={{ 
                       width: 28, height: 28, borderRadius: '50%', backgroundColor: 'var(--color-surface-container-high)',
@@ -623,7 +626,7 @@ function ProposalPreviewContent() {
                       cursor: 'pointer', zIndex: 0
                     }}
                   >
-                    +{documentViews.length - 5}
+                    +{groupedViews.length - 5}
                   </div>
                 )}
               </div>
