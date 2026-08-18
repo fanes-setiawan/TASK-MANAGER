@@ -59,7 +59,7 @@ export default function PublicBoardPage({ params }: { params: Promise<{ id: stri
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [viewingTask, setViewingTask] = useState<ProjectTask | null>(null);
 
-  const [drawerWidth, setDrawerWidth] = useState(400);
+  const [drawerWidth, setDrawerWidth] = useState<number | string>('50vw');
   const isResizing = useRef(false);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {

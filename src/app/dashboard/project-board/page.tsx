@@ -89,7 +89,7 @@ function BoardContent() {
   const [isPublicShare, setIsPublicShare] = useState(false);
   const [currentUserName, setCurrentUserName] = useState("User");
   const [currentUserAvatar, setCurrentUserAvatar] = useState("");
-  const [drawerWidth, setDrawerWidth] = useState(400);
+  const [drawerWidth, setDrawerWidth] = useState<number | string>('50vw');
   const isResizing = useRef(false);
 
   // Column Header Management State
