@@ -557,6 +557,28 @@ function ProposalPreviewContent() {
     currentPage.isLast = true;
   }
 
+  // Compute grouped views based on email
+  const groupedViews = React.useMemo(() => {
+    const groups: Record<string, DocumentView[]> = {};
+    documentViews.forEach(view => {
+      if (!groups[view.email]) groups[view.email] = [];
+      groups[view.email].push(view);
+    });
+    // Sort by latest view first
+    return Object.values(groups).sort((a, b) => {
+      const dateA = a[0].viewedAt?.toDate ? a[0].viewedAt.toDate() : new Date(0);
+      const dateB = b[0].viewedAt?.toDate ? b[0].viewedAt.toDate() : new Date(0);
+      return dateB.getTime() - dateA.getTime();
+    });
+  }, [documentViews]);
+
+  // State to manage expanded accordions in the views modal
+  const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>({});
+
+  const toggleEmailExpansion = (email: string) => {
+    setExpandedEmails(prev => ({ ...prev, [email]: !prev[email] }));
+  };
+
   return (
     <div className={styles.container}>
       {/* Top Toolbar */}
@@ -607,20 +629,62 @@ function ProposalPreviewContent() {
               </div>
               
               {showViewsModal && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 8, backgroundColor: 'white', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', minWidth: 280, padding: 12, zIndex: 100, border: '1px solid var(--color-outline-variant)', maxHeight: 300, overflowY: 'auto' }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: 'var(--color-on-surface)', borderBottom: '1px solid var(--color-outline-variant)', paddingBottom: 8 }}>View History</h4>
-                  {documentViews.map(view => (
-                    <div key={view.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--color-surface-container-high)' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: `hsl(${(view.email.length * 40) % 360}, 70%, 85%)`, color: `hsl(${(view.email.length * 40) % 360}, 70%, 30%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
-                        {view.email.substring(0, 1).toUpperCase()}
+                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 8, backgroundColor: 'white', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', minWidth: 320, padding: 12, zIndex: 100, border: '1px solid var(--color-outline-variant)', maxHeight: 400, overflowY: 'auto' }}>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: 'var(--color-on-surface)', borderBottom: '1px solid var(--color-outline-variant)', paddingBottom: 8 }}>Histori Pengunjung</h4>
+                  {groupedViews.map(group => {
+                    const email = group[0].email;
+                    const isExpanded = expandedEmails[email];
+                    const latestView = group[0];
+                    const totalViews = group.length;
+                    return (
+                      <div key={email} style={{ marginBottom: 12, borderBottom: '1px solid var(--color-surface-container-high)', paddingBottom: 12 }}>
+                        {/* Group Header */}
+                        <div 
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
+                          onClick={() => toggleEmailExpansion(email)}
+                        >
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: `hsl(${(email.length * 40) % 360}, 70%, 85%)`, color: `hsl(${(email.length * 40) % 360}, 70%, 30%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+                            {email.substring(0, 1).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-on-surface)', wordBreak: 'break-all' }}>{email}</div>
+                            <div style={{ fontSize: 11, color: 'var(--color-outline)', marginTop: 2 }}>Melihat {totalViews} kali</div>
+                          </div>
+                          <span className="material-symbols-outlined" style={{ color: 'var(--color-outline)', fontSize: 18 }}>
+                            {isExpanded ? 'expand_less' : 'expand_more'}
+                          </span>
+                        </div>
+                        
+                        {/* Group Details (Expanded) */}
+                        {isExpanded && (
+                          <div style={{ marginTop: 12, marginLeft: 44, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {group.map((view, idx) => (
+                              <div key={view.id || idx} style={{ padding: 8, backgroundColor: 'var(--color-surface-container-lowest)', borderRadius: 6, border: '1px solid var(--color-surface-container-low)' }}>
+                                <div style={{ fontSize: 11, color: 'var(--color-on-surface-variant)', fontWeight: 500 }}>
+                                  {view.viewedAt?.toDate ? view.viewedAt.toDate().toLocaleString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                                </div>
+                                <div style={{ fontSize: 11, color: 'var(--color-primary)', marginTop: 2, fontWeight: 500 }}>
+                                  Durasi: {view.durationSeconds >= 60 ? Math.floor(view.durationSeconds / 60) + 'm ' + (view.durationSeconds % 60) + 's' : view.durationSeconds + 's'}
+                                </div>
+                                {view.device && (
+                                  <div style={{ fontSize: 10, color: 'var(--color-outline)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: 12 }}>devices</span>
+                                    {view.device}
+                                  </div>
+                                )}
+                                {view.location && (
+                                  <div style={{ fontSize: 10, color: 'var(--color-outline)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: 12 }}>location_on</span>
+                                    {view.location}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-on-surface)', wordBreak: 'break-all' }}>{view.email}</div>
-                        <div style={{ fontSize: 11, color: 'var(--color-outline)', marginTop: 2 }}>{view.viewedAt?.toDate ? view.viewedAt.toDate().toLocaleString('id-ID') : 'N/A'}</div>
-                        <div style={{ fontSize: 11, color: 'var(--color-primary)', marginTop: 2, fontWeight: 500 }}>Durasi: {view.durationSeconds >= 60 ? Math.floor(view.durationSeconds / 60) + 'm ' + (view.durationSeconds % 60) + 's' : view.durationSeconds + 's'}</div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

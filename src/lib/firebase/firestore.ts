@@ -734,11 +734,13 @@ export async function deleteFixedPricePreset(userId: string, presetId: string): 
 
 // --- Document Analytics ---
 export interface DocumentView {
-  id?: string;
+  id: string;
   projectId: string;
   email: string;
   viewedAt: any;
   durationSeconds: number;
+  device?: string;
+  location?: string;
 }
 
 export async function recordDocumentView(projectId: string, email: string): Promise<string> {
