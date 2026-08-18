@@ -4,13 +4,15 @@ import React, { useState, useEffect, Suspense, useRef } from "react";
 import styles from "./proposal-preview.module.css";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { getProjectById, ProjectData, saveUserLogo, getSavedLogos, deleteSavedLogo, SavedLogo, saveUserWatermark, getSavedWatermarks, deleteSavedWatermark, SavedWatermark, updateProjectShareSettings, updateProjectDocumentSettings, updateProject } from "@/lib/firebase/firestore";
+import { getProjectById, ProjectData, saveUserLogo, getSavedLogos, deleteSavedLogo, SavedLogo, saveUserWatermark, getSavedWatermarks, deleteSavedWatermark, SavedWatermark, updateProjectShareSettings, updateProjectDocumentSettings, updateProject, getDocumentViews, DocumentView } from "@/lib/firebase/firestore";
 import { auth } from "@/lib/firebase/client";
 
 function ProposalPreviewContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("projectId");
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
+  const [documentViews, setDocumentViews] = useState<DocumentView[]>([]);
+  const [showViewsModal, setShowViewsModal] = useState(false);
   const [loading, setLoading] = useState(!!projectId);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [logoUrl, setLogoUrl] = useState("https://lh3.googleusercontent.com/aida-public/AB6AXuCAYxl62mvvaeKBMqiPv_xjWNJzn8AdapjWlfPMNMhCGQVzO059qxdGliakroZemwD6hYRC0dttMr5lZdIfj7k9a-qTbXWgM8KdeAi_HPZjuM0-eQIhd2LCgclnTHZqCjTLOQdKvuyx62Vhww9CZIBD1QxAY3QgquvRm-hx0wECm-OkzeQRKOFalfoO51bFxutpK-aZ6gGhvtmSgAF3cbb4GTeT7UHvko4nkpV_EqYaFg56Zajg8GWSHBTExXH8hmcpRiwZLX1YqVI");
@@ -284,6 +286,7 @@ function ProposalPreviewContent() {
   };
 
   useEffect(() => {
+    let viewsInterval: NodeJS.Timeout | null = null;
     if (projectId) {
       getProjectById(projectId).then(async (data) => {
         let finalData = data;
@@ -331,6 +334,14 @@ function ProposalPreviewContent() {
           setCustomProjectName(finalData?.projectName || "");
           setCustomClientName(finalData?.clientName || finalData?.company || "");
         }
+        
+        // Fetch views initially and setup polling
+        const fetchViews = () => {
+          getDocumentViews(projectId).then(setDocumentViews).catch(console.error);
+        };
+        fetchViews();
+        viewsInterval = setInterval(fetchViews, 5000); // 5 seconds polling
+        
         setLoading(false);
       });
     }
@@ -344,7 +355,10 @@ function ProposalPreviewContent() {
       }
     };
     const unsubscribe = auth.onAuthStateChanged(fetchAssets);
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (viewsInterval) clearInterval(viewsInterval);
+    };
   }, [projectId]);
 
   const handleDeleteLogo = async (e: React.MouseEvent, logo: SavedLogo) => {
@@ -505,7 +519,7 @@ function ProposalPreviewContent() {
   // Chunking logic for Pagination
   const HEADER_HEIGHT = 380;
   const FOOTER_HEIGHT = 220;
-  const PAGE_HEIGHT_LIMIT = 820; // Lowered to prevent overflow
+  const PAGE_HEIGHT_LIMIT = 1020; // Increased to use full page
   const NEW_PAGE_HEADER_HEIGHT = 80;
 
   const pages: any[] = [];
@@ -558,6 +572,60 @@ function ProposalPreviewContent() {
         </div>
 
         <div className={styles.toolbarCenter}>
+          {documentViews.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', marginRight: 24, position: 'relative' }}>
+              <span style={{ fontSize: 12, color: 'var(--color-outline)', marginRight: 8, fontWeight: 500 }}>Viewers:</span>
+              <div style={{ display: 'flex' }} onClick={() => setShowViewsModal(!showViewsModal)}>
+                {documentViews.slice(0, 5).map((view, i) => (
+                  <div 
+                    key={view.id} 
+                    style={{ 
+                      width: 28, height: 28, borderRadius: '50%', backgroundColor: `hsl(${(view.email.length * 40) % 360}, 70%, 85%)`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      marginLeft: i === 0 ? 0 : -8, border: '2px solid white',
+                      color: `hsl(${(view.email.length * 40) % 360}, 70%, 30%)`, fontWeight: 700, fontSize: 12,
+                      cursor: 'pointer', position: 'relative', zIndex: 10 - i
+                    }}
+                    title={`${view.email}\nViewed at: ${view.viewedAt?.toDate ? view.viewedAt.toDate().toLocaleString() : 'N/A'}\nDuration: ${view.durationSeconds >= 60 ? Math.floor(view.durationSeconds / 60) + 'm ' + (view.durationSeconds % 60) + 's' : view.durationSeconds + 's'}`}
+                  >
+                    {view.email.substring(0, 1).toUpperCase()}
+                  </div>
+                ))}
+                {documentViews.length > 5 && (
+                  <div 
+                    style={{ 
+                      width: 28, height: 28, borderRadius: '50%', backgroundColor: 'var(--color-surface-container-high)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      marginLeft: -8, border: '2px solid white',
+                      color: 'var(--color-on-surface-variant)', fontWeight: 700, fontSize: 10,
+                      cursor: 'pointer', zIndex: 0
+                    }}
+                  >
+                    +{documentViews.length - 5}
+                  </div>
+                )}
+              </div>
+              
+              {showViewsModal && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 8, backgroundColor: 'white', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', minWidth: 280, padding: 12, zIndex: 100, border: '1px solid var(--color-outline-variant)', maxHeight: 300, overflowY: 'auto' }}>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: 'var(--color-on-surface)', borderBottom: '1px solid var(--color-outline-variant)', paddingBottom: 8 }}>View History</h4>
+                  {documentViews.map(view => (
+                    <div key={view.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--color-surface-container-high)' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: `hsl(${(view.email.length * 40) % 360}, 70%, 85%)`, color: `hsl(${(view.email.length * 40) % 360}, 70%, 30%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+                        {view.email.substring(0, 1).toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-on-surface)', wordBreak: 'break-all' }}>{view.email}</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-outline)', marginTop: 2 }}>{view.viewedAt?.toDate ? view.viewedAt.toDate().toLocaleString('id-ID') : 'N/A'}</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-primary)', marginTop: 2, fontWeight: 500 }}>Durasi: {view.durationSeconds >= 60 ? Math.floor(view.durationSeconds / 60) + 'm ' + (view.durationSeconds % 60) + 's' : view.durationSeconds + 's'}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          
           <button className={styles.zoomBtn} onClick={handleZoomOut} title="Zoom Out">
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>remove_circle</span>
           </button>

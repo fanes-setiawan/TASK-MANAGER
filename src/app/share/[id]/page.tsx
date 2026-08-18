@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense, useRef } from "react";
 import styles from "./share.module.css";
 import Image from "next/image";
 import { useParams } from "next/navigation";
-import { deleteSavedLogo, deleteSavedWatermark, getProjectById, ProjectData, SavedWatermark, saveUserWatermark, SavedLogo, saveUserLogo, getSavedLogos, getSavedWatermarks } from "@/lib/firebase/firestore";
+import { deleteSavedLogo, deleteSavedWatermark, getProjectById, ProjectData, SavedWatermark, saveUserWatermark, SavedLogo, saveUserLogo, getSavedLogos, getSavedWatermarks, recordDocumentView, updateViewDuration } from "@/lib/firebase/firestore";
 import { auth } from "@/lib/firebase/client";
 
 function SharePreviewContent() {
@@ -150,6 +150,39 @@ function SharePreviewContent() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // --- View Tracking Analytics ---
+  useEffect(() => {
+    if (!projectId) return;
+    
+    let viewId: string | null = null;
+    let timerId: NodeJS.Timeout | null = null;
+    let secondsElapsed = 0;
+
+    const initTracking = async () => {
+      try {
+        const viewerEmail = auth.currentUser?.email || "Guest";
+        viewId = await recordDocumentView(projectId, viewerEmail);
+        
+        // Update duration every 10 seconds
+        timerId = setInterval(() => {
+          if (viewId) {
+            secondsElapsed += 10;
+            updateViewDuration(projectId, viewId, secondsElapsed).catch(console.error);
+          }
+        }, 10000);
+      } catch (err) {
+        console.error("Failed to track view:", err);
+      }
+    };
+
+    // Delay a bit to let auth initialize
+    const timeoutId = setTimeout(initTracking, 1500);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (timerId) clearInterval(timerId);
+    };
+  }, [projectId]);
 
   useEffect(() => {
     if (projectId) {
@@ -354,7 +387,7 @@ function SharePreviewContent() {
   // Chunking logic for Pagination
   const HEADER_HEIGHT = 380;
   const FOOTER_HEIGHT = 220;
-  const PAGE_HEIGHT_LIMIT = 820; // Lowered to prevent overflow
+  const PAGE_HEIGHT_LIMIT = 1020; // Increased to use full page
   const NEW_PAGE_HEADER_HEIGHT = 80;
 
   const pages: any[] = [];

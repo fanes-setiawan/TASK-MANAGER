@@ -731,3 +731,48 @@ export async function deleteFixedPricePreset(userId: string, presetId: string): 
   const updated = currentPresets.filter(p => p.id !== presetId);
   await setDoc(userRef, { fixedPricePresets: updated }, { merge: true });
 }
+
+// --- Document Analytics ---
+export interface DocumentView {
+  id?: string;
+  projectId: string;
+  email: string;
+  viewedAt: any;
+  durationSeconds: number;
+}
+
+export async function recordDocumentView(projectId: string, email: string): Promise<string> {
+  const res = await fetch('/api/views', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ projectId, email })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.viewId;
+}
+
+export async function updateViewDuration(projectId: string, viewId: string, durationSeconds: number): Promise<void> {
+  const res = await fetch('/api/views', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ projectId, viewId, durationSeconds })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+}
+
+export async function getDocumentViews(projectId: string): Promise<DocumentView[]> {
+  const res = await fetch(`/api/views?projectId=${projectId}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  
+  // Convert ISO string back to a mock Timestamp object for UI compatibility
+  return data.views.map((v: any) => ({
+    ...v,
+    viewedAt: {
+      toDate: () => new Date(v.viewedAt)
+    }
+  }));
+}
+
