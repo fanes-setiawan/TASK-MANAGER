@@ -35,8 +35,11 @@ if (typeof window !== 'undefined') {
   }
 
   // Quill strips out width/height from table cells unless explicitly defined in a custom format
-  const TableCell: any = Quill.import('formats/td') || Quill.import('formats/table/cell') || Quill.import('blots/block');
-  if (TableCell) {
+  let TableCell: any = Quill.import('formats/td') || Quill.import('formats/table/cell') || Quill.import('blots/block');
+  if (TableCell && TableCell.default) {
+    TableCell = TableCell.default;
+  }
+  if (TableCell && typeof TableCell === 'function') {
     class CustomTableCell extends TableCell {
       static create(value: any) {
         const node = super.create(value);
