@@ -33,6 +33,44 @@ if (typeof window !== 'undefined') {
     Quill.register(WidthStyle, true);
     Quill.register(HeightStyle, true);
   }
+
+  // Quill strips out width/height from table cells unless explicitly defined in a custom format
+  const TableCell: any = Quill.import('formats/td') || Quill.import('formats/table/cell') || Quill.import('blots/block');
+  if (TableCell) {
+    class CustomTableCell extends TableCell {
+      static create(value: any) {
+        const node = super.create(value);
+        if (value && value.width) {
+          node.style.width = value.width;
+        }
+        if (value && value.height) {
+          node.style.height = value.height;
+        }
+        return node;
+      }
+
+      static formats(domNode: HTMLElement) {
+        const formats = super.formats(domNode) || {};
+        if (domNode.style.width) formats.width = domNode.style.width;
+        if (domNode.style.height) formats.height = domNode.style.height;
+        return formats;
+      }
+
+      format(name: string, value: any) {
+        if (name === 'width' || name === 'height') {
+          if (value) {
+            this.domNode.style[name] = value;
+          } else {
+            this.domNode.style[name] = '';
+          }
+        } else {
+          super.format(name, value);
+        }
+      }
+    }
+    // Register the custom table cell
+    Quill.register(CustomTableCell, true);
+  }
 }
 interface QuillEditorProps {
   value: string;

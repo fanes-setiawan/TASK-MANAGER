@@ -24,7 +24,7 @@ async function sendNotificationEmail(db: any, projectId: string, viewData: any) 
       browser: viewData.device.split(' - ')[1] || 'Unknown',
       device: viewData.device.split(' - ')[0] || 'Unknown',
       location: viewData.location,
-      proposal_url: `https://app.fanes.dev/dashboard/proposal-preview?id=${projectId}`, // adjust to your actual domain
+      proposal_url: `https://app.fanes.dev/share/${projectId}`,
       support_email: 'hello@fanes.dev',
       support_phone: '+62 800 0000 000',
       year: new Date().getFullYear().toString(),
@@ -32,11 +32,13 @@ async function sendNotificationEmail(db: any, projectId: string, viewData: any) 
     });
 
     await resend.emails.send({
-      from: 'Notifikasi <onboarding@resend.dev>',
+      from: 'Fanes Workspace <onboarding@resend.dev>',
       to: ownerEmail,
-      subject: `Proposal ${project.title || ''} Dilihat - ${viewData.email}`,
+      subject: `Notifikasi: Proposal ${project.title || 'Anda'} sedang dilihat oleh ${viewData.email}`,
       html: htmlContent,
+      text: `Proposal ${project.title || ''} Anda sedang dilihat oleh ${viewData.email} dari lokasi ${viewData.location}. Buka proposal di: https://app.fanes.dev/share/${projectId}`,
     });
+    console.log('Email successfully sent to:', ownerEmail);
   } catch (error) {
     console.error('Failed to send email:', error);
   }
@@ -59,11 +61,12 @@ export async function POST(req: NextRequest) {
     const db = getAdminDb();
     const viewsRef = db.collection('projects').doc(projectId).collection('views');
     
-    // Check cooldown (15 minutes)
+    // Check cooldown (0 minutes untuk keperluan TEST)
     const recentViewsSnapshot = await viewsRef.where('email', '==', email).get();
     let shouldSendEmail = true;
     if (!recentViewsSnapshot.empty) {
-      const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
+      // SET TO 0 FOR TESTING PURPOSES, NANTI BISA DIKEMBALIKAN KE 15 MENIT
+      const fifteenMinutesAgo = Date.now() - 0 * 60 * 1000;
       recentViewsSnapshot.forEach(doc => {
          const data = doc.data();
          if (data.viewedAt && data.viewedAt.toDate().getTime() > fifteenMinutesAgo) {
@@ -84,8 +87,11 @@ export async function POST(req: NextRequest) {
     const docRef = await viewsRef.add(newView);
     
     if (shouldSendEmail && process.env.RESEND_API_KEY) {
+      console.log('Cooldown passed, sending email...');
       // fire and forget
       sendNotificationEmail(db, projectId, newView).catch(console.error);
+    } else {
+      console.log('Cooldown active or missing API key. Skipping email. shouldSendEmail:', shouldSendEmail);
     }
     
     return NextResponse.json({ viewId: docRef.id });
