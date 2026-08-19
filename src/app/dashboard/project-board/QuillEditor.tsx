@@ -21,79 +21,24 @@ if (typeof window !== 'undefined') {
   icons["insertColRight"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M3,3 L15,3 L15,15 L3,15 L3,3 Z"></path><path class="ql-fill" d="M8,3 L10,3 L10,15 L8,15 L8,3 Z"></path><line class="ql-stroke" x1="12" x2="15" y1="9" y2="9"></line><line class="ql-stroke" x1="12" x2="15" y1="6" y2="9"></line><line class="ql-stroke" x1="12" x2="15" y1="12" y2="9"></line></svg>';
   icons["deleteCol"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M3,3 L15,3 L15,15 L3,15 L3,3 Z"></path><line class="ql-stroke" x1="9" x2="9" y1="3" y2="15"></line><line class="ql-stroke" x1="6" x2="12" y1="6" y2="12"></line><line class="ql-stroke" x1="12" x2="6" y1="6" y2="12"></line></svg>';
 
-  let StyleAttributor: any;
   try {
-    StyleAttributor = Quill.import('attributors/style');
-  } catch (e) {
-    console.warn('Could not import attributors/style', e);
-  }
-
-  if (StyleAttributor) {
+    const StyleAttributor = Quill.import('attributors/style') as any;
+    // Scope 4 is usually BLOCK_ATTRIBUTE, 2 is BLOCK, 0 is ANY
     const WidthStyle = new StyleAttributor('width', 'width', {
+      scope: 0, // Scope.ANY to ensure it applies anywhere
       whitelist: null,
     });
     const HeightStyle = new StyleAttributor('height', 'height', {
+      scope: 0,
       whitelist: null,
     });
     Quill.register(WidthStyle, true);
     Quill.register(HeightStyle, true);
-  }
-
-  // Quill strips out width/height from table cells unless explicitly defined in a custom format
-  let TableCell: any;
-  try {
-    TableCell = Quill.import('formats/td');
   } catch (e) {
-    try {
-      TableCell = Quill.import('formats/table/cell');
-    } catch (e2) {
-      try {
-        TableCell = Quill.import('blots/block');
-      } catch (e3) {
-        console.warn('Could not import TableCell base format');
-      }
-    }
-  }
-
-  if (TableCell && TableCell.default) {
-    TableCell = TableCell.default;
-  }
-  if (TableCell && typeof TableCell === 'function') {
-    class CustomTableCell extends TableCell {
-      static create(value: any) {
-        const node = super.create(value);
-        if (value && value.width) {
-          node.style.width = value.width;
-        }
-        if (value && value.height) {
-          node.style.height = value.height;
-        }
-        return node;
-      }
-
-      static formats(domNode: HTMLElement) {
-        const formats = super.formats(domNode) || {};
-        if (domNode.style.width) formats.width = domNode.style.width;
-        if (domNode.style.height) formats.height = domNode.style.height;
-        return formats;
-      }
-
-      format(name: string, value: any) {
-        if (name === 'width' || name === 'height') {
-          if (value) {
-            this.domNode.style[name] = value;
-          } else {
-            this.domNode.style[name] = '';
-          }
-        } else {
-          super.format(name, value);
-        }
-      }
-    }
-    // Register the custom table cell
-    Quill.register(CustomTableCell, true);
+    console.warn('Could not register width/height attributors', e);
   }
 }
+
 interface QuillEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -219,11 +164,64 @@ export default function QuillEditor({ value, onChange, readOnly, placeholder, on
   const quillRef = React.useRef<ReactQuill>(null);
 
   React.useEffect(() => {
-    if (!quillRef.current) return;
+    if (!quillRef.current || readOnly) return;
     const editor = quillRef.current.getEditor();
     const root = editor.root;
 
+    let isResizing = false;
+    let currentTd: HTMLElement | null = null;
+    let startX = 0;
+    let startWidth = 0;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'TD' || target.tagName === 'TH') {
+        const rect = target.getBoundingClientRect();
+        if (e.clientX > rect.right - 10) {
+          isResizing = true;
+          currentTd = target;
+          startX = e.clientX;
+          startWidth = rect.width;
+          e.preventDefault();
+        }
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizing && currentTd) {
+        const diff = e.clientX - startX;
+        currentTd.style.width = `${startWidth + diff}px`;
+      } else {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'TD' || target.tagName === 'TH') {
+          const rect = target.getBoundingClientRect();
+          if (e.clientX > rect.right - 10) {
+            target.style.cursor = 'col-resize';
+          } else {
+            target.style.cursor = 'text';
+          }
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isResizing && currentTd) {
+        isResizing = false;
+        // Trigger onChange so Quill converts it and saves it
+        if (onChange) {
+          onChange(root.innerHTML);
+        }
+        currentTd = null;
+      }
+    };
+
+    root.addEventListener('mousedown', handleMouseDown);
+    root.addEventListener('mousemove', handleMouseMove);
+    root.addEventListener('mouseup', handleMouseUp);
+    root.addEventListener('mouseleave', handleMouseUp);
+
     const observer = new MutationObserver((mutations) => {
+      if (isResizing) return; // don't trigger onChange while actively dragging
       let shouldTrigger = false;
       for (const mutation of mutations) {
         if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
@@ -234,12 +232,8 @@ export default function QuillEditor({ value, onChange, readOnly, placeholder, on
           }
         }
       }
-      
-      if (shouldTrigger) {
-        // Debounce or trigger directly
-        if (onChange) {
-          onChange(root.innerHTML);
-        }
+      if (shouldTrigger && onChange) {
+        onChange(root.innerHTML);
       }
     });
 
@@ -249,8 +243,14 @@ export default function QuillEditor({ value, onChange, readOnly, placeholder, on
       subtree: true,
     });
 
-    return () => observer.disconnect();
-  }, [onChange]);
+    return () => {
+      root.removeEventListener('mousedown', handleMouseDown);
+      root.removeEventListener('mousemove', handleMouseMove);
+      root.removeEventListener('mouseup', handleMouseUp);
+      root.removeEventListener('mouseleave', handleMouseUp);
+      observer.disconnect();
+    };
+  }, [onChange, readOnly]);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }} onClick={handleClick}>
