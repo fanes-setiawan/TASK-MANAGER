@@ -219,8 +219,6 @@ a {
   border: 1px solid var(--color-outline-variant);
   padding: 8px;
   min-width: 50px;
-  resize: both; /* Allow users to resize columns/rows manually! */
-  overflow: auto;
 }
 .ql-editor table tbody tr:nth-child(even) {
   background-color: var(--color-surface-container-low);

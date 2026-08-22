@@ -20,22 +20,33 @@ if (typeof window !== 'undefined') {
   icons["deleteRow"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M3,3 L15,3 L15,15 L3,15 L3,3 Z"></path><line class="ql-stroke" x1="3" x2="15" y1="9" y2="9"></line><line class="ql-stroke" x1="6" x2="12" y1="6" y2="12"></line><line class="ql-stroke" x1="12" x2="6" y1="6" y2="12"></line></svg>';
   icons["insertColRight"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M3,3 L15,3 L15,15 L3,15 L3,3 Z"></path><path class="ql-fill" d="M8,3 L10,3 L10,15 L8,15 L8,3 Z"></path><line class="ql-stroke" x1="12" x2="15" y1="9" y2="9"></line><line class="ql-stroke" x1="12" x2="15" y1="6" y2="9"></line><line class="ql-stroke" x1="12" x2="15" y1="12" y2="9"></line></svg>';
   icons["deleteCol"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M3,3 L15,3 L15,15 L3,15 L3,3 Z"></path><line class="ql-stroke" x1="9" x2="9" y1="3" y2="15"></line><line class="ql-stroke" x1="6" x2="12" y1="6" y2="12"></line><line class="ql-stroke" x1="12" x2="6" y1="6" y2="12"></line></svg>';
+  icons["insertLineBreak"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M12,4 L12,12 L5,12"></path><polyline class="ql-stroke" points="8 9 5 12 8 15"></polyline></svg>';
 
   try {
-    const StyleAttributor = Quill.import('attributors/style') as any;
-    // Scope 4 is usually BLOCK_ATTRIBUTE, 2 is BLOCK, 0 is ANY
-    const WidthStyle = new StyleAttributor('width', 'width', {
-      scope: 0, // Scope.ANY to ensure it applies anywhere
-      whitelist: null,
-    });
-    const HeightStyle = new StyleAttributor('height', 'height', {
-      scope: 0,
-      whitelist: null,
-    });
-    Quill.register(WidthStyle, true);
-    Quill.register(HeightStyle, true);
+    const Parchment = Quill.import('parchment') as any;
+    const StyleAttributor = Parchment.Attributor?.Style || (Parchment as any).StyleAttributor;
+    
+    if (StyleAttributor) {
+      const WidthStyle = new StyleAttributor('width', 'width', {
+        scope: Parchment.Scope?.ANY || 0,
+      });
+      const HeightStyle = new StyleAttributor('height', 'height', {
+        scope: Parchment.Scope?.ANY || 0,
+      });
+      Quill.register(WidthStyle, true);
+      Quill.register(HeightStyle, true);
+    }
+
+    // Register SoftBreak for newlines in tables
+    const Embed = Quill.import('blots/embed') as any;
+    class SoftBreak extends Embed {
+      static blotName = 'softBreak';
+      static tagName = 'br';
+    }
+    Quill.register(SoftBreak);
+
   } catch (e) {
-    console.warn('Could not register width/height attributors', e);
+    console.warn('Could not register attributors or blots', e);
   }
 }
 
@@ -58,7 +69,7 @@ export default function QuillEditor({ value, onChange, readOnly, placeholder, on
           [{ 'color': [] }, { 'background': [] }],
           [{ list: 'ordered' }, { list: 'bullet' }, { 'align': [] }],
           ['link', 'image'],
-          ['table', 'insertRowBelow', 'deleteRow', 'insertColRight', 'deleteCol'],
+          ['table', 'insertRowBelow', 'deleteRow', 'insertColRight', 'deleteCol', 'insertLineBreak'],
           ['clean'],
         ],
         handlers: {
@@ -82,27 +93,22 @@ export default function QuillEditor({ value, onChange, readOnly, placeholder, on
             // @ts-ignore
             this.quill.getModule('table').deleteColumn();
           },
-        }
-      },
-      table: true,
-      blotFormatter: {},
-      keyboard: {
-        bindings: {
-          tableEnter: {
-            key: 13,
-            handler: function (range: any, context: any) {
-              if (context.format.table) {
-                // @ts-ignore
-                this.quill.insertText(range.index, '\n');
-                // @ts-ignore
-                this.quill.setSelection(range.index + 1);
-                return false;
-              }
-              return true;
+          insertLineBreak: function () {
+            // @ts-ignore
+            const range = this.quill.getSelection();
+            if (range) {
+              // @ts-ignore
+              this.quill.insertEmbed(range.index, 'softBreak', true, 'user');
+              // @ts-ignore
+              this.quill.insertText(range.index + 1, '\u200B', 'user');
+              // @ts-ignore
+              this.quill.setSelection(range.index + 2);
             }
           }
         }
       },
+      table: true,
+      blotFormatter: {},
       mention: {
         allowedChars: /^[A-Za-z\sÅÄÖåäö]*$/,
         mentionDenotationChars: ["@"],
@@ -257,7 +263,7 @@ export default function QuillEditor({ value, onChange, readOnly, placeholder, on
       <ReactQuill 
         ref={quillRef}
         theme="snow"
-        value={value}
+        defaultValue={value}
         onChange={onChange}
         readOnly={readOnly}
         modules={modules}
