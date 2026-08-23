@@ -290,11 +290,6 @@ a {
   padding: 0 !important;
   margin: 0 !important;
 }
-.quill-editor-wrapper:fullscreen {
-  position: static !important;
-  width: 100% !important;
-  height: 100% !important;
-}
 .quill-editor-wrapper.is-fullscreen .quill,
 .quill-editor-wrapper:fullscreen .quill {
   display: grid !important;
