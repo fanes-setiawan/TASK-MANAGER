@@ -27,31 +27,15 @@ if (typeof window !== 'undefined') {
     const Parchment = Quill.import('parchment') as any;
     const StyleAttributor = Parchment.Attributor?.Style || (Parchment as any).StyleAttributor;
     
-    // Custom Image format to preserve width, height, and style attributes
-    const BaseImageFormat = Quill.import('formats/image') as any;
-    if (BaseImageFormat) {
-      class CustomImageFormat extends BaseImageFormat {
-        static formats(domNode: Element) {
-          const formats: any = {};
-          if (domNode.hasAttribute('width')) formats.width = domNode.getAttribute('width');
-          if (domNode.hasAttribute('height')) formats.height = domNode.getAttribute('height');
-          if (domNode.hasAttribute('style')) formats.style = domNode.getAttribute('style');
-          return formats;
-        }
-
-        format(name: string, value: any) {
-          if (name === 'width' || name === 'height' || name === 'style') {
-            if (value) {
-              this.domNode.setAttribute(name, value);
-            } else {
-              this.domNode.removeAttribute(name);
-            }
-          } else {
-            super.format(name, value);
-          }
-        }
-      }
-      Quill.register(CustomImageFormat, true);
+    if (StyleAttributor) {
+      const WidthStyle = new StyleAttributor('width', 'width', {
+        scope: Parchment.Scope?.INLINE || 2, // 2 is Scope.INLINE
+      });
+      const HeightStyle = new StyleAttributor('height', 'height', {
+        scope: Parchment.Scope?.INLINE || 2,
+      });
+      Quill.register(WidthStyle, true);
+      Quill.register(HeightStyle, true);
     }
 
     // Register SoftBreak for newlines in tables
