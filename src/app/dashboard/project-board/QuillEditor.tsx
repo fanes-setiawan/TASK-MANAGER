@@ -111,7 +111,15 @@ export default function QuillEditor({ value, onChange, readOnly, placeholder, on
             const quillContainer = this.quill.container;
             const wrapper = quillContainer.closest('.quill-editor-wrapper');
             if (wrapper) {
-              wrapper.classList.toggle('is-fullscreen');
+              if (!document.fullscreenElement) {
+                wrapper.requestFullscreen().catch((err: any) => {
+                  console.warn(`Error attempting to enable fullscreen mode: ${err.message}`);
+                  // Fallback to CSS fullscreen
+                  wrapper.classList.toggle('is-fullscreen');
+                });
+              } else {
+                document.exitFullscreen();
+              }
             }
           }
         }

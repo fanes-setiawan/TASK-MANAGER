@@ -691,7 +691,7 @@ function BoardContent() {
 
               <div className={styles.formGroupEditor}>
                 <label>Description / Notes</label>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid var(--color-outline)', borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid var(--color-outline)', borderRadius: 8 }}>
                   <QuillEditor 
                     value={formData.description} 
                     onChange={(content) => setFormData({...formData, description: content})} 

@@ -278,7 +278,8 @@ a {
 }
 
 /* Quill Fullscreen and Scroll Settings */
-.quill-editor-wrapper.is-fullscreen {
+.quill-editor-wrapper.is-fullscreen,
+.quill-editor-wrapper:fullscreen {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -289,21 +290,34 @@ a {
   padding: 0 !important;
   margin: 0 !important;
 }
-.quill-editor-wrapper.is-fullscreen .quill {
+.quill-editor-wrapper:fullscreen {
+  position: static !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+.quill-editor-wrapper.is-fullscreen .quill,
+.quill-editor-wrapper:fullscreen .quill {
   display: grid !important;
   grid-template-rows: auto 1fr;
   height: 100vh !important;
   width: 100vw !important;
 }
-.quill-editor-wrapper.is-fullscreen .ql-container {
+.quill-editor-wrapper:fullscreen .quill {
+  height: 100% !important;
+  width: 100% !important;
+}
+.quill-editor-wrapper.is-fullscreen .ql-container,
+.quill-editor-wrapper:fullscreen .ql-container {
   height: 100% !important;
   min-height: 0 !important;
   border: none !important;
   overflow: hidden !important;
 }
-.quill-editor-wrapper.is-fullscreen .ql-editor {
+.quill-editor-wrapper.is-fullscreen .ql-editor,
+.quill-editor-wrapper:fullscreen .ql-editor {
   height: 100% !important;
   overflow: auto !important;
+  background-color: var(--color-surface) !important;
 }
 
 /* Allow horizontal and vertical scrolling in the editor */
