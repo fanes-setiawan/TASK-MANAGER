@@ -21,6 +21,7 @@ if (typeof window !== 'undefined') {
   icons["insertColRight"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M3,3 L15,3 L15,15 L3,15 L3,3 Z"></path><path class="ql-fill" d="M8,3 L10,3 L10,15 L8,15 L8,3 Z"></path><line class="ql-stroke" x1="12" x2="15" y1="9" y2="9"></line><line class="ql-stroke" x1="12" x2="15" y1="6" y2="9"></line><line class="ql-stroke" x1="12" x2="15" y1="12" y2="9"></line></svg>';
   icons["deleteCol"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M3,3 L15,3 L15,15 L3,15 L3,3 Z"></path><line class="ql-stroke" x1="9" x2="9" y1="3" y2="15"></line><line class="ql-stroke" x1="6" x2="12" y1="6" y2="12"></line><line class="ql-stroke" x1="12" x2="6" y1="6" y2="12"></line></svg>';
   icons["insertLineBreak"] = '<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M12,4 L12,12 L5,12"></path><polyline class="ql-stroke" points="8 9 5 12 8 15"></polyline></svg>';
+  icons["fullscreen"] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>';
 
   try {
     const Parchment = Quill.import('parchment') as any;
@@ -70,7 +71,7 @@ export default function QuillEditor({ value, onChange, readOnly, placeholder, on
           [{ list: 'ordered' }, { list: 'bullet' }, { 'align': [] }],
           ['link', 'image'],
           ['table', 'insertRowBelow', 'deleteRow', 'insertColRight', 'deleteCol', 'insertLineBreak'],
-          ['clean'],
+          ['clean', 'fullscreen'],
         ],
         handlers: {
           table: function () {
@@ -103,6 +104,14 @@ export default function QuillEditor({ value, onChange, readOnly, placeholder, on
               this.quill.insertText(range.index + 1, '\u200B', 'user');
               // @ts-ignore
               this.quill.setSelection(range.index + 2);
+            }
+          },
+          fullscreen: function () {
+            // @ts-ignore
+            const quillContainer = this.quill.container;
+            const wrapper = quillContainer.closest('.quill-editor-wrapper');
+            if (wrapper) {
+              wrapper.classList.toggle('is-fullscreen');
             }
           }
         }
@@ -259,7 +268,7 @@ export default function QuillEditor({ value, onChange, readOnly, placeholder, on
   }, [onChange, readOnly]);
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }} onClick={handleClick}>
+    <div className="quill-editor-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column' }} onClick={handleClick}>
       <ReactQuill 
         ref={quillRef}
         theme="snow"
