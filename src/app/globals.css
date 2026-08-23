@@ -291,14 +291,22 @@ a {
   flex-direction: column;
 }
 .quill-editor-wrapper.is-fullscreen .quill {
-  display: flex;
+  display: flex !important;
   flex-direction: column;
   flex: 1;
   height: 100%;
+  overflow: hidden;
 }
 .quill-editor-wrapper.is-fullscreen .ql-container {
   flex: 1;
-  height: auto !important;
+  height: 0 !important; /* Force flex constraint */
+  display: flex !important;
+  flex-direction: column;
+}
+.quill-editor-wrapper.is-fullscreen .ql-editor {
+  flex: 1;
+  height: 100%;
+  overflow: auto !important;
 }
 
 /* Allow horizontal and vertical scrolling in the editor */
