@@ -284,12 +284,21 @@ a {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 9999;
+  z-index: 99999;
   background-color: var(--color-background);
-  padding: 20px;
+  padding: 0;
+  display: flex !important;
+  flex-direction: column;
+}
+.quill-editor-wrapper.is-fullscreen .quill {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
 }
 .quill-editor-wrapper.is-fullscreen .ql-container {
-  height: calc(100% - 60px) !important;
+  flex: 1;
+  height: auto !important;
 }
 
 /* Allow horizontal and vertical scrolling in the editor */
