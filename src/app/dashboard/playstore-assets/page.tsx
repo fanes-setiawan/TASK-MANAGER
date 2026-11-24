@@ -40,6 +40,8 @@ interface SubmissionRecord {
     logo?: any;
     featureGraphic?: any;
     screenshots?: any[];
+    hasTabletView?: boolean;
+    tabletScreenshots?: any[];
   };
   driveFolderUrl?: string;
   submittedAt: string;
@@ -257,19 +259,35 @@ Disubmit pada: ${new Date(sub.submittedAt).toLocaleString("id-ID", { timeZone: "
         }
       }
 
-      // 5. Download Screenshots
+      // 5. Download Screenshots (Phone)
       if (assets?.screenshots && assets.screenshots.length > 0) {
         let idx = 1;
         for (const ss of assets.screenshots) {
           if (ss.id) {
-            setZipProgressText(`Mengunduh screenshot ${idx} dari ${assets.screenshots.length}...`);
+            setZipProgressText(`Mengunduh screenshot ponsel ${idx} dari ${assets.screenshots.length}...`);
             const buf = await downloadFileBuffer(ss.id);
             if (buf) {
               const ext = ss.name?.split(".").pop() || "png";
-              zip.file(`02_Screenshots/screenshot_${String(idx).padStart(2, "0")}.${ext}`, buf);
+              zip.file(`02_Screenshots_Phone/screenshot_${String(idx).padStart(2, "0")}.${ext}`, buf);
             }
           }
           idx++;
+        }
+      }
+
+      // 6. Download Screenshots (Tablet) if exists
+      if (assets?.tabletScreenshots && assets.tabletScreenshots.length > 0) {
+        let tidx = 1;
+        for (const tss of assets.tabletScreenshots) {
+          if (tss.id) {
+            setZipProgressText(`Mengunduh screenshot tablet ${tidx} dari ${assets.tabletScreenshots.length}...`);
+            const buf = await downloadFileBuffer(tss.id);
+            if (buf) {
+              const ext = tss.name?.split(".").pop() || "png";
+              zip.file(`03_Screenshots_Tablet/tablet_screenshot_${String(tidx).padStart(2, "0")}.${ext}`, buf);
+            }
+          }
+          tidx++;
         }
       }
 
@@ -799,14 +817,33 @@ Disubmit pada: ${new Date(sub.submittedAt).toLocaleString("id-ID", { timeZone: "
                       </div>
                     )}
 
-                    {/* Screenshots */}
+                    {/* Screenshots Phone */}
                     {selectedSubmission.uploadedAssets?.screenshots?.map((ss: any, sIdx: number) => (
                       <div key={sIdx} className={styles.assetThumb}>
                         <span style={{ fontSize: "1.75rem" }}>📱</span>
-                        <div className={styles.assetThumbName}>Screenshot {sIdx + 1}</div>
+                        <div className={styles.assetThumbName}>Ponsel {sIdx + 1}</div>
                         {ss.id ? (
                           <a
                             href={`/api/playstore/download?submissionId=${selectedSubmission.id}&fileId=${ss.id}`}
+                            className={styles.assetThumbAction}
+                            download
+                          >
+                            Unduh
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>Tersimpan</span>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Screenshots Tablet if present */}
+                    {selectedSubmission.uploadedAssets?.tabletScreenshots?.map((tss: any, tIdx: number) => (
+                      <div key={`tab-${tIdx}`} className={styles.assetThumb}>
+                        <span style={{ fontSize: "1.75rem" }}>📟</span>
+                        <div className={styles.assetThumbName}>Tablet {tIdx + 1}</div>
+                        {tss.id ? (
+                          <a
+                            href={`/api/playstore/download?submissionId=${selectedSubmission.id}&fileId=${tss.id}`}
                             className={styles.assetThumbAction}
                             download
                           >

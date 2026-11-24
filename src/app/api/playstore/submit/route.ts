@@ -29,6 +29,8 @@ export async function POST(request: Request) {
     const logoFile = formData.get('logo') as File | null;
     const featureGraphicFile = formData.get('featureGraphic') as File | null;
     const screenshotFiles = formData.getAll('screenshots') as File[];
+    const hasTabletView = formData.get('hasTabletView') === 'yes';
+    const tabletScreenshotFiles = formData.getAll('tabletScreenshots') as File[];
 
     // Validations
     if (!appName) return NextResponse.json({ error: 'Nama Aplikasi wajib diisi' }, { status: 400 });
@@ -55,6 +57,15 @@ export async function POST(request: Request) {
     }
     if (screenshotFiles.length > 8) {
       return NextResponse.json({ error: 'Screenshot Aplikasi maksimal 8 buah' }, { status: 400 });
+    }
+
+    if (hasTabletView) {
+      if (!tabletScreenshotFiles || tabletScreenshotFiles.length < 2) {
+        return NextResponse.json({ error: 'Screenshot Tablet minimal 2 dan maksimal 8 jika opsi view tablet dipilih' }, { status: 400 });
+      }
+      if (tabletScreenshotFiles.length > 8) {
+        return NextResponse.json({ error: 'Screenshot Tablet maksimal 8 buah' }, { status: 400 });
+      }
     }
 
     const db = getAdminDb();
@@ -98,6 +109,8 @@ export async function POST(request: Request) {
       logo: null,
       featureGraphic: null,
       screenshots: [],
+      hasTabletView,
+      tabletScreenshots: [],
     };
 
     if (driveClientConnected && drive) {
@@ -116,10 +129,14 @@ export async function POST(request: Request) {
       });
       driveFolderUrl = folderMeta.data.webViewLink || `https://drive.google.com/drive/folders/${appFolderId}`;
 
-      // Create subfolders: "00_App_Bundle_AAB", "01_Store_Listing_Art", "02_Screenshots"
+      // Create subfolders: "00_App_Bundle_AAB", "01_Store_Listing_Art", "02_Screenshots_Phone", "03_Screenshots_Tablet"
       const aabFolderId = await getOrCreateFolder(drive, '00_App_Bundle_AAB', appFolderId);
       const artFolderId = await getOrCreateFolder(drive, '01_Store_Listing_Art', appFolderId);
-      const screenshotsFolderId = await getOrCreateFolder(drive, '02_Screenshots', appFolderId);
+      const screenshotsFolderId = await getOrCreateFolder(drive, '02_Screenshots_Phone', appFolderId);
+      let tabletFolderId = '';
+      if (hasTabletView && tabletScreenshotFiles.length > 0) {
+        tabletFolderId = await getOrCreateFolder(drive, '03_Screenshots_Tablet', appFolderId);
+      }
 
       // Upload .AAB file if provided
       if (aabFile && typeof aabFile !== 'string' && aabFile.size > 0) {
@@ -195,6 +212,29 @@ export async function POST(request: Request) {
         ssIndex++;
       }
 
+      // Upload Tablet Screenshots if enabled
+      if (hasTabletView && tabletFolderId && tabletScreenshotFiles.length > 0) {
+        let tIndex = 1;
+        for (const tss of tabletScreenshotFiles) {
+          const tssBuffer = Buffer.from(await tss.arrayBuffer());
+          const tssExt = tss.name.split('.').pop() || 'png';
+          const tssResult = await uploadFileToDrive(
+            drive,
+            `tablet_screenshot_${String(tIndex).padStart(2, '0')}.${tssExt}`,
+            tss.type || 'image/png',
+            tssBuffer,
+            tabletFolderId
+          );
+          uploadedAssets.tabletScreenshots.push({
+            name: tss.name,
+            size: tss.size,
+            id: tssResult.id,
+            webViewLink: tssResult.webViewLink,
+          });
+          tIndex++;
+        }
+      }
+
       // Create README text file
       const infoText = `DATA & INFORMASI APLIKASI
 ==========================
@@ -233,6 +273,9 @@ Disubmit pada: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }
       uploadedAssets.logo = { name: logoFile.name, size: logoFile.size, note: 'Drive not connected yet' };
       uploadedAssets.featureGraphic = { name: featureGraphicFile.name, size: featureGraphicFile.size, note: 'Drive not connected yet' };
       uploadedAssets.screenshots = screenshotFiles.map(ss => ({ name: ss.name, size: ss.size, note: 'Drive not connected yet' }));
+      if (hasTabletView) {
+        uploadedAssets.tabletScreenshots = tabletScreenshotFiles.map(tss => ({ name: tss.name, size: tss.size, note: 'Drive not connected yet' }));
+      }
     }
 
     // Save record to Firestore

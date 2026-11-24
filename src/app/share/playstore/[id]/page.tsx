@@ -43,6 +43,10 @@ export default function PlayStoreSubmissionPage() {
   const [featurePreview, setFeaturePreview] = useState<ImagePreview | null>(null);
   const [screenshots, setScreenshots] = useState<ImagePreview[]>([]);
 
+  // Tablet Screenshots
+  const [hasTabletView, setHasTabletView] = useState<"no" | "yes">("no");
+  const [tabletScreenshots, setTabletScreenshots] = useState<ImagePreview[]>([]);
+
   // Validation & Submission States
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -62,6 +66,7 @@ export default function PlayStoreSubmissionPage() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const featureInputRef = useRef<HTMLInputElement>(null);
   const screenshotInputRef = useRef<HTMLInputElement>(null);
+  const tabletScreenshotInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function fetchLink() {
@@ -215,6 +220,57 @@ export default function PlayStoreSubmissionPage() {
     setScreenshots((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Handle Tablet Screenshots Upload
+  const handleTabletScreenshotsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    if (tabletScreenshots.length + files.length > 8) {
+      setErrors((prev) => ({ ...prev, tabletScreenshots: "Maksimal 8 screenshot tablet" }));
+      return;
+    }
+
+    const newItems: ImagePreview[] = [];
+    let hasSizeError = false;
+
+    files.forEach((file) => {
+      if (file.size > 8 * 1024 * 1024) {
+        hasSizeError = true;
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const minDim = Math.min(img.width, img.height);
+        const maxDim = Math.max(img.width, img.height);
+        if (minDim < 320 || maxDim > 3840) {
+          setErrors((prev) => ({
+            ...prev,
+            tabletScreenshots: `Sisi screenshot tablet harus di antara 320px dan 3840px (terdeteksi ${img.width}x${img.height})`,
+          }));
+        }
+      };
+      img.src = url;
+      newItems.push({ file, url });
+    });
+
+    if (hasSizeError) {
+      setErrors((prev) => ({ ...prev, tabletScreenshots: "Setiap screenshot tablet maksimal berukuran 8 MB" }));
+    } else {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.tabletScreenshots;
+        return next;
+      });
+    }
+
+    setTabletScreenshots((prev) => [...prev, ...newItems]);
+  };
+
+  const removeTabletScreenshot = (index: number) => {
+    setTabletScreenshots((prev) => prev.filter((_, i) => i !== index));
+  };
+
   // Submit Handler using XMLHttpRequest for exact upload progress percentage
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,7 +305,13 @@ export default function PlayStoreSubmissionPage() {
       newErrors.featureGraphic = "Feature Graphic (1024x500) wajib diunggah";
     }
     if (screenshots.length < 2) {
-      newErrors.screenshots = "Minimal 2 screenshot aplikasi (maksimal 8)";
+      newErrors.screenshots = "Minimal 2 screenshot ponsel (maksimal 8)";
+    }
+
+    if (hasTabletView === "yes") {
+      if (tabletScreenshots.length < 2) {
+        newErrors.tabletScreenshots = "Minimal 2 screenshot tablet (maksimal 8) jika memilih menyertakan view tablet";
+      }
     }
 
     if (demoHasAuth && (!demoUsername || !demoPassword)) {
@@ -290,6 +352,13 @@ export default function PlayStoreSubmissionPage() {
     screenshots.forEach((ss) => {
       formData.append("screenshots", ss.file);
     });
+
+    formData.append("hasTabletView", hasTabletView);
+    if (hasTabletView === "yes") {
+      tabletScreenshots.forEach((ss) => {
+        formData.append("tabletScreenshots", ss.file);
+      });
+    }
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/playstore/submit");
@@ -630,10 +699,10 @@ export default function PlayStoreSubmissionPage() {
                 )}
               </div>
 
-              {/* 11: Screenshot Aplikasi */}
+              {/* 11: Screenshot Aplikasi Ponsel */}
               <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                 <label className={styles.label}>
-                  <span>11. Screenshot Aplikasi * (2 - 8 foto)</span>
+                  <span>11. Screenshot Aplikasi Ponsel * (2 - 8 foto)</span>
                   <span className={styles.hint}>Telah dipilih: {screenshots.length} dari 8</span>
                 </label>
                 <input
@@ -646,7 +715,7 @@ export default function PlayStoreSubmissionPage() {
                 />
                 <div className={styles.uploadBox} onClick={() => screenshotInputRef.current?.click()}>
                   <span className={styles.uploadIcon}>📱</span>
-                  <div><strong>Klik untuk memilih Screenshot Aplikasi</strong></div>
+                  <div><strong>Klik untuk memilih Screenshot Aplikasi (Ponsel)</strong></div>
                   <div className={styles.uploadSpecs}>
                     PNG/JPEG • Maks 8 MB/gambar • Rasio 16:9 atau 9:16 • Rentang sisi 320–3840 px
                   </div>
@@ -668,6 +737,84 @@ export default function PlayStoreSubmissionPage() {
                         </button>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+
+              {/* RADIO: Mau ditambahkan View Tablet? */}
+              <div className={`${styles.formGroup} ${styles.fullWidth}`} style={{ marginTop: "0.75rem", padding: "1.25rem", background: "#f8fafc", borderRadius: "0.85rem", border: "1px solid #e2e8f0" }}>
+                <label className={styles.label}>
+                  <span>Apakah ingin menambahkan Screenshot View Tablet?</span>
+                </label>
+                <div className={styles.hint} style={{ marginBottom: "0.5rem" }}>
+                  Tampilan khusus untuk layar Tablet 7 inci & 10 inci di Google Play Store
+                </div>
+                <div className={styles.radioGroup}>
+                  <label className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      name="tabletViewChoice"
+                      value="no"
+                      checked={hasTabletView === "no"}
+                      onChange={() => setHasTabletView("no")}
+                    />
+                    <span>Tidak Perlu</span>
+                  </label>
+                  <label className={styles.radioLabel}>
+                    <input
+                      type="radio"
+                      name="tabletViewChoice"
+                      value="yes"
+                      checked={hasTabletView === "yes"}
+                      onChange={() => setHasTabletView("yes")}
+                    />
+                    <span>Ya, Tambahkan View Tablet</span>
+                  </label>
+                </div>
+
+                {/* FORM UPLOAD TABLET SCREENSHOT JIKA YES */}
+                {hasTabletView === "yes" && (
+                  <div style={{ marginTop: "1.25rem", paddingTop: "1.25rem", borderTop: "1px dashed #cbd5e1" }}>
+                    <label className={styles.label}>
+                      <span>Screenshot View Tablet * (2 - 8 foto)</span>
+                      <span className={styles.hint}>Telah dipilih: {tabletScreenshots.length} dari 8</span>
+                    </label>
+                    <input
+                      type="file"
+                      ref={tabletScreenshotInputRef}
+                      accept="image/png, image/jpeg"
+                      multiple
+                      style={{ display: "none" }}
+                      onChange={handleTabletScreenshotsChange}
+                    />
+                    <div className={styles.uploadBox} onClick={() => tabletScreenshotInputRef.current?.click()}>
+                      <span className={styles.uploadIcon}>📟</span>
+                      <div><strong>Klik untuk memilih Screenshot Tablet</strong></div>
+                      <div className={styles.uploadSpecs}>
+                        PNG/JPEG • Maks 8 MB/gambar • Rasio 16:9 atau 9:16 • Rentang sisi 320–3840 px (Landscape/Portrait Tablet)
+                      </div>
+                    </div>
+                    {errors.tabletScreenshots && (
+                      <div className={styles.errorMessage}>{errors.tabletScreenshots}</div>
+                    )}
+
+                    {tabletScreenshots.length > 0 && (
+                      <div className={styles.previewList}>
+                        {tabletScreenshots.map((tss, idx) => (
+                          <div key={idx} className={styles.previewItem} style={{ aspectRatio: "4/3" }}>
+                            <img src={tss.url} alt={`Tablet Screenshot ${idx + 1}`} />
+                            <button
+                              type="button"
+                              className={styles.removeBtn}
+                              onClick={() => removeTabletScreenshot(idx)}
+                              title="Hapus screenshot tablet"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
