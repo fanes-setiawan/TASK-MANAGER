@@ -161,6 +161,14 @@ export default function DashboardLayout({
             <span className={styles.navLabel}>Projects</span>
           </Link>
           <Link
+            href="/dashboard/playstore-assets"
+            className={`${styles.navItem} ${pathname === "/dashboard/playstore-assets" ? styles.active : ""
+              }`}
+          >
+            <span className="material-symbols-outlined">android</span>
+            <span className={styles.navLabel}>Play Store Assets</span>
+          </Link>
+          <Link
             href="/dashboard/estimates"
             className={`${styles.navItem} ${pathname === "/dashboard/estimates" ? styles.active : ""
               }`}
