@@ -413,10 +413,20 @@ export default function PlayStoreSubmissionPage() {
 
   if (loadingLink) {
     return (
-      <div className={styles.container}>
-        <div className={styles.wrapper}>
-          <div className={styles.headerCard}>
-            <p>Memuat formulir pengumpulan asset...</p>
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingCard}>
+          <div className={styles.spinnerWrapper}>
+            <div className={styles.spinnerRing}></div>
+            <span className={styles.spinnerCenterIcon}>🚀</span>
+          </div>
+          <h2 className={styles.loadingTitle}>Memuat Formulir</h2>
+          <p className={styles.loadingSub}>
+            Menyiapkan form pengumpulan asset & informasi rilis Play Store...
+          </p>
+          <div className={styles.loadingDots}>
+            <div className={styles.loadingDot}></div>
+            <div className={styles.loadingDot}></div>
+            <div className={styles.loadingDot}></div>
           </div>
         </div>
       </div>
