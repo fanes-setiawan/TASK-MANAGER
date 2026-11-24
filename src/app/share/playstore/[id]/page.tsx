@@ -75,6 +75,10 @@ export default function PlayStoreSubmissionPage() {
         const res = await fetch(`/api/playstore/links?id=${linkId}`);
         const data = await res.json();
         if (res.ok && data.link) {
+          if (data.link.status === "inactive") {
+            setLinkError("Tautan ini telah dinonaktifkan oleh pemilik dan tidak lagi menerima pengumpulan berkas.");
+            return;
+          }
           setLinkData(data.link);
           if (data.link.appNameTarget) {
             setAppName(data.link.appNameTarget);
@@ -407,7 +411,7 @@ export default function PlayStoreSubmissionPage() {
       rawPhone = "62" + rawPhone.slice(1);
     }
     const text = encodeURIComponent(
-      `Halo Tim Task Manager,\n\nSaya telah selesai melengkapi seluruh data dan berkas asset rilis Play Store untuk aplikasi *${submittedDataInfo.appName}*.\n\nMohon untuk diperiksa dan diproses lebih lanjut. Terima kasih!`
+      `Mas,\n\nSaya telah selesai melengkapi seluruh data dan berkas asset rilis Play Store untuk aplikasi *${submittedDataInfo.appName}*.\n\nMohon untuk diperiksa dan diproses lebih lanjut. Terima kasih!`
     );
     return `https://wa.me/${rawPhone}?text=${text}`;
   };

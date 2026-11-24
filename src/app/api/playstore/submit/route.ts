@@ -356,3 +356,63 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, status } = body;
+
+    if (!id || !status) {
+      return NextResponse.json({ error: 'ID Submisi dan status baru diperlukan' }, { status: 400 });
+    }
+
+    const validStatuses = ['submitted', 'in_review', 'rejected', 'published'];
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json({ error: 'Status tidak valid' }, { status: 400 });
+    }
+
+    const db = getAdminDb();
+    const docRef = db.collection('playstore_submissions').doc(id);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      return NextResponse.json({ error: 'Data submisi tidak ditemukan' }, { status: 404 });
+    }
+
+    await docRef.update({
+      status,
+      updatedAt: new Date(),
+    });
+
+    return NextResponse.json({ success: true, message: 'Status submisi berhasil diperbarui', status });
+  } catch (error: any) {
+    console.error('Error updating submission status:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID Submisi diperlukan' }, { status: 400 });
+    }
+
+    const db = getAdminDb();
+    const docRef = db.collection('playstore_submissions').doc(id);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      return NextResponse.json({ error: 'Data submisi tidak ditemukan' }, { status: 404 });
+    }
+
+    await docRef.delete();
+
+    return NextResponse.json({ success: true, message: 'Data submisi berhasil dihapus' });
+  } catch (error: any) {
+    console.error('Error deleting submission:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

@@ -99,3 +99,36 @@ export async function DELETE(request: Request) {
   }
 }
 
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, status } = body;
+
+    if (!id || !status) {
+      return NextResponse.json({ error: 'ID Link dan status diperlukan' }, { status: 400 });
+    }
+
+    if (!['active', 'inactive'].includes(status)) {
+      return NextResponse.json({ error: 'Status link harus active atau inactive' }, { status: 400 });
+    }
+
+    const db = getAdminDb();
+    const docRef = db.collection('playstore_links').doc(id);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      return NextResponse.json({ error: 'Link tidak ditemukan' }, { status: 404 });
+    }
+
+    await docRef.update({
+      status,
+      updatedAt: new Date(),
+    });
+
+    return NextResponse.json({ success: true, message: `Status link berhasil diubah menjadi ${status}`, status });
+  } catch (error: any) {
+    console.error('Error updating playstore link status:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
