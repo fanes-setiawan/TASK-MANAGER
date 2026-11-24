@@ -65,7 +65,7 @@ export default function PlayStoreAssetsDashboard() {
   const [clientNameInput, setClientNameInput] = useState("");
   const [appNameInput, setAppNameInput] = useState("");
   const [notesInput, setNotesInput] = useState("");
-  const [ownerPhoneInput, setOwnerPhoneInput] = useState("");
+  const [ownerPhoneInput, setOwnerPhoneInput] = useState("088225409824");
   const [creatingLink, setCreatingLink] = useState(false);
 
   // Submission Detail Drawer

@@ -401,14 +401,15 @@ export default function PlayStoreSubmissionPage() {
 
   const getWhatsAppShareUrl = () => {
     if (!submittedDataInfo) return "#";
-    const phone = submittedDataInfo.ownerPhone.replace(/\D/g, "");
-    const text = encodeURIComponent(
-      `Halo Tim Task Manager,\n\nSaya telah selesai melengkapi seluruh data dan asset release Play Store untuk aplikasi *${submittedDataInfo.appName}*.\n\nMohon untuk diperiksa dan diproses lebih lanjut. Terima kasih!`
-    );
-    if (phone) {
-      return `https://wa.me/${phone}?text=${text}`;
+    // Gunakan nomor telepon owner yang diset (fallback ke nomor default: 6288225409824)
+    let rawPhone = (submittedDataInfo.ownerPhone || "088225409824").replace(/\D/g, "");
+    if (rawPhone.startsWith("0")) {
+      rawPhone = "62" + rawPhone.slice(1);
     }
-    return `https://api.whatsapp.com/send?text=${text}`;
+    const text = encodeURIComponent(
+      `Halo Tim Task Manager,\n\nSaya telah selesai melengkapi seluruh data dan berkas asset rilis Play Store untuk aplikasi *${submittedDataInfo.appName}*.\n\nMohon untuk diperiksa dan diproses lebih lanjut. Terima kasih!`
+    );
+    return `https://wa.me/${rawPhone}?text=${text}`;
   };
 
   if (loadingLink) {
