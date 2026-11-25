@@ -7,33 +7,79 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
+    const contentType = request.headers.get('content-type') || '';
+    let linkId = '';
+    let appName = '';
+    let packageName = '';
+    let privacyPolicyUrl = '';
+    let email = '';
+    let phoneNumber = '';
+    let websiteUrl = '';
+    let shortDescription = '';
+    let fullDescription = '';
+    let clientNotes = '';
+    let demoHasAuth = false;
+    let demoUsername = '';
+    let demoPassword = '';
+    let demoOtpPin = '';
+    let demoInstructions = '';
+    let hasTabletView = false;
+    let preUploadedAssets: any = null;
+    let appFolderId = '';
+    let driveFolderUrl = '';
 
-    const linkId = formData.get('linkId') as string;
-    const appName = (formData.get('appName') as string || '').trim();
-    const packageName = (formData.get('packageName') as string || '').trim();
-    const privacyPolicyUrl = (formData.get('privacyPolicyUrl') as string || '').trim();
-    const email = (formData.get('email') as string || '').trim();
-    const phoneNumber = (formData.get('phoneNumber') as string || '').trim();
-    const websiteUrl = (formData.get('websiteUrl') as string || '').trim();
-    const shortDescription = (formData.get('shortDescription') as string || '').trim();
-    const fullDescription = (formData.get('fullDescription') as string || '').trim();
-    const clientNotes = (formData.get('clientNotes') as string || '').trim();
-    
-    // Demo account info
-    const demoHasAuth = formData.get('demoHasAuth') === 'true';
-    const demoUsername = (formData.get('demoUsername') as string || '').trim();
-    const demoPassword = (formData.get('demoPassword') as string || '').trim();
-    const demoOtpPin = (formData.get('demoOtpPin') as string || '').trim();
-    const demoInstructions = (formData.get('demoInstructions') as string || '').trim();
+    // Files if multipart
+    let aabFile: File | null = null;
+    let logoFile: File | null = null;
+    let featureGraphicFile: File | null = null;
+    let screenshotFiles: File[] = [];
+    let tabletScreenshotFiles: File[] = [];
 
-    // Files
-    const aabFile = formData.get('aabFile') as File | null;
-    const logoFile = formData.get('logo') as File | null;
-    const featureGraphicFile = formData.get('featureGraphic') as File | null;
-    const screenshotFiles = formData.getAll('screenshots') as File[];
-    const hasTabletView = formData.get('hasTabletView') === 'yes';
-    const tabletScreenshotFiles = formData.getAll('tabletScreenshots') as File[];
+    if (contentType.includes('application/json')) {
+      const json = await request.json();
+      linkId = json.linkId || '';
+      appName = (json.appName || '').trim();
+      packageName = (json.packageName || '').trim();
+      privacyPolicyUrl = (json.privacyPolicyUrl || '').trim();
+      email = (json.email || '').trim();
+      phoneNumber = (json.phoneNumber || '').trim();
+      websiteUrl = (json.websiteUrl || '').trim();
+      shortDescription = (json.shortDescription || '').trim();
+      fullDescription = (json.fullDescription || '').trim();
+      clientNotes = (json.clientNotes || '').trim();
+      demoHasAuth = !!json.demoHasAuth;
+      demoUsername = (json.demoUsername || '').trim();
+      demoPassword = (json.demoPassword || '').trim();
+      demoOtpPin = (json.demoOtpPin || '').trim();
+      demoInstructions = (json.demoInstructions || '').trim();
+      hasTabletView = json.hasTabletView === 'yes' || json.hasTabletView === true;
+      preUploadedAssets = json.uploadedAssets || null;
+      appFolderId = json.appFolderId || '';
+      driveFolderUrl = json.driveFolderUrl || '';
+    } else {
+      const formData = await request.formData();
+      linkId = formData.get('linkId') as string;
+      appName = (formData.get('appName') as string || '').trim();
+      packageName = (formData.get('packageName') as string || '').trim();
+      privacyPolicyUrl = (formData.get('privacyPolicyUrl') as string || '').trim();
+      email = (formData.get('email') as string || '').trim();
+      phoneNumber = (formData.get('phoneNumber') as string || '').trim();
+      websiteUrl = (formData.get('websiteUrl') as string || '').trim();
+      shortDescription = (formData.get('shortDescription') as string || '').trim();
+      fullDescription = (formData.get('fullDescription') as string || '').trim();
+      clientNotes = (formData.get('clientNotes') as string || '').trim();
+      demoHasAuth = formData.get('demoHasAuth') === 'true';
+      demoUsername = (formData.get('demoUsername') as string || '').trim();
+      demoPassword = (formData.get('demoPassword') as string || '').trim();
+      demoOtpPin = (formData.get('demoOtpPin') as string || '').trim();
+      demoInstructions = (formData.get('demoInstructions') as string || '').trim();
+      aabFile = formData.get('aabFile') as File | null;
+      logoFile = formData.get('logo') as File | null;
+      featureGraphicFile = formData.get('featureGraphic') as File | null;
+      screenshotFiles = formData.getAll('screenshots') as File[];
+      hasTabletView = formData.get('hasTabletView') === 'yes';
+      tabletScreenshotFiles = formData.getAll('tabletScreenshots') as File[];
+    }
 
     // Validations
     if (!appName) return NextResponse.json({ error: 'Nama Aplikasi wajib diisi' }, { status: 400 });
@@ -49,25 +95,40 @@ export async function POST(request: Request) {
     if (!fullDescription) return NextResponse.json({ error: 'Deskripsi Lengkap wajib diisi' }, { status: 400 });
     if (fullDescription.length > 4000) return NextResponse.json({ error: 'Deskripsi Lengkap maksimal 4.000 karakter' }, { status: 400 });
 
-    if (!logoFile || typeof logoFile === 'string') {
-      return NextResponse.json({ error: 'Logo Aplikasi (512x512) wajib diunggah' }, { status: 400 });
-    }
-    if (!featureGraphicFile || typeof featureGraphicFile === 'string') {
-      return NextResponse.json({ error: 'Feature Graphic (1024x500) wajib diunggah' }, { status: 400 });
-    }
-    if (!screenshotFiles || screenshotFiles.length < 2) {
-      return NextResponse.json({ error: 'Screenshot Aplikasi minimal 2 dan maksimal 8' }, { status: 400 });
-    }
-    if (screenshotFiles.length > 8) {
-      return NextResponse.json({ error: 'Screenshot Aplikasi maksimal 8 buah' }, { status: 400 });
-    }
-
-    if (hasTabletView) {
-      if (!tabletScreenshotFiles || tabletScreenshotFiles.length < 2) {
-        return NextResponse.json({ error: 'Screenshot Tablet minimal 2 dan maksimal 8 jika opsi view tablet dipilih' }, { status: 400 });
+    if (!preUploadedAssets) {
+      if (!logoFile || typeof logoFile === 'string') {
+        return NextResponse.json({ error: 'Logo Aplikasi (512x512) wajib diunggah' }, { status: 400 });
       }
-      if (tabletScreenshotFiles.length > 8) {
-        return NextResponse.json({ error: 'Screenshot Tablet maksimal 8 buah' }, { status: 400 });
+      if (!featureGraphicFile || typeof featureGraphicFile === 'string') {
+        return NextResponse.json({ error: 'Feature Graphic (1024x500) wajib diunggah' }, { status: 400 });
+      }
+      if (!screenshotFiles || screenshotFiles.length < 2) {
+        return NextResponse.json({ error: 'Screenshot Aplikasi minimal 2 dan maksimal 8' }, { status: 400 });
+      }
+      if (screenshotFiles.length > 8) {
+        return NextResponse.json({ error: 'Screenshot Aplikasi maksimal 8 buah' }, { status: 400 });
+      }
+
+      if (hasTabletView) {
+        if (!tabletScreenshotFiles || tabletScreenshotFiles.length < 2) {
+          return NextResponse.json({ error: 'Screenshot Tablet minimal 2 dan maksimal 8 jika opsi view tablet dipilih' }, { status: 400 });
+        }
+        if (tabletScreenshotFiles.length > 8) {
+          return NextResponse.json({ error: 'Screenshot Tablet maksimal 8 buah' }, { status: 400 });
+        }
+      }
+    } else {
+      if (!preUploadedAssets.logo) {
+        return NextResponse.json({ error: 'Logo Aplikasi (512x512) wajib diunggah' }, { status: 400 });
+      }
+      if (!preUploadedAssets.featureGraphic) {
+        return NextResponse.json({ error: 'Feature Graphic (1024x500) wajib diunggah' }, { status: 400 });
+      }
+      if (!preUploadedAssets.screenshots || preUploadedAssets.screenshots.length < 2) {
+        return NextResponse.json({ error: 'Screenshot Aplikasi minimal 2 dan maksimal 8' }, { status: 400 });
+      }
+      if (hasTabletView && (!preUploadedAssets.tabletScreenshots || preUploadedAssets.tabletScreenshots.length < 2)) {
+        return NextResponse.json({ error: 'Screenshot Tablet minimal 2 dan maksimal 8 jika opsi view tablet dipilih' }, { status: 400 });
       }
     }
 
@@ -96,7 +157,6 @@ export async function POST(request: Request) {
 
     let drive: any = null;
     let driveClientConnected = false;
-    let driveFolderUrl = '';
 
     if (ownerUserId) {
       try {
@@ -107,7 +167,10 @@ export async function POST(request: Request) {
       }
     }
 
-    const uploadedAssets: any = {
+    const uploadedAssets: any = preUploadedAssets ? {
+      ...preUploadedAssets,
+      hasTabletView,
+    } : {
       aab: null,
       logo: null,
       featureGraphic: null,
@@ -116,125 +179,132 @@ export async function POST(request: Request) {
       tabletScreenshots: [],
     };
 
+    const safeAppName = appName.replace(/[/\\?%*:|"<>]/g, '_');
+
     if (driveClientConnected && drive) {
-      // Create root folder: "Play Store Release Assets"
-      const rootFolderId = await getOrCreateFolder(drive, 'Play Store Release Assets');
+      if (!preUploadedAssets) {
+        // Create root folder: "Play Store Release Assets"
+        const rootFolderId = await getOrCreateFolder(drive, 'Play Store Release Assets');
 
-      // Create app specific folder: "[AppName] - [PackageName] (Date)"
-      const safeAppName = appName.replace(/[/\\?%*:|"<>]/g, '_');
-      const dateStr = new Date().toISOString().split('T')[0];
-      const appFolderTitle = `${safeAppName} - ${packageName} (${dateStr})`;
-      const appFolderId = await getOrCreateFolder(drive, appFolderTitle, rootFolderId);
+        // Create app specific folder: "[AppName] - [PackageName] (Date)"
+        const dateStr = new Date().toISOString().split('T')[0];
+        const appFolderTitle = `${safeAppName} - ${packageName} (${dateStr})`;
+        appFolderId = await getOrCreateFolder(drive, appFolderTitle, rootFolderId);
 
-      const folderMeta = await drive.files.get({
-        fileId: appFolderId,
-        fields: 'webViewLink',
-      });
-      driveFolderUrl = folderMeta.data.webViewLink || `https://drive.google.com/drive/folders/${appFolderId}`;
-
-      // Create subfolders: "00_App_Bundle_AAB", "01_Store_Listing_Art", "02_Screenshots_Phone", "03_Screenshots_Tablet"
-      const aabFolderId = await getOrCreateFolder(drive, '00_App_Bundle_AAB', appFolderId);
-      const artFolderId = await getOrCreateFolder(drive, '01_Store_Listing_Art', appFolderId);
-      const screenshotsFolderId = await getOrCreateFolder(drive, '02_Screenshots_Phone', appFolderId);
-      let tabletFolderId = '';
-      if (hasTabletView && tabletScreenshotFiles.length > 0) {
-        tabletFolderId = await getOrCreateFolder(drive, '03_Screenshots_Tablet', appFolderId);
-      }
-
-      // Upload .AAB file if provided
-      if (aabFile && typeof aabFile !== 'string' && aabFile.size > 0) {
-        const aabBuffer = Buffer.from(await aabFile.arrayBuffer());
-        const safeAabName = aabFile.name || `${safeAppName}-release.aab`;
-        const aabResult = await uploadFileToDrive(
-          drive,
-          safeAabName,
-          'application/octet-stream',
-          aabBuffer,
-          aabFolderId
-        );
-        uploadedAssets.aab = {
-          name: aabFile.name,
-          size: aabFile.size,
-          id: aabResult.id,
-          webViewLink: aabResult.webViewLink,
-        };
-      }
-
-      // Upload Logo
-      const logoBuffer = Buffer.from(await logoFile.arrayBuffer());
-      const logoExt = logoFile.name.split('.').pop() || 'png';
-      const logoResult = await uploadFileToDrive(
-        drive,
-        `logo_512x512.${logoExt}`,
-        logoFile.type || 'image/png',
-        logoBuffer,
-        artFolderId
-      );
-      uploadedAssets.logo = {
-        name: logoFile.name,
-        size: logoFile.size,
-        id: logoResult.id,
-        webViewLink: logoResult.webViewLink,
-      };
-
-      // Upload Feature Graphic
-      const fgBuffer = Buffer.from(await featureGraphicFile.arrayBuffer());
-      const fgExt = featureGraphicFile.name.split('.').pop() || 'png';
-      const fgResult = await uploadFileToDrive(
-        drive,
-        `feature_graphic_1024x500.${fgExt}`,
-        featureGraphicFile.type || 'image/png',
-        fgBuffer,
-        artFolderId
-      );
-      uploadedAssets.featureGraphic = {
-        name: featureGraphicFile.name,
-        size: featureGraphicFile.size,
-        id: fgResult.id,
-        webViewLink: fgResult.webViewLink,
-      };
-
-      // Upload Screenshots
-      let ssIndex = 1;
-      for (const ss of screenshotFiles) {
-        const ssBuffer = Buffer.from(await ss.arrayBuffer());
-        const ssExt = ss.name.split('.').pop() || 'png';
-        const ssResult = await uploadFileToDrive(
-          drive,
-          `screenshot_${String(ssIndex).padStart(2, '0')}.${ssExt}`,
-          ss.type || 'image/png',
-          ssBuffer,
-          screenshotsFolderId
-        );
-        uploadedAssets.screenshots.push({
-          name: ss.name,
-          size: ss.size,
-          id: ssResult.id,
-          webViewLink: ssResult.webViewLink,
+        const folderMeta = await drive.files.get({
+          fileId: appFolderId,
+          fields: 'webViewLink',
         });
-        ssIndex++;
-      }
+        driveFolderUrl = folderMeta.data.webViewLink || `https://drive.google.com/drive/folders/${appFolderId}`;
 
-      // Upload Tablet Screenshots if enabled
-      if (hasTabletView && tabletFolderId && tabletScreenshotFiles.length > 0) {
-        let tIndex = 1;
-        for (const tss of tabletScreenshotFiles) {
-          const tssBuffer = Buffer.from(await tss.arrayBuffer());
-          const tssExt = tss.name.split('.').pop() || 'png';
-          const tssResult = await uploadFileToDrive(
+        // Create subfolders: "00_App_Bundle_AAB", "01_Store_Listing_Art", "02_Screenshots_Phone", "03_Screenshots_Tablet"
+        const aabFolderId = await getOrCreateFolder(drive, '00_App_Bundle_AAB', appFolderId);
+        const artFolderId = await getOrCreateFolder(drive, '01_Store_Listing_Art', appFolderId);
+        const screenshotsFolderId = await getOrCreateFolder(drive, '02_Screenshots_Phone', appFolderId);
+        let tabletFolderId = '';
+        if (hasTabletView && tabletScreenshotFiles.length > 0) {
+          tabletFolderId = await getOrCreateFolder(drive, '03_Screenshots_Tablet', appFolderId);
+        }
+
+        // Upload .AAB file if provided
+        if (aabFile && typeof aabFile !== 'string' && aabFile.size > 0) {
+          const aabBuffer = Buffer.from(await aabFile.arrayBuffer());
+          const safeAabName = aabFile.name || `${safeAppName}-release.aab`;
+          const aabResult = await uploadFileToDrive(
             drive,
-            `tablet_screenshot_${String(tIndex).padStart(2, '0')}.${tssExt}`,
-            tss.type || 'image/png',
-            tssBuffer,
-            tabletFolderId
+            safeAabName,
+            'application/octet-stream',
+            aabBuffer,
+            aabFolderId
           );
-          uploadedAssets.tabletScreenshots.push({
-            name: tss.name,
-            size: tss.size,
-            id: tssResult.id,
-            webViewLink: tssResult.webViewLink,
+          uploadedAssets.aab = {
+            name: aabFile.name,
+            size: aabFile.size,
+            id: aabResult.id,
+            webViewLink: aabResult.webViewLink,
+          };
+        }
+
+        // Upload Logo
+        if (logoFile && typeof logoFile !== 'string') {
+          const logoBuffer = Buffer.from(await logoFile.arrayBuffer());
+          const logoExt = logoFile.name.split('.').pop() || 'png';
+          const logoResult = await uploadFileToDrive(
+            drive,
+            `logo_512x512.${logoExt}`,
+            logoFile.type || 'image/png',
+            logoBuffer,
+            artFolderId
+          );
+          uploadedAssets.logo = {
+            name: logoFile.name,
+            size: logoFile.size,
+            id: logoResult.id,
+            webViewLink: logoResult.webViewLink,
+          };
+        }
+
+        // Upload Feature Graphic
+        if (featureGraphicFile && typeof featureGraphicFile !== 'string') {
+          const fgBuffer = Buffer.from(await featureGraphicFile.arrayBuffer());
+          const fgExt = featureGraphicFile.name.split('.').pop() || 'png';
+          const fgResult = await uploadFileToDrive(
+            drive,
+            `feature_graphic_1024x500.${fgExt}`,
+            featureGraphicFile.type || 'image/png',
+            fgBuffer,
+            artFolderId
+          );
+          uploadedAssets.featureGraphic = {
+            name: featureGraphicFile.name,
+            size: featureGraphicFile.size,
+            id: fgResult.id,
+            webViewLink: fgResult.webViewLink,
+          };
+        }
+
+        // Upload Screenshots
+        let ssIndex = 1;
+        for (const ss of screenshotFiles) {
+          const ssBuffer = Buffer.from(await ss.arrayBuffer());
+          const ssExt = ss.name.split('.').pop() || 'png';
+          const ssResult = await uploadFileToDrive(
+            drive,
+            `screenshot_${String(ssIndex).padStart(2, '0')}.${ssExt}`,
+            ss.type || 'image/png',
+            ssBuffer,
+            screenshotsFolderId
+          );
+          uploadedAssets.screenshots.push({
+            name: ss.name,
+            size: ss.size,
+            id: ssResult.id,
+            webViewLink: ssResult.webViewLink,
           });
-          tIndex++;
+          ssIndex++;
+        }
+
+        // Upload Tablet Screenshots if enabled
+        if (hasTabletView && tabletFolderId && tabletScreenshotFiles.length > 0) {
+          let tIndex = 1;
+          for (const tss of tabletScreenshotFiles) {
+            const tssBuffer = Buffer.from(await tss.arrayBuffer());
+            const tssExt = tss.name.split('.').pop() || 'png';
+            const tssResult = await uploadFileToDrive(
+              drive,
+              `tablet_screenshot_${String(tIndex).padStart(2, '0')}.${tssExt}`,
+              tss.type || 'image/png',
+              tssBuffer,
+              tabletFolderId
+            );
+            uploadedAssets.tabletScreenshots.push({
+              name: tss.name,
+              size: tss.size,
+              id: tssResult.id,
+              webViewLink: tssResult.webViewLink,
+            });
+            tIndex++;
+          }
         }
       }
 
@@ -273,8 +343,12 @@ Disubmit pada: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }
       if (aabFile && typeof aabFile !== 'string') {
         uploadedAssets.aab = { name: aabFile.name, size: aabFile.size, note: 'Drive not connected yet' };
       }
-      uploadedAssets.logo = { name: logoFile.name, size: logoFile.size, note: 'Drive not connected yet' };
-      uploadedAssets.featureGraphic = { name: featureGraphicFile.name, size: featureGraphicFile.size, note: 'Drive not connected yet' };
+      if (logoFile && typeof logoFile !== 'string') {
+        uploadedAssets.logo = { name: logoFile.name, size: logoFile.size, note: 'Drive not connected yet' };
+      }
+      if (featureGraphicFile && typeof featureGraphicFile !== 'string') {
+        uploadedAssets.featureGraphic = { name: featureGraphicFile.name, size: featureGraphicFile.size, note: 'Drive not connected yet' };
+      }
       uploadedAssets.screenshots = screenshotFiles.map(ss => ({ name: ss.name, size: ss.size, note: 'Drive not connected yet' }));
       if (hasTabletView) {
         uploadedAssets.tabletScreenshots = tabletScreenshotFiles.map(tss => ({ name: tss.name, size: tss.size, note: 'Drive not connected yet' }));

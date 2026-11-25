@@ -48,6 +48,68 @@ export async function getAuthenticatedDriveClient(userId: string) {
 }
 
 /**
+ * Creates a resumable upload session on Google Drive.
+ * Returns the resumable session URL (upload URI) that allows direct HTTP PUT upload from the browser.
+ */
+export async function createResumableUploadSession(
+  userId: string,
+  fileName: string,
+  mimeType: string,
+  fileSize: number,
+  folderId?: string
+): Promise<{ uploadUrl: string; driveFolderId?: string }> {
+  const db = getAdminDb();
+  const tokenDoc = await db.collection('user_google_tokens').doc(userId).get();
+
+  if (!tokenDoc.exists) {
+    throw new Error('Akun Google Drive belum terhubung.');
+  }
+
+  const tokens = tokenDoc.data();
+  const oauth2Client = getOAuth2Client();
+  oauth2Client.setCredentials({
+    access_token: tokens?.access_token,
+    refresh_token: tokens?.refresh_token,
+    expiry_date: tokens?.expiry_date,
+  });
+
+  // Get a fresh token if needed
+  const tokenResponse = await oauth2Client.getAccessToken();
+  const validAccessToken = tokenResponse.token || tokens?.access_token;
+
+  const metadata: any = {
+    name: fileName,
+    mimeType: mimeType || 'application/octet-stream',
+  };
+  if (folderId) {
+    metadata.parents = [folderId];
+  }
+
+  const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${validAccessToken}`,
+      'Content-Type': 'application/json; charset=UTF-8',
+      'X-Upload-Content-Type': mimeType || 'application/octet-stream',
+      'X-Upload-Content-Length': String(fileSize),
+    },
+    body: JSON.stringify(metadata),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gagal membuat upload session ke Google Drive: ${errorText}`);
+  }
+
+  const uploadUrl = response.headers.get('Location');
+  if (!uploadUrl) {
+    throw new Error('Google Drive tidak mengembalikan URL upload resumable.');
+  }
+
+  return { uploadUrl, driveFolderId: folderId };
+}
+
+/**
  * Creates or gets existing subfolder inside a parent folder
  */
 export async function getOrCreateFolder(drive: any, folderName: string, parentFolderId?: string): Promise<string> {

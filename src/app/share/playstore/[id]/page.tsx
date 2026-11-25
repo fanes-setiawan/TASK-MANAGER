@@ -110,6 +110,11 @@ export default function PlayStoreSubmissionPage() {
       return;
     }
 
+    if (file.size > 500 * 1024 * 1024) {
+      setErrors((prev) => ({ ...prev, aab: `Ukuran file .aab (${(file.size / (1024 * 1024)).toFixed(1)} MB) melebihi batas maksimal 500 MB` }));
+      return;
+    }
+
     setErrors((prev) => {
       const next = { ...prev };
       delete next.aab;
@@ -123,8 +128,8 @@ export default function PlayStoreSubmissionPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 1 * 1024 * 1024) {
-      setErrors((prev) => ({ ...prev, logo: "Ukuran Logo maksimal 1 MB" }));
+    if (file.size > 100 * 1024 * 1024) {
+      setErrors((prev) => ({ ...prev, logo: "Ukuran Logo maksimal 100 MB" }));
       return;
     }
 
@@ -153,8 +158,8 @@ export default function PlayStoreSubmissionPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 15 * 1024 * 1024) {
-      setErrors((prev) => ({ ...prev, featureGraphic: "Ukuran Feature Graphic maksimal 15 MB" }));
+    if (file.size > 100 * 1024 * 1024) {
+      setErrors((prev) => ({ ...prev, featureGraphic: "Ukuran Feature Graphic maksimal 100 MB" }));
       return;
     }
 
@@ -192,7 +197,7 @@ export default function PlayStoreSubmissionPage() {
     let hasSizeError = false;
 
     files.forEach((file) => {
-      if (file.size > 8 * 1024 * 1024) {
+      if (file.size > 100 * 1024 * 1024) {
         hasSizeError = true;
         return;
       }
@@ -213,7 +218,7 @@ export default function PlayStoreSubmissionPage() {
     });
 
     if (hasSizeError) {
-      setErrors((prev) => ({ ...prev, screenshots: "Setiap screenshot maksimal berukuran 8 MB" }));
+      setErrors((prev) => ({ ...prev, screenshots: "Setiap screenshot maksimal berukuran 100 MB" }));
     } else {
       setErrors((prev) => {
         const next = { ...prev };
@@ -243,7 +248,7 @@ export default function PlayStoreSubmissionPage() {
     let hasSizeError = false;
 
     files.forEach((file) => {
-      if (file.size > 8 * 1024 * 1024) {
+      if (file.size > 100 * 1024 * 1024) {
         hasSizeError = true;
         return;
       }
@@ -264,7 +269,7 @@ export default function PlayStoreSubmissionPage() {
     });
 
     if (hasSizeError) {
-      setErrors((prev) => ({ ...prev, tabletScreenshots: "Setiap screenshot tablet maksimal berukuran 8 MB" }));
+      setErrors((prev) => ({ ...prev, tabletScreenshots: "Setiap screenshot tablet maksimal berukuran 100 MB" }));
     } else {
       setErrors((prev) => {
         const next = { ...prev };
@@ -280,8 +285,79 @@ export default function PlayStoreSubmissionPage() {
     setTabletScreenshots((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Submit Handler using XMLHttpRequest for exact upload progress percentage
-  const handleSubmit = (e: React.FormEvent) => {
+  // Helper to upload a single file directly to Google Drive via resumable upload session
+  const uploadFileToGoogleDriveDirect = async (
+    file: File,
+    fileCategory: 'aab' | 'logo' | 'featureGraphic' | 'screenshot' | 'tabletScreenshot',
+    onProgress?: (loaded: number, total: number) => void
+  ): Promise<{ name: string; size: number; id: string; webViewLink?: string; appFolderId?: string; driveFolderUrl?: string }> => {
+    // 1. Get resumable session URL from our API
+    const sessionRes = await fetch('/api/playstore/upload-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        linkId,
+        appName,
+        packageName,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type || 'application/octet-stream',
+        fileCategory,
+      }),
+    });
+
+    const sessionData = await sessionRes.json();
+    if (!sessionRes.ok || !sessionData.uploadUrl) {
+      throw new Error(sessionData.error || `Gagal menyiapkan upload untuk ${file.name}`);
+    }
+
+    // 2. Upload file binary directly to Google Drive uploadUrl via PUT
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', sessionData.uploadUrl);
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && onProgress) {
+          onProgress(event.loaded, event.total);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200 || xhr.status === 201) {
+          try {
+            const driveFile = JSON.parse(xhr.responseText);
+            resolve({
+              name: file.name,
+              size: file.size,
+              id: driveFile.id,
+              webViewLink: driveFile.webViewLink,
+              appFolderId: sessionData.appFolderId,
+              driveFolderUrl: sessionData.driveFolderUrl,
+            });
+          } catch {
+            resolve({
+              name: file.name,
+              size: file.size,
+              id: 'uploaded',
+              appFolderId: sessionData.appFolderId,
+              driveFolderUrl: sessionData.driveFolderUrl,
+            });
+          }
+        } else {
+          reject(new Error(`Gagal mengunggah ${file.name} ke Google Drive (Status ${xhr.status})`));
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error(`Koneksi terputus saat mengunggah ${file.name}`));
+      };
+
+      xhr.send(file);
+    });
+  };
+
+  // Submit Handler using direct Resumable Upload to Google Drive (Supports AAB up to 500MB & other files up to 100MB)
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError("");
 
@@ -307,19 +383,42 @@ export default function PlayStoreSubmissionPage() {
       newErrors.fullDescription = "Maksimal 4.000 karakter";
     }
 
+    // Size limits: AAB max 500MB, Others max 100MB
+    if (aabFile && aabFile.size > 500 * 1024 * 1024) {
+      newErrors.aab = `Ukuran file .aab (${(aabFile.size / (1024 * 1024)).toFixed(1)} MB) melebihi batas maksimal 500 MB`;
+    }
+
     if (!logoPreview) {
       newErrors.logo = "Logo Aplikasi (512x512) wajib diunggah";
+    } else if (logoPreview.file.size > 100 * 1024 * 1024) {
+      newErrors.logo = "Ukuran Logo melebihi batas maksimal 100 MB";
     }
+
     if (!featurePreview) {
       newErrors.featureGraphic = "Feature Graphic (1024x500) wajib diunggah";
+    } else if (featurePreview.file.size > 100 * 1024 * 1024) {
+      newErrors.featureGraphic = "Ukuran Feature Graphic melebihi batas maksimal 100 MB";
     }
+
     if (screenshots.length < 2) {
       newErrors.screenshots = "Minimal 2 screenshot ponsel (maksimal 8)";
+    }
+    for (const ss of screenshots) {
+      if (ss.file.size > 100 * 1024 * 1024) {
+        newErrors.screenshots = `Screenshot "${ss.file.name}" melebihi batas maksimal 100 MB`;
+        break;
+      }
     }
 
     if (hasTabletView === "yes") {
       if (tabletScreenshots.length < 2) {
         newErrors.tabletScreenshots = "Minimal 2 screenshot tablet (maksimal 8) jika memilih menyertakan view tablet";
+      }
+      for (const tss of tabletScreenshots) {
+        if (tss.file.size > 100 * 1024 * 1024) {
+          newErrors.tabletScreenshots = `Screenshot tablet "${tss.file.name}" melebihi batas maksimal 100 MB`;
+          break;
+        }
       }
     }
 
@@ -338,101 +437,154 @@ export default function PlayStoreSubmissionPage() {
     setSubmitting(true);
     setUploadProgress(0);
 
-    const formData = new FormData();
-    formData.append("linkId", linkId);
-    formData.append("appName", appName);
-    formData.append("packageName", packageName);
-    formData.append("privacyPolicyUrl", privacyPolicyUrl);
-    formData.append("email", email);
-    formData.append("phoneNumber", phoneNumber);
-    formData.append("websiteUrl", websiteUrl);
-    formData.append("shortDescription", shortDescription);
-    formData.append("fullDescription", fullDescription);
-    formData.append("clientNotes", clientNotes);
+    try {
+      // Calculate total files to upload
+      const totalFiles = (aabFile ? 1 : 0) + 1 + 1 + screenshots.length + (hasTabletView === "yes" ? tabletScreenshots.length : 0);
+      let completedFiles = 0;
 
-    formData.append("demoHasAuth", demoHasAuth ? "true" : "false");
-    formData.append("demoUsername", demoUsername);
-    formData.append("demoPassword", demoPassword);
-    formData.append("demoOtpPin", demoOtpPin);
-    formData.append("demoInstructions", demoInstructions);
+      const updateOverallProgress = (filePercent: number) => {
+        const overall = Math.round(((completedFiles + filePercent / 100) / totalFiles) * 100);
+        setUploadProgress(Math.min(99, overall));
+      };
 
-    if (aabFile) formData.append("aabFile", aabFile);
-    if (logoPreview?.file) formData.append("logo", logoPreview.file);
-    if (featurePreview?.file) formData.append("featureGraphic", featurePreview.file);
+      let uploadedAab: any = null;
+      let targetAppFolderId = '';
+      let targetDriveFolderUrl = '';
 
-    screenshots.forEach((ss) => {
-      formData.append("screenshots", ss.file);
-    });
-
-    formData.append("hasTabletView", hasTabletView);
-    if (hasTabletView === "yes") {
-      tabletScreenshots.forEach((ss) => {
-        formData.append("tabletScreenshots", ss.file);
-      });
-    }
-
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/playstore/submit");
-
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const percent = Math.round((event.loaded / event.total) * 100);
-        setUploadProgress(percent);
+      // 1. Upload .AAB if exists (up to 500MB)
+      if (aabFile) {
+        uploadedAab = await uploadFileToGoogleDriveDirect(aabFile, 'aab', (loaded, total) => {
+          updateOverallProgress(Math.round((loaded / total) * 100));
+        });
+        completedFiles++;
+        targetAppFolderId = uploadedAab.appFolderId || '';
+        targetDriveFolderUrl = uploadedAab.driveFolderUrl || '';
       }
-    };
 
-    xhr.onload = () => {
-      try {
-        let result: any = null;
-        try {
-          result = JSON.parse(xhr.responseText);
-        } catch {
-          // Response is not JSON (e.g. 413 Payload Too Large from Vercel / 504 Gateway Timeout)
-        }
+      // 2. Upload Logo (512x512)
+      const uploadedLogo = await uploadFileToGoogleDriveDirect(logoPreview!.file, 'logo', (loaded, total) => {
+        updateOverallProgress(Math.round((loaded / total) * 100));
+      });
+      completedFiles++;
+      if (!targetAppFolderId) {
+        targetAppFolderId = uploadedLogo.appFolderId || '';
+        targetDriveFolderUrl = uploadedLogo.driveFolderUrl || '';
+      }
 
-        if (xhr.status >= 200 && xhr.status < 300 && result?.success) {
-          setSubmittedDataInfo({
-            appName: result.appName || appName,
-            clientName: result.clientName || linkData?.clientName || "Klien",
-            driveFolderUrl: result.driveFolderUrl || "",
-            ownerPhone: result.ownerPhone || linkData?.ownerPhone || "",
+      // 3. Upload Feature Graphic (1024x500)
+      const uploadedFg = await uploadFileToGoogleDriveDirect(featurePreview!.file, 'featureGraphic', (loaded, total) => {
+        updateOverallProgress(Math.round((loaded / total) * 100));
+      });
+      completedFiles++;
+
+      // 4. Upload Phone Screenshots
+      const uploadedScreenshots: any[] = [];
+      for (const ss of screenshots) {
+        const ssRes = await uploadFileToGoogleDriveDirect(ss.file, 'screenshot', (loaded, total) => {
+          updateOverallProgress(Math.round((loaded / total) * 100));
+        });
+        uploadedScreenshots.push({
+          name: ss.file.name,
+          size: ss.file.size,
+          id: ssRes.id,
+          webViewLink: ssRes.webViewLink,
+        });
+        completedFiles++;
+      }
+
+      // 5. Upload Tablet Screenshots if enabled
+      const uploadedTabletScreenshots: any[] = [];
+      if (hasTabletView === "yes") {
+        for (const tss of tabletScreenshots) {
+          const tssRes = await uploadFileToGoogleDriveDirect(tss.file, 'tabletScreenshot', (loaded, total) => {
+            updateOverallProgress(Math.round((loaded / total) * 100));
           });
-          setShowSuccessModal(true);
-        } else {
-          let errMsg = "";
-          if (xhr.status === 413) {
-            errMsg = "Ukuran berkas yang diunggah melebihi batas server (maksimal ~4.5 MB total untuk fungsi serverless Vercel). Jika file .aab berukuran besar, mohon kirimkan link drive terpisah atau kompres ukuran screenshot.";
-          } else if (xhr.status === 504) {
-            errMsg = "Waktu upload ke server habis (Gateway Timeout). Mohon periksa kecepatan internet Anda dan coba lagi.";
-          } else {
-            errMsg = result?.error || `Gagal mengunggah formulir release (Status ${xhr.status}: ${xhr.statusText || 'Error server'}).`;
-          }
-          setSubmitError(errMsg);
-          setErrorModalMessage(errMsg);
-          setErrorModalDetails([]);
-          setShowErrorModal(true);
+          uploadedTabletScreenshots.push({
+            name: tss.file.name,
+            size: tss.file.size,
+            id: tssRes.id,
+            webViewLink: tssRes.webViewLink,
+          });
+          completedFiles++;
         }
-      } catch (e: any) {
-        const errMsg = `Terjadi kesalahan respon server: ${e?.message || e}`;
+      }
+
+      setUploadProgress(100);
+
+      // 6. Send metadata to server to finalize submission & save README text
+      const finalRes = await fetch('/api/playstore/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          linkId,
+          appName,
+          packageName,
+          privacyPolicyUrl,
+          email,
+          phoneNumber,
+          websiteUrl,
+          shortDescription,
+          fullDescription,
+          clientNotes,
+          demoHasAuth,
+          demoUsername,
+          demoPassword,
+          demoOtpPin,
+          demoInstructions,
+          hasTabletView: hasTabletView === 'yes',
+          appFolderId: targetAppFolderId,
+          driveFolderUrl: targetDriveFolderUrl,
+          uploadedAssets: {
+            aab: uploadedAab ? {
+              name: aabFile!.name,
+              size: aabFile!.size,
+              id: uploadedAab.id,
+              webViewLink: uploadedAab.webViewLink,
+            } : null,
+            logo: {
+              name: logoPreview!.file.name,
+              size: logoPreview!.file.size,
+              id: uploadedLogo.id,
+              webViewLink: uploadedLogo.webViewLink,
+            },
+            featureGraphic: {
+              name: featurePreview!.file.name,
+              size: featurePreview!.file.size,
+              id: uploadedFg.id,
+              webViewLink: uploadedFg.webViewLink,
+            },
+            screenshots: uploadedScreenshots,
+            tabletScreenshots: uploadedTabletScreenshots,
+          },
+        }),
+      });
+
+      const finalData = await finalRes.json();
+
+      if (finalRes.ok && finalData.success) {
+        setSubmittedDataInfo({
+          appName: finalData.appName || appName,
+          clientName: finalData.clientName || linkData?.clientName || "Klien",
+          driveFolderUrl: finalData.driveFolderUrl || targetDriveFolderUrl || "",
+          ownerPhone: finalData.ownerPhone || linkData?.ownerPhone || "",
+        });
+        setShowSuccessModal(true);
+      } else {
+        const errMsg = finalData.error || "Gagal menyimpan data rilis ke database.";
         setSubmitError(errMsg);
         setErrorModalMessage(errMsg);
         setErrorModalDetails([]);
         setShowErrorModal(true);
-      } finally {
-        setSubmitting(false);
       }
-    };
-
-    xhr.onerror = () => {
-      const errMsg = "Gagal menghubungi server. Mohon periksa koneksi internet Anda.";
+    } catch (err: any) {
+      const errMsg = err?.message || "Terjadi kesalahan saat mengunggah berkas ke Google Drive.";
       setSubmitError(errMsg);
       setErrorModalMessage(errMsg);
       setErrorModalDetails([]);
       setShowErrorModal(true);
+    } finally {
       setSubmitting(false);
-    };
-
-    xhr.send(formData);
+    }
   };
 
   const getWhatsAppShareUrl = () => {
@@ -533,7 +685,7 @@ export default function PlayStoreSubmissionPage() {
                 <div className={styles.uploadSpecs}>
                   {aabFile
                     ? `Ukuran file: ${(aabFile.size / (1024 * 1024)).toFixed(2)} MB`
-                    : "File berekstensi .aab yang sudah disign dengan Release Keystore"}
+                    : "File .aab signed dengan Keystore • Maksimal 500 MB"}
                 </div>
               </div>
               {errors.aab && <div className={styles.errorMessage}>{errors.aab}</div>}
@@ -697,7 +849,7 @@ export default function PlayStoreSubmissionPage() {
                 <div className={styles.uploadBox} onClick={() => logoInputRef.current?.click()}>
                   <span className={styles.uploadIcon}>🖼️</span>
                   <div><strong>Klik untuk unggah Logo</strong></div>
-                  <div className={styles.uploadSpecs}>PNG/JPEG • Maks 1 MB • <strong>512 × 512 px</strong></div>
+                  <div className={styles.uploadSpecs}>PNG/JPEG • Maks 100 MB • <strong>512 × 512 px</strong></div>
                 </div>
                 {errors.logo && <div className={styles.errorMessage}>{errors.logo}</div>}
                 {logoPreview && (
@@ -728,7 +880,7 @@ export default function PlayStoreSubmissionPage() {
                 <div className={styles.uploadBox} onClick={() => featureInputRef.current?.click()}>
                   <span className={styles.uploadIcon}>🎨</span>
                   <div><strong>Klik untuk unggah Feature Graphic</strong></div>
-                  <div className={styles.uploadSpecs}>PNG/JPEG • Maks 15 MB • <strong>1024 × 500 px</strong></div>
+                  <div className={styles.uploadSpecs}>PNG/JPEG • Maks 100 MB • <strong>1024 × 500 px</strong></div>
                 </div>
                 {errors.featureGraphic && <div className={styles.errorMessage}>{errors.featureGraphic}</div>}
                 {featurePreview && (
@@ -764,7 +916,7 @@ export default function PlayStoreSubmissionPage() {
                   <span className={styles.uploadIcon}>📱</span>
                   <div><strong>Klik untuk memilih Screenshot Aplikasi (Ponsel)</strong></div>
                   <div className={styles.uploadSpecs}>
-                    PNG/JPEG • Maks 8 MB/gambar • Rasio 16:9 atau 9:16 • Rentang sisi 320–3840 px
+                    PNG/JPEG • Maks 100 MB/gambar • Rasio 16:9 atau 9:16 • Rentang sisi 320–3840 px
                   </div>
                 </div>
                 {errors.screenshots && <div className={styles.errorMessage}>{errors.screenshots}</div>}
@@ -838,7 +990,7 @@ export default function PlayStoreSubmissionPage() {
                       <span className={styles.uploadIcon}>📟</span>
                       <div><strong>Klik untuk memilih Screenshot Tablet</strong></div>
                       <div className={styles.uploadSpecs}>
-                        PNG/JPEG • Maks 8 MB/gambar • Rasio 16:9 atau 9:16 • Rentang sisi 320–3840 px (Landscape/Portrait Tablet)
+                        PNG/JPEG • Maks 100 MB/gambar • Rasio 16:9 atau 9:16 • Rentang sisi 320–3840 px (Landscape/Portrait Tablet)
                       </div>
                     </div>
                     {errors.tabletScreenshots && (
