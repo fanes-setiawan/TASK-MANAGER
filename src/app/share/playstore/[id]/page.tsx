@@ -285,7 +285,7 @@ export default function PlayStoreSubmissionPage() {
     setTabletScreenshots((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Helper to upload a single file directly to Google Drive via resumable upload session
+  // Helper to upload a single file to Google Drive via Chunked Proxy (Chunk 2MB, avoids CORS & bypasses Vercel 4.5MB limit)
   const uploadFileToGoogleDriveDirect = async (
     file: File,
     fileCategory: 'aab' | 'logo' | 'featureGraphic' | 'screenshot' | 'tabletScreenshot',
@@ -311,49 +311,57 @@ export default function PlayStoreSubmissionPage() {
       throw new Error(sessionData.error || `Gagal menyiapkan upload untuk ${file.name}`);
     }
 
-    // 2. Upload file binary directly to Google Drive uploadUrl via PUT
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('PUT', sessionData.uploadUrl);
+    const uploadUrl = sessionData.uploadUrl;
+    const totalSize = file.size;
+    // Chunk size: 2 MB (2 * 1024 * 1024 bytes) - must be multiple of 256KB for Google Drive
+    const CHUNK_SIZE = 2 * 1024 * 1024;
+    let offset = 0;
+    let finalDriveFile: any = null;
 
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable && onProgress) {
-          onProgress(event.loaded, event.total);
-        }
-      };
+    while (offset < totalSize) {
+      const chunkEnd = Math.min(offset + CHUNK_SIZE, totalSize);
+      const chunkBlob = file.slice(offset, chunkEnd);
+      const contentRange = `bytes ${offset}-${chunkEnd - 1}/${totalSize}`;
 
-      xhr.onload = () => {
-        if (xhr.status === 200 || xhr.status === 201) {
-          try {
-            const driveFile = JSON.parse(xhr.responseText);
-            resolve({
-              name: file.name,
-              size: file.size,
-              id: driveFile.id,
-              webViewLink: driveFile.webViewLink,
-              appFolderId: sessionData.appFolderId,
-              driveFolderUrl: sessionData.driveFolderUrl,
-            });
-          } catch {
-            resolve({
-              name: file.name,
-              size: file.size,
-              id: 'uploaded',
-              appFolderId: sessionData.appFolderId,
-              driveFolderUrl: sessionData.driveFolderUrl,
-            });
-          }
-        } else {
-          reject(new Error(`Gagal mengunggah ${file.name} ke Google Drive (Status ${xhr.status})`));
-        }
-      };
+      const chunkRes = await fetch('/api/playstore/upload-chunk', {
+        method: 'POST',
+        headers: {
+          'x-upload-url': uploadUrl,
+          'content-range': contentRange,
+          'content-type': file.type || 'application/octet-stream',
+        },
+        body: chunkBlob,
+      });
 
-      xhr.onerror = () => {
-        reject(new Error(`Koneksi terputus saat mengunggah ${file.name}`));
-      };
+      const chunkResult = await chunkRes.json();
 
-      xhr.send(file);
-    });
+      if (!chunkRes.ok) {
+        throw new Error(chunkResult.error || `Gagal mengunggah bagian file ${file.name}`);
+      }
+
+      if (chunkResult.completed || chunkResult.status === 200 || chunkResult.status === 201) {
+        finalDriveFile = chunkResult.file;
+        break;
+      }
+
+      offset = chunkEnd;
+      if (onProgress) {
+        onProgress(offset, totalSize);
+      }
+    }
+
+    if (onProgress) {
+      onProgress(totalSize, totalSize);
+    }
+
+    return {
+      name: file.name,
+      size: file.size,
+      id: finalDriveFile?.id || 'uploaded',
+      webViewLink: finalDriveFile?.webViewLink,
+      appFolderId: sessionData.appFolderId,
+      driveFolderUrl: sessionData.driveFolderUrl,
+    };
   };
 
   // Submit Handler using direct Resumable Upload to Google Drive (Supports AAB up to 500MB & other files up to 100MB)
