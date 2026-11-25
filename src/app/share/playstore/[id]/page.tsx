@@ -53,6 +53,11 @@ export default function PlayStoreSubmissionPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [submitError, setSubmitError] = useState("");
 
+  // Error Pop-up Modal State
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorModalMessage, setErrorModalMessage] = useState("");
+  const [errorModalDetails, setErrorModalDetails] = useState<string[]>([]);
+
   // Success Pop-up Modal State
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [submittedDataInfo, setSubmittedDataInfo] = useState<{
@@ -324,7 +329,9 @@ export default function PlayStoreSubmissionPage() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      window.scrollTo({ top: 300, behavior: "smooth" });
+      setErrorModalMessage("Mohon lengkapi atau perbaiki isian data berikut:");
+      setErrorModalDetails(Object.values(newErrors));
+      setShowErrorModal(true);
       return;
     }
 
@@ -392,23 +399,36 @@ export default function PlayStoreSubmissionPage() {
           });
           setShowSuccessModal(true);
         } else {
+          let errMsg = "";
           if (xhr.status === 413) {
-            setSubmitError("Ukuran berkas yang diunggah melebihi batas server (maksimal ~4.5 MB total untuk fungsi serverless Vercel). Jika file .aab berukuran besar, mohon kirimkan link drive terpisah atau kurangi ukuran file screenshot.");
+            errMsg = "Ukuran berkas yang diunggah melebihi batas server (maksimal ~4.5 MB total untuk fungsi serverless Vercel). Jika file .aab berukuran besar, mohon kirimkan link drive terpisah atau kompres ukuran screenshot.";
           } else if (xhr.status === 504) {
-            setSubmitError("Waktu upload ke server habis (Gateway Timeout). Mohon periksa kecepatan internet Anda dan coba lagi.");
+            errMsg = "Waktu upload ke server habis (Gateway Timeout). Mohon periksa kecepatan internet Anda dan coba lagi.";
           } else {
-            setSubmitError(result?.error || `Gagal mengunggah formulir release (Status ${xhr.status}: ${xhr.statusText || 'Error server'}).`);
+            errMsg = result?.error || `Gagal mengunggah formulir release (Status ${xhr.status}: ${xhr.statusText || 'Error server'}).`;
           }
+          setSubmitError(errMsg);
+          setErrorModalMessage(errMsg);
+          setErrorModalDetails([]);
+          setShowErrorModal(true);
         }
       } catch (e: any) {
-        setSubmitError(`Terjadi kesalahan respon server: ${e?.message || e}`);
+        const errMsg = `Terjadi kesalahan respon server: ${e?.message || e}`;
+        setSubmitError(errMsg);
+        setErrorModalMessage(errMsg);
+        setErrorModalDetails([]);
+        setShowErrorModal(true);
       } finally {
         setSubmitting(false);
       }
     };
 
     xhr.onerror = () => {
-      setSubmitError("Gagal menghubungi server. Mohon periksa koneksi internet Anda.");
+      const errMsg = "Gagal menghubungi server. Mohon periksa koneksi internet Anda.";
+      setSubmitError(errMsg);
+      setErrorModalMessage(errMsg);
+      setErrorModalDetails([]);
+      setShowErrorModal(true);
       setSubmitting(false);
     };
 
@@ -979,6 +999,37 @@ export default function PlayStoreSubmissionPage() {
                 <span style={{ fontSize: "1.3rem" }}>💬</span>
                 Konfirmasi ke WhatsApp Sekarang
               </a>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL ERROR POPUP (No need to scroll) */}
+        {showErrorModal && (
+          <div className={styles.modalOverlay} onClick={() => setShowErrorModal(false)}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.errorIcon}>!</div>
+              <h2 className={styles.modalTitle} style={{ color: "#dc2626" }}>Pemberitahuan</h2>
+              <p className={styles.modalDesc} style={{ marginBottom: errorModalDetails.length > 0 ? "1rem" : "1.5rem" }}>
+                {errorModalMessage}
+              </p>
+
+              {errorModalDetails.length > 0 && (
+                <div className={styles.errorList}>
+                  {errorModalDetails.map((detail, idx) => (
+                    <div key={idx} className={styles.errorListItem}>
+                      • {detail}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                onClick={() => setShowErrorModal(false)}
+              >
+                Mengerti & Periksa Kembali
+              </button>
             </div>
           </div>
         )}

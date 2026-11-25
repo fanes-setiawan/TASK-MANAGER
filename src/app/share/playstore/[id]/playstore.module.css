@@ -493,8 +493,62 @@
   margin-top: 0.5rem;
 }
 
-.driveLinkBtn:hover {
-  text-decoration: underline;
+.errorIcon {
+  width: 4rem;
+  height: 4rem;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem auto;
+  font-size: 2.25rem;
+  font-weight: bold;
+}
+
+.modalCloseBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 1rem;
+}
+
+.modalCloseBtn:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+.errorList {
+  text-align: left;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #991b1b;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.errorListItem {
+  margin-bottom: 0.35rem;
+  line-height: 1.4;
+}
+
+.errorListItem:last-child {
+  margin-bottom: 0;
 }
 
 @media (max-width: 640px) {
