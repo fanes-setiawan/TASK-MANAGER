@@ -376,8 +376,14 @@ export default function PlayStoreSubmissionPage() {
 
     xhr.onload = () => {
       try {
-        const result = JSON.parse(xhr.responseText);
-        if (xhr.status >= 200 && xhr.status < 300 && result.success) {
+        let result: any = null;
+        try {
+          result = JSON.parse(xhr.responseText);
+        } catch {
+          // Response is not JSON (e.g. 413 Payload Too Large from Vercel / 504 Gateway Timeout)
+        }
+
+        if (xhr.status >= 200 && xhr.status < 300 && result?.success) {
           setSubmittedDataInfo({
             appName: result.appName || appName,
             clientName: result.clientName || linkData?.clientName || "Klien",
@@ -386,10 +392,16 @@ export default function PlayStoreSubmissionPage() {
           });
           setShowSuccessModal(true);
         } else {
-          setSubmitError(result.error || "Gagal mengunggah formulir release.");
+          if (xhr.status === 413) {
+            setSubmitError("Ukuran berkas yang diunggah melebihi batas server (maksimal ~4.5 MB total untuk fungsi serverless Vercel). Jika file .aab berukuran besar, mohon kirimkan link drive terpisah atau kurangi ukuran file screenshot.");
+          } else if (xhr.status === 504) {
+            setSubmitError("Waktu upload ke server habis (Gateway Timeout). Mohon periksa kecepatan internet Anda dan coba lagi.");
+          } else {
+            setSubmitError(result?.error || `Gagal mengunggah formulir release (Status ${xhr.status}: ${xhr.statusText || 'Error server'}).`);
+          }
         }
-      } catch (e) {
-        setSubmitError("Terjadi kesalahan parsing respon server.");
+      } catch (e: any) {
+        setSubmitError(`Terjadi kesalahan respon server: ${e?.message || e}`);
       } finally {
         setSubmitting(false);
       }

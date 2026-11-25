@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/server';
 import { getAuthenticatedDriveClient, getOrCreateFolder, uploadFileToDrive } from '@/lib/googleDrive';
 
+export const maxDuration = 60; // Extend serverless function timeout to 60 seconds
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
