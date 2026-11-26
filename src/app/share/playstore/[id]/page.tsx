@@ -323,20 +323,44 @@ export default function PlayStoreSubmissionPage() {
       const chunkBlob = file.slice(offset, chunkEnd);
       const contentRange = `bytes ${offset}-${chunkEnd - 1}/${totalSize}`;
 
-      const chunkRes = await fetch('/api/playstore/upload-chunk', {
-        method: 'POST',
-        headers: {
-          'x-upload-url': uploadUrl,
-          'content-range': contentRange,
-          'content-type': file.type || 'application/octet-stream',
-        },
-        body: chunkBlob,
-      });
+      let chunkResult: any = null;
+      let attempts = 0;
+      const maxAttempts = 3;
 
-      const chunkResult = await chunkRes.json();
+      while (attempts < maxAttempts) {
+        try {
+          attempts++;
+          const chunkRes = await fetch('/api/playstore/upload-chunk', {
+            method: 'POST',
+            headers: {
+              'x-upload-url': uploadUrl,
+              'content-range': contentRange,
+              'content-type': file.type || 'application/octet-stream',
+            },
+            body: chunkBlob,
+          });
 
-      if (!chunkRes.ok) {
-        throw new Error(chunkResult.error || `Gagal mengunggah bagian file ${file.name}`);
+          const textResp = await chunkRes.text();
+          try {
+            chunkResult = JSON.parse(textResp);
+          } catch {
+            throw new Error(`Server Vercel mengembalikan respon non-JSON (${chunkRes.status} ${chunkRes.statusText})`);
+          }
+
+          if (!chunkRes.ok) {
+            throw new Error(chunkResult.error || `HTTP ${chunkRes.status} saat upload chunk`);
+          }
+
+          break; // Chunk succeeded
+        } catch (err: any) {
+          if (attempts >= maxAttempts) {
+            const currentMb = (offset / (1024 * 1024)).toFixed(1);
+            const totalMb = (totalSize / (1024 * 1024)).toFixed(1);
+            throw new Error(`Upload terputus pada ${currentMb} MB dari ${totalMb} MB: ${err.message || err}`);
+          }
+          // Wait 1.5s before retry
+          await new Promise((r) => setTimeout(r, 1500));
+        }
       }
 
       if (chunkResult.completed || chunkResult.status === 200 || chunkResult.status === 201) {
