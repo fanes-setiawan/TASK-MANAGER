@@ -51,9 +51,16 @@ interface SubmissionRecord {
   status?: "submitted" | "in_review" | "rejected" | "published";
 }
 
+interface UnlinkedDriveFolder {
+  id: string;
+  name: string;
+  createdTime?: string;
+  webViewLink?: string;
+}
+
 export default function PlayStoreAssetsDashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"submissions" | "links">("submissions");
+  const [activeTab, setActiveTab] = useState<"submissions" | "links" | "unlinked">("submissions");
 
   // Google Drive Connection State
   const [gdriveStatus, setGdriveStatus] = useState<any>({ isConnected: false });
@@ -62,7 +69,9 @@ export default function PlayStoreAssetsDashboard() {
   // Data states
   const [links, setLinks] = useState<PlayStoreLink[]>([]);
   const [submissions, setSubmissions] = useState<SubmissionRecord[]>([]);
+  const [unlinkedFolders, setUnlinkedFolders] = useState<UnlinkedDriveFolder[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [loadingUnlinked, setLoadingUnlinked] = useState(false);
 
   // Modal Create Link
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,9 +93,13 @@ export default function PlayStoreAssetsDashboard() {
   // Status updating state
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  // Delete Confirm Modal State
+  // Delete Confirm Modal State (Submissions)
   const [subToDelete, setSubToDelete] = useState<SubmissionRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Delete Confirm Modal State (Unlinked Folders)
+  const [folderToDelete, setFolderToDelete] = useState<UnlinkedDriveFolder | null>(null);
+  const [isDeletingFolder, setIsDeletingFolder] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -123,10 +136,49 @@ export default function PlayStoreAssetsDashboard() {
 
       if (linksData.links) setLinks(linksData.links);
       if (subsData.submissions) setSubmissions(subsData.submissions);
+      
+      // Auto fetch unlinked folders
+      fetchUnlinkedFolders(uid);
     } catch (err) {
       console.error("Error fetching data", err);
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const fetchUnlinkedFolders = async (uid: string) => {
+    setLoadingUnlinked(true);
+    try {
+      const res = await fetch(`/api/playstore/drive-folders?userId=${uid}`);
+      const data = await res.json();
+      if (data.unlinkedFolders) {
+        setUnlinkedFolders(data.unlinkedFolders);
+      }
+    } catch (e) {
+      console.error("Failed to load unlinked drive folders", e);
+    } finally {
+      setLoadingUnlinked(false);
+    }
+  };
+
+  const handleDeleteUnlinkedFolder = async (folder: UnlinkedDriveFolder) => {
+    if (!currentUser?.uid) return;
+    setIsDeletingFolder(true);
+    try {
+      const res = await fetch(`/api/playstore/drive-folders?userId=${currentUser.uid}&folderId=${folder.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUnlinkedFolders((prev) => prev.filter((f) => f.id !== folder.id));
+        setFolderToDelete(null);
+      } else {
+        alert(data.error || "Gagal menghapus folder dari Google Drive");
+      }
+    } catch (e: any) {
+      alert(e.message || "Terjadi kesalahan saat menghapus folder");
+    } finally {
+      setIsDeletingFolder(false);
     }
   };
 
@@ -546,6 +598,32 @@ Disubmit pada: ${new Date(sub.submittedAt).toLocaleString("id-ID", { timeZone: "
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>link</span>
           Daftar Link Klien ({links.length})
         </div>
+        <div
+          className={`${styles.tabItem} ${activeTab === "unlinked" ? styles.activeTab : ""}`}
+          onClick={() => {
+            setActiveTab("unlinked");
+            if (currentUser?.uid) fetchUnlinkedFolders(currentUser.uid);
+          }}
+          style={{ position: "relative" }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>folder_delete</span>
+          Folder Drive Belum Selesai ({unlinkedFolders.length})
+          {unlinkedFolders.length > 0 && (
+            <span
+              style={{
+                background: "#ef4444",
+                color: "#ffffff",
+                fontSize: "0.7rem",
+                padding: "0.1rem 0.4rem",
+                borderRadius: "999px",
+                marginLeft: "0.3rem",
+                fontWeight: 700,
+              }}
+            >
+              {unlinkedFolders.length}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* TAB 1: SUBMISSIONS LIST */}
@@ -768,6 +846,117 @@ Disubmit pada: ${new Date(sub.submittedAt).toLocaleString("id-ID", { timeZone: "
         </div>
       )}
 
+      {/* TAB 3: UNLINKED / DRAFT DRIVE FOLDERS */}
+      {activeTab === "unlinked" && (
+        <div className={styles.tableCard}>
+          <div className={styles.unlinkedBanner}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
+              <span className="material-symbols-outlined" style={{ color: "#2563eb", fontSize: "1.75rem" }}>
+                info
+              </span>
+              <div className={styles.unlinkedBannerText}>
+                <strong>Folder Tanpa Submisi (Draft / Batal)</strong>
+                <div>
+                  Folder-folder di bawah ini berada di dalam Google Drive Anda, namun proses pengisian formulirnya terhenti atau belum pernah diselesaikan oleh klien. Anda dapat memeriksa berkas di dalamnya atau menghapusnya langsung secara aman.
+                </div>
+              </div>
+            </div>
+            <button
+              className={styles.btnSecondary}
+              style={{ whiteSpace: "nowrap" }}
+              onClick={() => currentUser?.uid && fetchUnlinkedFolders(currentUser.uid)}
+              disabled={loadingUnlinked}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span>
+              {loadingUnlinked ? "Memeriksa..." : "Segarkan Folder"}
+            </button>
+          </div>
+
+          {loadingUnlinked ? (
+            <div style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+              <span className="material-symbols-outlined" style={{ fontSize: "2.5rem", animation: "spin 1s linear infinite" }}>
+                autorenew
+              </span>
+              <p style={{ marginTop: "0.5rem" }}>Memindai folder di Google Drive Anda...</p>
+            </div>
+          ) : unlinkedFolders.length === 0 ? (
+            <div className={styles.emptyState}>
+              <span className="material-symbols-outlined" style={{ fontSize: "3rem", color: "#16a34a" }}>
+                check_circle
+              </span>
+              <p style={{ marginTop: "1rem", fontWeight: 600 }}>Google Drive Anda Bersih & Rapi</p>
+              <p style={{ fontSize: "0.875rem" }}>
+                Semua folder aplikasi di Google Drive Anda terhubung dengan data submisi yang valid di database.
+              </p>
+            </div>
+          ) : (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.th}>Nama Folder di Google Drive</th>
+                  <th className={styles.th}>Status</th>
+                  <th className={styles.th}>Waktu Dibuat</th>
+                  <th className={styles.th}>Buka di Drive</th>
+                  <th className={styles.th}>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {unlinkedFolders.map((folder) => (
+                  <tr key={folder.id} className={styles.tr}>
+                    <td className={styles.td}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <span className="material-symbols-outlined" style={{ color: "#f59e0b" }}>
+                          folder
+                        </span>
+                        <strong>{folder.name}</strong>
+                      </div>
+                    </td>
+                    <td className={styles.td}>
+                      <span className={styles.badgeInactive}>
+                        Tidak Ada Submisi
+                      </span>
+                    </td>
+                    <td className={styles.td}>
+                      {folder.createdTime
+                        ? new Date(folder.createdTime).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "-"}
+                    </td>
+                    <td className={styles.td}>
+                      <a
+                        href={folder.webViewLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={styles.badgeSuccess}
+                        style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>open_in_new</span>
+                        Buka di GDrive
+                      </a>
+                    </td>
+                    <td className={styles.td}>
+                      <button
+                        className={styles.btnDangerOutline}
+                        onClick={() => setFolderToDelete(folder)}
+                        title="Hapus folder ini dari Google Drive"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                        Hapus Folder
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
       {/* CREATE LINK MODAL */}
       {isModalOpen && (
         <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
@@ -839,7 +1028,7 @@ Disubmit pada: ${new Date(sub.submittedAt).toLocaleString("id-ID", { timeZone: "
         </div>
       )}
 
-      {/* CONFIRM DELETE MODAL */}
+      {/* CONFIRM DELETE MODAL (SUBMISSION) */}
       {subToDelete && (
         <div className={styles.modalOverlay} onClick={() => !isDeleting && setSubToDelete(null)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
@@ -873,6 +1062,46 @@ Disubmit pada: ${new Date(sub.submittedAt).toLocaleString("id-ID", { timeZone: "
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
                 {isDeleting ? "Menghapus..." : "Ya, Hapus Submisi & Folder GDrive"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM DELETE UNLINKED FOLDER MODAL */}
+      {folderToDelete && (
+        <div className={styles.modalOverlay} onClick={() => !isDeletingFolder && setFolderToDelete(null)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#dc2626", marginBottom: "0.75rem" }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 32 }}>folder_delete</span>
+              <h3 className={styles.modalTitle} style={{ margin: 0 }}>Hapus Folder Drive</h3>
+            </div>
+
+            <p style={{ fontSize: "0.95rem", color: "#334155", lineHeight: 1.5 }}>
+              Apakah Anda yakin ingin menghapus folder draft <strong>&ldquo;{folderToDelete.name}&rdquo;</strong> langsung dari Google Drive Anda?
+            </p>
+
+            <div className={styles.deleteWarningBox}>
+              <strong>⚠️ Perhatian:</strong> Folder ini beserta berkas sementara di dalamnya akan dihapus permanen dari Google Drive Anda. Folder rilis aplikasi lain dijamin aman dan tidak terpengaruh.
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => setFolderToDelete(null)}
+                disabled={isDeletingFolder}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className={styles.btnDangerSolid}
+                onClick={() => handleDeleteUnlinkedFolder(folderToDelete)}
+                disabled={isDeletingFolder}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete_forever</span>
+                {isDeletingFolder ? "Menghapus..." : "Ya, Hapus Permanen dari Drive"}
               </button>
             </div>
           </div>

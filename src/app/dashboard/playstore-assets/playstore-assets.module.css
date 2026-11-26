@@ -635,9 +635,31 @@
   text-decoration: underline;
 }
 
+.unlinkedBanner {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.unlinkedBannerText {
+  font-size: 0.875rem;
+  color: #1e40af;
+  line-height: 1.5;
+}
+
 @media (max-width: 768px) {
   .detailDrawer {
     width: 100%;
     padding: 1.5rem 1rem;
+  }
+  .unlinkedBanner {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
