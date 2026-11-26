@@ -377,6 +377,7 @@ Disubmit pada: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }
       },
       uploadedAssets,
       driveFolderUrl: driveFolderUrl || null,
+      appFolderId: appFolderId || null,
       ownerUserId: ownerUserId || null,
       submittedAt: new Date(),
       status: 'submitted',
@@ -485,9 +486,53 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Data submisi tidak ditemukan' }, { status: 404 });
     }
 
+    const subData = docSnap.data();
+
+    // Safely delete app folder in Google Drive if exists
+    let folderDeletedFromDrive = false;
+    let driveFolderId = subData?.appFolderId;
+
+    // Fallback: extract folder ID from driveFolderUrl if appFolderId wasn't saved
+    if (!driveFolderId && subData?.driveFolderUrl) {
+      const match = subData.driveFolderUrl.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        driveFolderId = match[1];
+      }
+    }
+
+    if (driveFolderId && subData?.ownerUserId) {
+      try {
+        const drive = await getAuthenticatedDriveClient(subData.ownerUserId);
+        // Verify folder metadata before deleting to ensure it's not the root folder
+        const fileMeta = await drive.files.get({
+          fileId: driveFolderId,
+          fields: 'id, name, mimeType, parents',
+        });
+
+        // Safety check: ensure it is a folder and not named 'Play Store Release Assets' or 'root'
+        if (
+          fileMeta.data.mimeType === 'application/vnd.google-apps.folder' &&
+          fileMeta.data.name !== 'Play Store Release Assets' &&
+          fileMeta.data.id !== 'root'
+        ) {
+          await drive.files.delete({ fileId: driveFolderId });
+          folderDeletedFromDrive = true;
+          console.log(`Successfully deleted Google Drive folder: ${fileMeta.data.name} (${driveFolderId})`);
+        }
+      } catch (driveErr: any) {
+        console.warn('Failed or ignored deleting Google Drive folder:', driveErr.message);
+      }
+    }
+
     await docRef.delete();
 
-    return NextResponse.json({ success: true, message: 'Data submisi berhasil dihapus' });
+    return NextResponse.json({
+      success: true,
+      message: folderDeletedFromDrive
+        ? 'Data submisi dan folder Google Drive terkait berhasil dihapus.'
+        : 'Data submisi berhasil dihapus dari database.',
+      folderDeletedFromDrive,
+    });
   } catch (error: any) {
     console.error('Error deleting submission:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

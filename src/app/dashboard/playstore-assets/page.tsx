@@ -84,6 +84,10 @@ export default function PlayStoreAssetsDashboard() {
   // Status updating state
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
+  // Delete Confirm Modal State
+  const [subToDelete, setSubToDelete] = useState<SubmissionRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -246,24 +250,26 @@ Instructions       : ${sub.demoAccount?.instructions || "-"}
     }
   };
 
-  // Delete Submission (Idea 5)
-  const handleDeleteSubmission = async (subId: string, appName: string) => {
-    if (!confirm(`Yakin ingin menghapus data submisi untuk "${appName}"? Berkas di Google Drive tidak akan terhapus otomatis.`)) {
-      return;
-    }
+  // Delete Submission with Drive folder cleanup
+  const handleConfirmDelete = async () => {
+    if (!subToDelete) return;
+    setIsDeleting(true);
     try {
-      const res = await fetch(`/api/playstore/submit?id=${subId}`, { method: "DELETE" });
+      const res = await fetch(`/api/playstore/submit?id=${subToDelete.id}`, { method: "DELETE" });
       const data = await res.json();
       if (res.ok) {
-        setSubmissions((prev) => prev.filter((s) => s.id !== subId));
-        if (selectedSubmission?.id === subId) {
+        setSubmissions((prev) => prev.filter((s) => s.id !== subToDelete.id));
+        if (selectedSubmission?.id === subToDelete.id) {
           setSelectedSubmission(null);
         }
+        setSubToDelete(null);
       } else {
         alert(data.error || "Gagal menghapus submisi");
       }
-    } catch (err) {
-      alert("Terjadi kesalahan saat menghapus");
+    } catch (err: any) {
+      alert("Terjadi kesalahan saat menghapus: " + (err.message || ""));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -567,66 +573,89 @@ Disubmit pada: ${new Date(sub.submittedAt).toLocaleString("id-ID", { timeZone: "
                 </tr>
               </thead>
               <tbody>
-                {submissions.map((sub) => (
-                  <tr key={sub.id} className={styles.tr}>
-                    <td className={styles.td}>
-                      <strong>{sub.appName}</strong>
-                      <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Klien: {sub.clientName}</div>
-                    </td>
-                    <td className={styles.td}>
-                      {renderStatusBadge(sub.status)}
-                    </td>
-                    <td className={styles.td}>
-                      <code>{sub.packageName}</code>
-                    </td>
-                    <td className={styles.td}>
-                      <div>{sub.email}</div>
-                      <div style={{ fontSize: "0.8rem", color: "#64748b" }}>{sub.phoneNumber}</div>
-                    </td>
-                    <td className={styles.td}>
-                      {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }) : "-"}
-                    </td>
-                    <td className={styles.td}>
-                      {sub.driveFolderUrl ? (
-                        <a
-                          href={sub.driveFolderUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={styles.badgeSuccess}
-                          style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>folder</span>
-                          Buka di GDrive
-                        </a>
-                      ) : (
-                        <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>Tidak tersedia</span>
-                      )}
-                    </td>
-                    <td className={styles.td}>
-                      <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
-                        <button
-                          className={styles.btnSecondary}
-                          onClick={() => setSelectedSubmission(sub)}
-                        >
-                          Detail
-                        </button>
-                        <button
-                          className={styles.btnDangerOutline}
-                          title="Hapus Submisi"
-                          onClick={() => handleDeleteSubmission(sub.id, sub.appName)}
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {submissions.map((sub) => {
+                  const logoAsset = sub.uploadedAssets?.logo;
+                  const logoUrl = logoAsset?.id ? `/api/playstore/download?submissionId=${sub.id}&fileId=${logoAsset.id}` : null;
+
+                  return (
+                    <tr key={sub.id} className={styles.tr}>
+                      <td className={styles.td}>
+                        <div className={styles.appCell}>
+                          {logoUrl ? (
+                            <img
+                              src={logoUrl}
+                              alt={sub.appName}
+                              className={styles.appLogo}
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className={styles.appLogoFallback}>
+                              {sub.appName ? sub.appName.charAt(0).toUpperCase() : "📱"}
+                            </div>
+                          )}
+                          <div>
+                            <strong>{sub.appName}</strong>
+                            <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Klien: {sub.clientName}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className={styles.td}>
+                        {renderStatusBadge(sub.status)}
+                      </td>
+                      <td className={styles.td}>
+                        <code>{sub.packageName}</code>
+                      </td>
+                      <td className={styles.td}>
+                        <div>{sub.email}</div>
+                        <div style={{ fontSize: "0.8rem", color: "#64748b" }}>{sub.phoneNumber}</div>
+                      </td>
+                      <td className={styles.td}>
+                        {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }) : "-"}
+                      </td>
+                      <td className={styles.td}>
+                        {sub.driveFolderUrl ? (
+                          <a
+                            href={sub.driveFolderUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={styles.badgeSuccess}
+                            style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>folder</span>
+                            Buka di GDrive
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>Tidak tersedia</span>
+                        )}
+                      </td>
+                      <td className={styles.td}>
+                        <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                          <button
+                            className={styles.btnSecondary}
+                            onClick={() => setSelectedSubmission(sub)}
+                          >
+                            Detail
+                          </button>
+                          <button
+                            className={styles.btnDangerOutline}
+                            title="Hapus Submisi & Folder GDrive"
+                            onClick={() => setSubToDelete(sub)}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -806,6 +835,46 @@ Disubmit pada: ${new Date(sub.submittedAt).toLocaleString("id-ID", { timeZone: "
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM DELETE MODAL */}
+      {subToDelete && (
+        <div className={styles.modalOverlay} onClick={() => !isDeleting && setSubToDelete(null)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "#dc2626", marginBottom: "0.75rem" }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 32 }}>warning</span>
+              <h3 className={styles.modalTitle} style={{ margin: 0 }}>Konfirmasi Hapus</h3>
+            </div>
+
+            <p style={{ fontSize: "0.95rem", color: "#334155", lineHeight: 1.5 }}>
+              Apakah Anda yakin ingin menghapus data submisi <strong>{subToDelete.appName}</strong>?
+            </p>
+
+            <div className={styles.deleteWarningBox}>
+              <strong>⚠️ Perhatian:</strong> Folder khusus aplikasi ini di Google Drive akun Anda beserta seluruh berkas build (.aab), gambar, dan deskripsi di dalamnya akan ikut dihapus permanen. Folder aplikasi lain tidak akan terganggu.
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => setSubToDelete(null)}
+                disabled={isDeleting}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className={styles.btnDangerSolid}
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                {isDeleting ? "Menghapus..." : "Ya, Hapus Submisi & Folder GDrive"}
+              </button>
+            </div>
           </div>
         </div>
       )}

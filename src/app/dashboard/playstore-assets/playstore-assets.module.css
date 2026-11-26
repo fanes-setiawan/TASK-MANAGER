@@ -302,6 +302,70 @@
   font-weight: 600;
 }
 
+/* App Logo in Table */
+.appLogo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+  background: #f8fafc;
+}
+
+.appLogoFallback {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  border: 1px solid #dbeafe;
+  flex-shrink: 0;
+}
+
+.appCell {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+/* Delete Confirm Modal */
+.btnDangerSolid {
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.65rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+
+.btnDangerSolid:hover {
+  background: #b91c1c;
+}
+
+.deleteWarningBox {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.65rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  color: #991b1b;
+  margin: 1rem 0;
+  line-height: 1.5;
+}
+
 /* Status Badges */
 .badgePending {
   background: #fef3c7;
