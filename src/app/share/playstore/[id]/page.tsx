@@ -51,6 +51,7 @@ export default function PlayStoreSubmissionPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatusText, setUploadStatusText] = useState("Menyiapkan upload...");
   const [submitError, setSubmitError] = useState("");
 
   // Error Pop-up Modal State
@@ -322,6 +323,9 @@ export default function PlayStoreSubmissionPage() {
       const chunkEnd = Math.min(offset + CHUNK_SIZE, totalSize);
       const chunkBlob = file.slice(offset, chunkEnd);
       const contentRange = `bytes ${offset}-${chunkEnd - 1}/${totalSize}`;
+      const currentMb = (offset / (1024 * 1024)).toFixed(1);
+      const totalMb = (totalSize / (1024 * 1024)).toFixed(1);
+      setUploadStatusText(`Mengunggah ${file.name} (${currentMb} MB / ${totalMb} MB)...`);
 
       let chunkResult: any = null;
       let attempts = 0;
@@ -1146,8 +1150,8 @@ export default function PlayStoreSubmissionPage() {
           {submitting && (
             <div className={styles.progressContainer}>
               <div className={styles.progressHeader}>
-                <span>Upload Assets</span>
-                <span>{uploadProgress}%</span>
+                <span>{uploadStatusText}</span>
+                <span style={{ fontWeight: 700 }}>{uploadProgress}%</span>
               </div>
               <div className={styles.progressBarBg}>
                 <div
@@ -1160,7 +1164,7 @@ export default function PlayStoreSubmissionPage() {
 
           {/* Submit Action */}
           <button type="submit" className={styles.submitBtn} disabled={submitting}>
-            {submitting ? `Sedang Mengunggah (${uploadProgress}%)...` : "Kirimkan Semua Asset Rilis 🚀"}
+            {submitting ? `${uploadStatusText} (${uploadProgress}%)` : "Kirimkan Semua Asset Rilis 🚀"}
           </button>
         </form>
 
