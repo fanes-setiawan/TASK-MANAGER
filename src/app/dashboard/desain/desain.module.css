@@ -406,15 +406,12 @@
 }
 
 .mockupPoster {
-  width: 480px;
-  height: 800px;
   background: linear-gradient(180deg, #1e40af 0%, #047857 100%);
   border-radius: 0;
   box-shadow: 0 10px 25px rgba(0,0,0,0.1);
   position: relative;
-  overflow: visible;
-  transform: scale(0.85);
-  transform-origin: top center;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 /* Fake content inside the poster */

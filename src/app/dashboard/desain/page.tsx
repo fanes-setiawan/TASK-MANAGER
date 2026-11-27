@@ -64,14 +64,14 @@ export default function DesainMockupPage() {
     { 
       id: "Page 1", 
       elements: initialElements, 
-      canvasSize: '500x1024', 
+      canvasSize: '1080x2400', 
       canvasBackground: 'linear-gradient(135deg, #1e40af 0%, #047857 100%)',
       canvasBgImage: null,
       canvasBgOpacity: 1,
       canvasBgMode: 'cover',
       canvasBgScale: 100,
       canvasBgPattern: 'none',
-      mockupFrame: 'iphone15',
+      mockupFrame: 'android',
       is3D: true
     }
   ]);
@@ -1128,25 +1128,28 @@ const getPatternStyle = (pattern: string) => {
 
           <div className={styles.canvasContainer} onClick={() => setActiveLayer("Background")}>
             <div style={{
-              width: currentCanvasWidth * (activeZoom / 100),
-              height: currentCanvasHeight * (activeZoom / 100),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               position: 'relative',
-              transition: 'all 0.2s ease-out'
+              padding: '40px 0',
             }}>
-              <div ref={canvasRef} className={styles.mockupPoster} style={{ 
-                transform: `scale(${activeZoom / 100})`, 
-                transformOrigin: 'center',
-                boxShadow: shadowEnabled ? '0 20px 40px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.1)',
-                background: canvasBackground,
-                width: currentCanvasWidth,
-                height: currentCanvasHeight,
-                position: 'relative',
-                overflow: 'hidden',
-                outline: activeLayer === "Background" ? '4px solid #2563eb' : 'none'
-              }}>
+              <div 
+                ref={canvasRef} 
+                className={styles.mockupPoster} 
+                style={{ 
+                  transform: `scale(${activeZoom / 100})`, 
+                  transformOrigin: 'top center',
+                  boxShadow: shadowEnabled ? '0 20px 40px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.1)',
+                  background: canvasBackground,
+                  width: currentCanvasWidth,
+                  height: currentCanvasHeight,
+                  position: 'relative',
+                  outline: activeLayer === "Background" ? '4px solid #2563eb' : 'none',
+                  marginBottom: `calc(${currentCanvasHeight}px * ${(activeZoom / 100) - 1})`,
+                  marginRight: `calc(${currentCanvasWidth}px * ${(activeZoom / 100) - 1})`,
+                }}
+              >
               
               {/* RENDER BACKGROUND IMAGE */}
               {canvasBgImage && (
