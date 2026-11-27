@@ -786,3 +786,171 @@
 .alignBtn:hover {
   background-color: #f8fafc;
 }
+
+/* ==========================================================================
+   PROFESSIONAL MOCKUP EDITOR EXPANSIONS (Canva/Figma Grade)
+   ========================================================================== */
+
+.editorTabs {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.editorTabBtn {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.editorTabBtnActive {
+  background: white;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.themeCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  background: white;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.themeCard:hover {
+  transform: translateY(-2px);
+  border-color: #3b82f6;
+  box-shadow: 0 8px 16px -4px rgba(59, 130, 246, 0.15);
+}
+
+.themeCardActive {
+  border: 2px solid #2563eb !important;
+  background: #eff6ff !important;
+}
+
+.themePreviewStrip {
+  display: flex;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.canvasSmartRuler {
+  position: absolute;
+  pointer-events: none;
+  z-index: 99;
+}
+
+.snapGuideLineX {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: #3b82f6;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
+}
+
+.snapGuideLineY {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: #3b82f6;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
+}
+
+.transformHandle {
+  width: 10px;
+  height: 10px;
+  background: white;
+  border: 2px solid #2563eb;
+  border-radius: 2px;
+  position: absolute;
+  z-index: 50;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.propertySectionTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin: 14px 0 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.segmentedControl {
+  display: flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.segmentedBtn {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.segmentedBtnActive {
+  background: white;
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.layerItemRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+  font-size: 13px;
+}
+
+.layerItemRow:hover {
+  background: #f8fafc;
+}
+
+.layerItemRowActive {
+  background: #eff6ff !important;
+  color: #1d4ed8;
+  font-weight: 600;
+}

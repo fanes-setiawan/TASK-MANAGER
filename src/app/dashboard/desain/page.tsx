@@ -6,6 +6,11 @@ import { DraggableDialog } from "@/components/DraggableDialog";
 import * as htmlToImage from "html-to-image";
 import { auth } from "@/lib/firebase/client";
 import { onAuthStateChanged, User } from "firebase/auth";
+import { RealisticDevice } from "@/components/mockup/RealisticDevice";
+import { DeviceType, DeviceColor, DEVICE_SPECS, COLOR_CONFIGS } from "@/components/mockup/deviceSpecs";
+import { THEME_LIBRARY, ThemeConfig } from "@/components/mockup/themeLibrary";
+import { LAYOUT_PRESETS, LayoutPreset, VISUAL_ASSETS } from "@/components/mockup/layoutPresets";
+
 export type ElementType = 'text' | 'mockup' | 'badge' | 'logo' | 'background' | 'image_card';
 
 export interface CanvasElement {
@@ -19,8 +24,12 @@ export interface CanvasElement {
   fontSize?: number;
   color?: string;
   fontWeight?: string | number;
+  fontFamily?: string;
   icon?: string;
   hidden?: boolean;
+  locked?: boolean;
+  rotation?: number;
+  opacity?: number;
   imageUrl?: string;
 }
 
@@ -35,6 +44,10 @@ export interface PageData {
   canvasBgScale: number;
   canvasBgPattern?: string;
   mockupFrame: 'iphone15' | 'iphone13' | 'android';
+  deviceType?: DeviceType;
+  deviceColor?: DeviceColor;
+  deviceReflection?: boolean;
+  deviceAmbientLight?: boolean;
   is3D?: boolean;
 }
 
@@ -234,7 +247,213 @@ const getPatternStyle = (pattern: string) => {
   const canvasBgScale = activePageData.canvasBgScale;
   const canvasBgPattern = activePageData.canvasBgPattern || 'none';
   const mockupFrame = activePageData.mockupFrame || 'iphone13';
+  const deviceType: DeviceType = activePageData.deviceType || (mockupFrame === 'android' ? 'android_punch_hole' : mockupFrame === 'iphone15' ? 'iphone_dynamic_island' : 'iphone_notch');
+  const deviceColor: DeviceColor = activePageData.deviceColor || 'titanium';
+  const deviceReflection = activePageData.deviceReflection ?? true;
+  const deviceAmbientLight = activePageData.deviceAmbientLight ?? true;
   const is3D = activePageData.is3D ?? false;
+
+  // Professional Editor Tab State
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'themes' | 'devices' | 'layouts' | 'assets'>('themes');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [copiedElement, setCopiedElement] = useState<CanvasElement | null>(null);
+
+  // Undo / Redo History Management
+  const [history, setHistory] = useState<PageData[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+
+  const pushHistory = (newPages: PageData[]) => {
+    setHistory(prev => {
+      const upToCurrent = prev.slice(0, historyIndex + 1);
+      return [...upToCurrent, JSON.parse(JSON.stringify(newPages))];
+    });
+    setHistoryIndex(prev => prev + 1);
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      const prevPages = history[historyIndex - 1];
+      setPages(JSON.parse(JSON.stringify(prevPages)));
+      setHistoryIndex(historyIndex - 1);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      const nextPages = history[historyIndex + 1];
+      setPages(JSON.parse(JSON.stringify(nextPages)));
+      setHistoryIndex(historyIndex + 1);
+    }
+  };
+
+  // Keyboard Shortcuts: Ctrl+C, Ctrl+V, Delete, Undo, Redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      // Copy: Ctrl+C
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+        const activeEl = elements.find(el => el.id === activeLayer);
+        if (activeEl) {
+          setCopiedElement(JSON.parse(JSON.stringify(activeEl)));
+          e.preventDefault();
+        }
+      }
+
+      // Paste: Ctrl+V
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+        if (copiedElement) {
+          const newId = `${copiedElement.id} (Salinan ${Date.now().toString().slice(-4)})`;
+          const pastedEl: CanvasElement = {
+            ...copiedElement,
+            id: newId,
+            x: copiedElement.x + 25,
+            y: copiedElement.y + 25
+          };
+          setElements(prev => [...prev, pastedEl]);
+          setActiveLayer(newId);
+          e.preventDefault();
+        }
+      }
+
+      // Duplicate: Ctrl+D
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+        const activeEl = elements.find(el => el.id === activeLayer);
+        if (activeEl) {
+          const newId = `${activeEl.id} (Copy)`;
+          const dupeEl: CanvasElement = {
+            ...activeEl,
+            id: newId,
+            x: activeEl.x + 20,
+            y: activeEl.y + 20
+          };
+          setElements(prev => [...prev, dupeEl]);
+          setActiveLayer(newId);
+          e.preventDefault();
+        }
+      }
+
+      // Delete: Delete or Backspace
+      if (e.key === 'Delete' && activeLayer !== 'Background') {
+        setElements(prev => prev.filter(el => el.id !== activeLayer));
+        setActiveLayer('Background');
+        e.preventDefault();
+      }
+
+      // Undo: Ctrl+Z
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        handleUndo();
+        e.preventDefault();
+      }
+
+      // Redo: Ctrl+Y or Ctrl+Shift+Z
+      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+        handleRedo();
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeLayer, elements, copiedElement, historyIndex, history]);
+
+  // Apply Theme Function
+  const applyTheme = (theme: ThemeConfig) => {
+    updatePageProperty({
+      canvasBackground: theme.background,
+      canvasBgPattern: theme.bgPattern || 'none',
+      canvasBgImage: theme.bgImage || null,
+      deviceType: theme.deviceType,
+      deviceColor: theme.deviceColor,
+      is3D: theme.is3D,
+      mockupFrame: theme.deviceType.startsWith('android') ? 'android' : theme.deviceType.includes('notch') ? 'iphone13' : 'iphone15'
+    });
+
+    setElements(prev => {
+      return prev.map(el => {
+        if (el.id === 'Judul') {
+          return {
+            ...el,
+            text: theme.titleText,
+            color: theme.textColor,
+            fontWeight: 800
+          };
+        }
+        if (el.id === 'Subtitle') {
+          return {
+            ...el,
+            text: theme.subtitleText,
+            color: theme.subtextColor,
+            fontWeight: 500
+          };
+        }
+        if (el.id === 'Header Label' || el.type === 'badge') {
+          return {
+            ...el,
+            text: theme.headerBadge.text,
+            icon: theme.headerBadge.icon,
+            color: theme.headerBadge.color,
+            hidden: false
+          };
+        }
+        return el;
+      });
+    });
+  };
+
+  // Apply Layout Preset
+  const applyLayoutPreset = (preset: LayoutPreset) => {
+    setElements(prev => {
+      const currentMockup = prev.find(el => el.type === 'mockup');
+      const updated = prev.map(el => {
+        if (el.id === 'Judul') {
+          return { ...el, x: preset.setup.titlePos.x, y: preset.setup.titlePos.y, w: preset.setup.titlePos.w || el.w };
+        }
+        if (el.id === 'Subtitle') {
+          return { ...el, x: preset.setup.subtitlePos.x, y: preset.setup.subtitlePos.y, w: preset.setup.subtitlePos.w || el.w };
+        }
+        if (el.id === 'Header Label' && preset.setup.badgePos) {
+          return { ...el, x: preset.setup.badgePos.x, y: preset.setup.badgePos.y };
+        }
+        if (el.type === 'mockup') {
+          const firstPos = preset.setup.mockupPositions[0];
+          return {
+            ...el,
+            x: firstPos.x,
+            y: firstPos.y,
+            w: firstPos.w || el.w,
+            h: firstPos.h || el.h,
+            rotation: firstPos.rotation ?? 0
+          };
+        }
+        return el;
+      });
+
+      // If preset has 2 devices and only 1 exists, add second device
+      if (preset.setup.deviceCount > 1 && !updated.find(el => el.id === 'Mockup 2')) {
+        const secondPos = preset.setup.mockupPositions[1];
+        updated.push({
+          id: 'Mockup 2',
+          type: 'mockup',
+          x: secondPos.x,
+          y: secondPos.y,
+          w: secondPos.w || 240,
+          h: secondPos.h || 500,
+          rotation: secondPos.rotation ?? 0
+        });
+      }
+
+      return updated;
+    });
+
+    if (preset.setup.mockupPositions[0]?.is3D !== undefined) {
+      updatePageProperty({ is3D: preset.setup.mockupPositions[0].is3D });
+    }
+  };
 
   // Dimensi Kanvas Responsif & Akurat
   const { width: currentCanvasWidth, height: currentCanvasHeight } = React.useMemo(() => {
@@ -365,7 +584,7 @@ const getPatternStyle = (pattern: string) => {
 
   const activeData = elements.find(el => el.id === activeLayer) || { type: 'background' } as any;
 
-  const handlePropChange = (field: string, value: string | number) => {
+  const handlePropChange = (field: string, value: any) => {
     setElements(prev => prev.map(el => {
       if (el.id === activeLayer) {
         return { ...el, [field]: value };
@@ -1323,136 +1542,294 @@ const getPatternStyle = (pattern: string) => {
         </DraggableDialog>
 
         <DraggableDialog 
-          title="Templates & Mockup" 
+          title="Studio Templates & Devices" 
           isOpen={showTemplates} 
           onClose={() => setShowTemplates(false)}
-          defaultPosition={{ x: 20, y: 400 }}
+          defaultPosition={{ x: 20, y: 380 }}
           zIndex={zIndices.templates}
           onFocus={() => bringToFront('templates')}
-          width={320}
-          maxHeight="50vh"
+          width={360}
+          maxHeight="65vh"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <h3 style={{fontSize: 11, color: 'var(--color-outline)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700}}>Pilih Template</h3>
-              <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-                 <div onClick={() => applyTemplate('klasik')} style={{
-                   padding: 12, borderRadius: 8, cursor: 'pointer', border: !is3D ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: !is3D ? '#eff6ff' : 'white', transition: 'all 0.2s'
-                 }}>
-                    <div style={{fontSize: 13, fontWeight: 600, color: !is3D ? '#1e40af' : 'var(--color-textColor)', marginBottom: 2}}>Klasik (Datar)</div>
-                    <div style={{fontSize: 11, color: 'var(--color-outline)', lineHeight: 1.4}}>Desain bersih dengan badge fitur melayang.</div>
-                 </div>
-                 <div onClick={() => applyTemplate('modern')} style={{
-                   padding: 12, borderRadius: 8, cursor: 'pointer', border: is3D && canvasBackground !== 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: is3D && canvasBackground !== 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '#eff6ff' : 'white', transition: 'all 0.2s'
-                 }}>
-                    <div style={{fontSize: 13, fontWeight: 600, color: is3D && canvasBackground !== 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '#1e40af' : 'var(--color-textColor)', marginBottom: 2}}>Modern (3D)</div>
-                    <div style={{fontSize: 11, color: 'var(--color-outline)', lineHeight: 1.4}}>Gaya terkini dengan efek memutar 3D.</div>
-                 </div>
-                 <div onClick={() => applyTemplate('streaming')} style={{
-                   padding: 12, borderRadius: 8, cursor: 'pointer', border: canvasBackground === 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: canvasBackground === 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '#eff6ff' : 'white', transition: 'all 0.2s'
-                 }}>
-                    <div style={{fontSize: 13, fontWeight: 600, color: canvasBackground === 'radial-gradient(circle at 50% 10%, #dc2626 0%, #7f1d1d 60%, #450a0a 100%)' ? '#1e40af' : 'var(--color-textColor)', marginBottom: 2}}>Streaming App</div>
-                    <div style={{fontSize: 11, color: 'var(--color-outline)', lineHeight: 1.4}}>Background merah gelap dengan judul tegas di atas mockup.</div>
-                 </div>
+          {/* TAB NAVIGATION: THEMES, DEVICES, LAYOUTS, ASSETS */}
+          <div className={styles.editorTabs}>
+            <button 
+              className={`${styles.editorTabBtn} ${activeSidebarTab === 'themes' ? styles.editorTabBtnActive : ''}`}
+              onClick={() => setActiveSidebarTab('themes')}
+            >
+              <span className="material-symbols-outlined" style={{fontSize: 16}}>palette</span>
+              17 Tema
+            </button>
+            <button 
+              className={`${styles.editorTabBtn} ${activeSidebarTab === 'devices' ? styles.editorTabBtnActive : ''}`}
+              onClick={() => setActiveSidebarTab('devices')}
+            >
+              <span className="material-symbols-outlined" style={{fontSize: 16}}>smartphone</span>
+              Perangkat
+            </button>
+            <button 
+              className={`${styles.editorTabBtn} ${activeSidebarTab === 'layouts' ? styles.editorTabBtnActive : ''}`}
+              onClick={() => setActiveSidebarTab('layouts')}
+            >
+              <span className="material-symbols-outlined" style={{fontSize: 16}}>view_quilt</span>
+              Layout
+            </button>
+            <button 
+              className={`${styles.editorTabBtn} ${activeSidebarTab === 'assets' ? styles.editorTabBtnActive : ''}`}
+              onClick={() => setActiveSidebarTab('assets')}
+            >
+              <span className="material-symbols-outlined" style={{fontSize: 16}}>auto_awesome</span>
+              Aset
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* TAB 1: 17 THEME LIBRARY WITH LIVE PREVIEWS */}
+            {activeSidebarTab === 'themes' && (
+              <div>
+                {/* Category Filter Pills */}
+                <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 8 }}>
+                  {['All', 'Minimalist', 'Corporate', 'Luxe', 'Gradient', 'Food', 'Fintech', 'Modern'].map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 14,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        border: selectedCategory === cat ? '1px solid #2563eb' : '1px solid #e2e8f0',
+                        background: selectedCategory === cat ? '#eff6ff' : '#ffffff',
+                        color: selectedCategory === cat ? '#1d4ed8' : '#64748b',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {THEME_LIBRARY
+                    .filter(th => {
+                      if (selectedCategory === 'All') return true;
+                      return th.category.toLowerCase().includes(selectedCategory.toLowerCase()) || th.name.toLowerCase().includes(selectedCategory.toLowerCase());
+                    })
+                    .map(theme => (
+                      <div
+                        key={theme.id}
+                        className={styles.themeCard}
+                        onClick={() => applyTheme(theme)}
+                      >
+                        {/* Visual color palette preview bar */}
+                        <div className={styles.themePreviewStrip}>
+                          {theme.previewColors.map((color, idx) => (
+                            <div key={idx} style={{ flex: 1, background: color }} />
+                          ))}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{theme.name}</div>
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{theme.category}</div>
+                          </div>
+                          <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#3b82f6' }}>arrow_forward</span>
+                        </div>
+                        <p style={{ fontSize: 11, color: '#94a3b8', margin: '6px 0 0', lineHeight: 1.35 }}>
+                          {theme.description}
+                        </p>
+                      </div>
+                    ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div>
-              <h3 style={{fontSize: 11, color: 'var(--color-outline)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700}}>Pilih Bundle Mockup (1 Set)</h3>
-              <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
-                 <div onClick={() => {
-                   if(window.confirm('Terapkan bundle Health & Calories Tracker (4 Halaman)?')) {
-                     applyBundle('food_health_bundle');
-                   }
-                 }} style={{
-                   padding: 12, borderRadius: 8, cursor: 'pointer', border: '1px solid #14b8a6', background: '#f0fdfa', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
-                 }}>
-                    <div style={{position: 'absolute', top: 0, right: 0, background: '#0d9488', color: 'white', fontSize: 9, padding: '2px 8px', borderBottomLeftRadius: 8, fontWeight: 'bold'}}>FOOD & HEALTH</div>
-                    <div style={{fontSize: 13, fontWeight: 700, color: '#115e59', marginBottom: 2}}>Health & Calories Tracker</div>
-                    <div style={{fontSize: 11, color: '#0f766e', lineHeight: 1.4}}>Tema segar hijau toska dengan tipografi tebal modern & badge rating.</div>
-                 </div>
+            {/* TAB 2: REALISTIC DEVICES & HARDWARE CUTOUTS */}
+            {activeSidebarTab === 'devices' && (
+              <div>
+                <h4 className={styles.propertySectionTitle}>Pilih Tipe Hardware Device</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 16 }}>
+                  {(Object.keys(DEVICE_SPECS) as DeviceType[]).map(dType => {
+                    const spec = DEVICE_SPECS[dType];
+                    const isSelected = deviceType === dType;
+                    return (
+                      <div
+                        key={dType}
+                        onClick={() => updatePageProperty({ 
+                          deviceType: dType,
+                          mockupFrame: dType.startsWith('android') ? 'android' : dType.includes('notch') ? 'iphone13' : 'iphone15'
+                        })}
+                        style={{
+                          padding: 10,
+                          borderRadius: 8,
+                          border: isSelected ? '2px solid #2563eb' : '1px solid #e2e8f0',
+                          background: isSelected ? '#eff6ff' : 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          textAlign: 'center'
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 26, color: isSelected ? '#2563eb' : '#64748b', marginBottom: 4 }}>
+                          {dType === 'tablet_modern' ? 'tablet_mac' : 'smartphone'}
+                        </span>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: isSelected ? '#1d4ed8' : '#0f172a' }}>{spec.name.split('(')[0]}</div>
+                        <div style={{ fontSize: 10, color: '#94a3b8' }}>{spec.category}</div>
+                      </div>
+                    );
+                  })}
+                </div>
 
-                 <div onClick={() => {
-                   if(window.confirm('Terapkan bundle Travel & Booking (4 Halaman)?')) {
-                     applyBundle('travel_booking_bundle');
-                   }
-                 }} style={{
-                   padding: 12, borderRadius: 8, cursor: 'pointer', border: '1px solid #60a5fa', background: '#eff6ff', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
-                 }}>
-                    <div style={{position: 'absolute', top: 0, right: 0, background: '#2563eb', color: 'white', fontSize: 9, padding: '2px 8px', borderBottomLeftRadius: 8, fontWeight: 'bold'}}>TRAVEL & STAY</div>
-                    <div style={{fontSize: 13, fontWeight: 700, color: '#1e3a8a', marginBottom: 2}}>Travel & Hotel Booking</div>
-                    <div style={{fontSize: 11, color: '#1d4ed8', lineHeight: 1.4}}>Tema biru royal elegan dengan pola titik & floating tags.</div>
-                 </div>
+                <h4 className={styles.propertySectionTitle}>Warna Frame Hardware</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+                  {(Object.keys(COLOR_CONFIGS) as DeviceColor[]).map(cKey => {
+                    const conf = COLOR_CONFIGS[cKey];
+                    const isSelected = deviceColor === cKey;
+                    return (
+                      <div
+                        key={cKey}
+                        onClick={() => updatePageProperty({ deviceColor: cKey })}
+                        style={{
+                          padding: 8,
+                          borderRadius: 8,
+                          border: isSelected ? '2px solid #2563eb' : '1px solid #e2e8f0',
+                          background: isSelected ? '#eff6ff' : 'white',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8
+                        }}
+                      >
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', background: conf.bodyGradient, border: `1px solid ${conf.borderOuter}` }} />
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#334155' }}>{cKey}</span>
+                      </div>
+                    );
+                  })}
+                </div>
 
-                 <div onClick={() => {
-                   if(window.confirm('Terapkan bundle Food Delivery & Restaurant (4 Halaman)?')) {
-                     applyBundle('food_delivery_bundle');
-                   }
-                 }} style={{
-                   padding: 12, borderRadius: 8, cursor: 'pointer', border: '1px solid #d1fae5', background: '#fcfbf7', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
-                 }}>
-                    <div style={{position: 'absolute', top: 0, right: 0, background: '#064e3b', color: 'white', fontSize: 9, padding: '2px 8px', borderBottomLeftRadius: 8, fontWeight: 'bold'}}>FOOD DELIVERY</div>
-                    <div style={{fontSize: 13, fontWeight: 700, color: '#064e3b', marginBottom: 2}}>Warm Cream & Green Delivery</div>
-                    <div style={{fontSize: 11, color: '#047857', lineHeight: 1.4}}>Gaya minimalis organik warna cream hangat & hijau hutan.</div>
-                 </div>
-
-                 <div onClick={() => {
-                   if(window.confirm('Terapkan bundle Water & Hydration Tracker (4 Halaman)?')) {
-                     applyBundle('water_tracker_bundle');
-                   }
-                 }} style={{
-                   padding: 12, borderRadius: 8, cursor: 'pointer', border: '1px solid #7dd3fc', background: '#f0f9ff', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
-                 }}>
-                    <div style={{position: 'absolute', top: 0, right: 0, background: '#0284c7', color: 'white', fontSize: 9, padding: '2px 8px', borderBottomLeftRadius: 8, fontWeight: 'bold'}}>HYDRATION & HABIT</div>
-                    <div style={{fontSize: 13, fontWeight: 700, color: '#0369a1', marginBottom: 2}}>Splash Water Tracker</div>
-                    <div style={{fontSize: 11, color: '#0284c7', lineHeight: 1.4}}>Aura segar warna biru air dengan pola ombak cair.</div>
-                 </div>
-
-                 <div onClick={() => {
-                   if(window.confirm('Terapkan bundle Gradient Pop Social App (4 Halaman)?')) {
-                     applyBundle('social_gradient_bundle');
-                   }
-                 }} style={{
-                   padding: 12, borderRadius: 8, cursor: 'pointer', border: '1px solid #f472b6', background: '#fdf2f8', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
-                 }}>
-                    <div style={{position: 'absolute', top: 0, right: 0, background: '#db2777', color: 'white', fontSize: 9, padding: '2px 8px', borderBottomLeftRadius: 8, fontWeight: 'bold'}}>SOCIAL & CHAT</div>
-                    <div style={{fontSize: 13, fontWeight: 700, color: '#831843', marginBottom: 2}}>Gradient Pop Vibrant</div>
-                    <div style={{fontSize: 11, color: '#be185d', lineHeight: 1.4}}>Gradasi dinamis ungu-pink masa kini ala media sosial & AI.</div>
-                 </div>
+                <h4 className={styles.propertySectionTitle}>Efek & Sudut Pandang</h4>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    className={`${styles.segmentedBtn} ${!is3D ? styles.segmentedBtnActive : ''}`}
+                    onClick={() => updatePageProperty({ is3D: false })}
+                    style={{ flex: 1, padding: 8, border: '1px solid #e2e8f0' }}
+                  >
+                    Datar (Frontal)
+                  </button>
+                  <button
+                    className={`${styles.segmentedBtn} ${is3D ? styles.segmentedBtnActive : ''}`}
+                    onClick={() => updatePageProperty({ is3D: true })}
+                    style={{ flex: 1, padding: 8, border: '1px solid #e2e8f0' }}
+                  >
+                    3D Perspective
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div>
-              <h3 style={{fontSize: 11, color: 'var(--color-outline)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700}}>Pilih Mockup Frame</h3>
-              <div style={{display: 'flex', gap: 8, overflowX: 'auto'}}>
-                 <div onClick={() => updatePageProperty({ mockupFrame: 'iphone15' })} style={{
-                   width: 70, flexShrink: 0, padding: 8, borderRadius: 8, cursor: 'pointer', border: mockupFrame === 'iphone15' ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: mockupFrame === 'iphone15' ? '#eff6ff' : 'white', display: 'flex', flexDirection: 'column', alignItems: 'center'
-                 }}>
-                    <div style={{width: 30, height: 60, border: '2px solid #94a3b8', borderRadius: 6, position: 'relative', marginBottom: 8}}>
-                      <div style={{position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)', width: 12, height: 4, background: '#94a3b8', borderRadius: 4}}></div>
+            {/* TAB 3: LAYOUT PRESETS */}
+            {activeSidebarTab === 'layouts' && (
+              <div>
+                <h4 className={styles.propertySectionTitle}>Layout Komposisi Mockup</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {LAYOUT_PRESETS.map(preset => (
+                    <div
+                      key={preset.id}
+                      onClick={() => applyLayoutPreset(preset)}
+                      style={{
+                        padding: 12,
+                        borderRadius: 8,
+                        border: '1px solid #e2e8f0',
+                        background: 'white',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 24, color: '#3b82f6' }}>{preset.icon}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{preset.name}</div>
+                        <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.3 }}>{preset.description}</div>
+                      </div>
                     </div>
-                    <div style={{fontSize: 10, textAlign: 'center', fontWeight: 600, color: mockupFrame === 'iphone15' ? '#1e40af' : 'var(--color-textColor)'}}>iPhone 15</div>
-                 </div>
-
-                 <div onClick={() => updatePageProperty({ mockupFrame: 'android' })} style={{
-                   width: 70, flexShrink: 0, padding: 8, borderRadius: 8, cursor: 'pointer', border: mockupFrame === 'android' ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: mockupFrame === 'android' ? '#eff6ff' : 'white', display: 'flex', flexDirection: 'column', alignItems: 'center'
-                 }}>
-                    <div style={{width: 30, height: 60, border: '2px solid #94a3b8', borderRadius: 6, position: 'relative', marginBottom: 8}}>
-                      <div style={{position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)', width: 3, height: 3, background: '#94a3b8', borderRadius: 2}}></div>
-                    </div>
-                    <div style={{fontSize: 10, textAlign: 'center', fontWeight: 600, color: mockupFrame === 'android' ? '#1e40af' : 'var(--color-textColor)'}}>Android</div>
-                 </div>
-
-                 <div onClick={() => updatePageProperty({ mockupFrame: 'iphone13' })} style={{
-                   width: 70, flexShrink: 0, padding: 8, borderRadius: 8, cursor: 'pointer', border: mockupFrame === 'iphone13' ? '2px solid #2563eb' : '1px solid var(--color-outline-variant)', background: mockupFrame === 'iphone13' ? '#eff6ff' : 'white', display: 'flex', flexDirection: 'column', alignItems: 'center'
-                 }}>
-                    <div style={{width: 30, height: 60, border: '2px solid #94a3b8', borderRadius: 6, position: 'relative', marginBottom: 8}}>
-                      <div style={{position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 14, height: 4, background: '#94a3b8', borderBottomLeftRadius: 2, borderBottomRightRadius: 2}}></div>
-                    </div>
-                    <div style={{fontSize: 10, textAlign: 'center', fontWeight: 600, color: mockupFrame === 'iphone13' ? '#1e40af' : 'var(--color-textColor)'}}>iPhone 13</div>
-                 </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* TAB 4: VISUAL ASSETS */}
+            {activeSidebarTab === 'assets' && (
+              <div>
+                <h4 className={styles.propertySectionTitle}>Preset Background Dinamis</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 16 }}>
+                  {VISUAL_ASSETS[0].assets.map(asset => (
+                    <div
+                      key={asset.id}
+                      onClick={() => updatePageProperty({ canvasBackground: (asset.style as any)?.background })}
+                      style={{
+                        height: 55,
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'flex-end',
+                        padding: 6,
+                        boxSizing: 'border-box',
+                        color: 'white',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        ...asset.style
+                      }}
+                    >
+                      {asset.name}
+                    </div>
+                  ))}
+                </div>
+
+                <h4 className={styles.propertySectionTitle}>Tambah Badge / Floating Pill</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {VISUAL_ASSETS[1].assets.map(badge => (
+                    <button
+                      key={badge.id}
+                      onClick={() => {
+                        const newId = `Badge ${Date.now().toString().slice(-4)}`;
+                        setElements(prev => [...prev, {
+                          id: newId,
+                          type: 'badge',
+                          text: badge.name,
+                          icon: 'verified',
+                          x: 100,
+                          y: 200,
+                          color: '#ffffff'
+                        }]);
+                        setActiveLayer(newId);
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: 20,
+                        border: '1px solid #bfdbfe',
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>verified</span>
+                      + {badge.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </DraggableDialog>
 
@@ -1656,49 +2033,40 @@ const getPatternStyle = (pattern: string) => {
                 }
 
                 if (el.type === 'mockup') {
+                  const elW = el.w || (deviceType === 'tablet_modern' ? 380 : 275);
+                  const elH = el.h || (deviceType === 'tablet_modern' ? 510 : 605);
+
                   return (
                     <div 
                       key={el.id}
-                      className={styles.phoneMockup} 
                       style={{
                         position: 'absolute',
                         top: el.y, left: el.x,
-                        transform: is3D ? 'rotateZ(-15deg) rotateX(10deg) rotateY(-15deg) scale(0.95)' : 'none',
-                        boxShadow: is3D ? '-30px 40px 50px rgba(0,0,0,0.4)' : 'none',
-                        transition: 'transform 0.3s',
-                        cursor: 'move',
-                        outline: activeLayer === el.id ? '4px dashed #2563eb' : 'none'
+                        cursor: el.locked ? 'default' : 'move',
+                        outline: activeLayer === el.id ? '2px dashed #2563eb' : 'none',
+                        outlineOffset: 6,
+                        borderRadius: 36,
+                        zIndex: 10
                       }}
-                      onMouseDown={(e) => { e.stopPropagation(); setActiveLayer(el.id); setDraggingLayer(el.id); }}
+                      onMouseDown={(e) => { 
+                        if (el.locked) return;
+                        e.stopPropagation(); 
+                        setActiveLayer(el.id); 
+                        setDraggingLayer(el.id); 
+                      }}
                     >
-                      {mockupFrame === 'iphone13' && <div className={styles.phoneNotch}></div>}
-                      {mockupFrame === 'iphone15' && <div className={styles.phoneDynamicIsland}></div>}
-                      {mockupFrame === 'android' && <div className={styles.phoneHolePunch}></div>}
-                      <div className={styles.phoneScreen} style={{ position: 'relative', overflow: 'hidden' }}>
-                        {screenshotUrl ? (
-                          <div style={{width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 10}}>
-                            <img src={screenshotUrl} alt="Screenshot Mockup" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}} />
-                          </div>
-                        ) : (
-                          <>
-                            <div style={{height: 120, background: '#1e40af', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: '24px 16px', color: 'white'}}>
-                              <h3 style={{margin:0, fontSize: 16}}>Selamat Datang di</h3>
-                              <p style={{margin:0, fontSize: 12, opacity:0.8}}>Aplikasi CBT Sekolahkita.net</p>
-                            </div>
-                            <div style={{padding: 16}}>
-                                <div style={{width:'100%', height: 120, background: '#e2e8f0', borderRadius: 8, marginBottom: 16}}></div>
-                                <div style={{display:'flex', gap: 12, marginBottom: 12}}>
-                                  <div style={{flex:1, height: 80, background: '#e2e8f0', borderRadius: 8}}></div>
-                                  <div style={{flex:1, height: 80, background: '#e2e8f0', borderRadius: 8}}></div>
-                                </div>
-                                <div style={{display:'flex', gap: 12}}>
-                                  <div style={{flex:1, height: 80, background: '#e2e8f0', borderRadius: 8}}></div>
-                                  <div style={{flex:1, height: 80, background: '#e2e8f0', borderRadius: 8}}></div>
-                                </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      <RealisticDevice
+                        type={deviceType}
+                        color={deviceColor}
+                        screenshotUrl={screenshotUrl}
+                        width={elW}
+                        height={elH}
+                        rotation={el.rotation ?? 0}
+                        is3D={is3D}
+                        shadow={true}
+                        reflection={deviceReflection}
+                        ambientLight={deviceAmbientLight}
+                      />
                     </div>
                   );
                 }
@@ -1799,12 +2167,57 @@ const getPatternStyle = (pattern: string) => {
           defaultPosition={{ x: 1000, y: 80 }}
           zIndex={zIndices.properties}
           onFocus={() => bringToFront('properties')}
-          width={320}
-          maxHeight="70vh"
+          width={340}
+          maxHeight="75vh"
         >
-          <div className={styles.panelSection}>
-            <h4 className={styles.panelTitle}>Properti: {activeLayer}</h4>
-          </div>
+          {/* LAYER ACTIONS HEADER: DUPLICATE, LOCK, BRING FORWARD/BACK */}
+          {activeLayer !== "Background" && (
+            <div style={{ display: 'flex', gap: 6, padding: '0 0 12px 0', borderBottom: '1px solid #f1f5f9', marginBottom: 12 }}>
+              <button
+                className={styles.segmentedBtn}
+                style={{ flex: 1, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+                onClick={() => {
+                  const activeEl = elements.find(el => el.id === activeLayer);
+                  if (activeEl) {
+                    const newId = `${activeEl.id} (Copy)`;
+                    setElements(prev => [...prev, { ...activeEl, id: newId, x: activeEl.x + 20, y: activeEl.y + 20 }]);
+                    setActiveLayer(newId);
+                  }
+                }}
+                title="Duplikat Elemen"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>content_copy</span>
+                Duplikat
+              </button>
+              <button
+                className={styles.segmentedBtn}
+                style={{ flex: 1, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+                onClick={() => {
+                  const activeEl = elements.find(el => el.id === activeLayer);
+                  if (activeEl) {
+                    handlePropChange('locked', !activeEl.locked);
+                  }
+                }}
+                title="Kunci / Buka Kunci Layer"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                  {activeData.locked ? 'lock' : 'lock_open'}
+                </span>
+                {activeData.locked ? 'Terkunci' : 'Kunci'}
+              </button>
+              <button
+                className={styles.segmentedBtn}
+                style={{ flex: 'none', width: 36, border: '1px solid #fee2e2', color: '#ef4444' }}
+                onClick={() => {
+                  setElements(prev => prev.filter(el => el.id !== activeLayer));
+                  setActiveLayer('Background');
+                }}
+                title="Hapus Elemen"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+              </button>
+            </div>
+          )}
 
           {activeLayer === "Background" ? (
             <div className={styles.panelSection}>
@@ -1818,7 +2231,7 @@ const getPatternStyle = (pattern: string) => {
                 style={{marginBottom: 12}}
               />
               <div style={{display:'flex', gap: 8, flexWrap: 'wrap'}}>
-                {['#ffffff', '#1e293b', 'linear-gradient(135deg, #1d4ed8 0%, #10b981 100%)', 'linear-gradient(180deg, #1e40af 0%, #047857 100%)', 'linear-gradient(45deg, #f43f5e 0%, #fb923c 100%)', 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)'].map((bg, i) => (
+                {['#ffffff', '#0f172a', '#1e293b', 'linear-gradient(135deg, #1d4ed8 0%, #10b981 100%)', 'linear-gradient(180deg, #1e40af 0%, #047857 100%)', 'linear-gradient(45deg, #f43f5e 0%, #fb923c 100%)', 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)'].map((bg, i) => (
                   <div 
                     key={i} 
                     onClick={() => updatePageProperty({ canvasBackground: bg })}
@@ -2001,8 +2414,59 @@ const getPatternStyle = (pattern: string) => {
             </div>
           ) : (
             <>
+              {/* SPECIAL REALISTIC DEVICE SETTINGS PANEL */}
+              {activeData.type === 'mockup' && (
+                <div className={styles.panelSection} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: 16, marginBottom: 16 }}>
+                  <h4 className={styles.panelTitle}>Kustomisasi Perangkat Realistis</h4>
+
+                  <span className={styles.controlLabel} style={{ display: 'block', marginBottom: 4 }}>Tipe Perangkat</span>
+                  <select
+                    className={styles.selectField}
+                    value={deviceType}
+                    onChange={(e) => updatePageProperty({ 
+                      deviceType: e.target.value as DeviceType,
+                      mockupFrame: e.target.value.startsWith('android') ? 'android' : e.target.value.includes('notch') ? 'iphone13' : 'iphone15'
+                    })}
+                  >
+                    {(Object.keys(DEVICE_SPECS) as DeviceType[]).map(d => (
+                      <option key={d} value={d}>{DEVICE_SPECS[d].name}</option>
+                    ))}
+                  </select>
+
+                  <span className={styles.controlLabel} style={{ display: 'block', marginBottom: 4 }}>Warna Hardware Frame</span>
+                  <select
+                    className={styles.selectField}
+                    value={deviceColor}
+                    onChange={(e) => updatePageProperty({ deviceColor: e.target.value as DeviceColor })}
+                  >
+                    {(Object.keys(COLOR_CONFIGS) as DeviceColor[]).map(c => (
+                      <option key={c} value={c}>{COLOR_CONFIGS[c].name}</option>
+                    ))}
+                  </select>
+
+                  <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#334155', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={deviceReflection}
+                        onChange={(e) => updatePageProperty({ deviceReflection: e.target.checked })}
+                      />
+                      Refleksi Kaca Natural
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#334155', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={deviceAmbientLight}
+                        onChange={(e) => updatePageProperty({ deviceAmbientLight: e.target.checked })}
+                      />
+                      Ambient Rim Light
+                    </label>
+                  </div>
+                </div>
+              )}
+
               <div className={styles.panelSection}>
-                <h4 className={styles.panelTitle}>Posisi & Ukuran</h4>
+                <h4 className={styles.panelTitle}>Posisi, Ukuran & Rotasi</h4>
                 
                 {/* Tampilkan input teks jika layer mendukung teks */}
                 {(activeData.type === 'text' || activeData.type === 'badge') && (
@@ -2021,7 +2485,7 @@ const getPatternStyle = (pattern: string) => {
                 {(activeData.type === 'mockup' || activeData.type === 'image_card' || activeData.type === 'badge') && (
                   <div style={{marginBottom: 16}}>
                     <span className={styles.inputLabel} style={{display:'block', marginBottom:8}}>
-                      {activeData.type === 'mockup' ? 'Upload Gambar Mockup' : (activeData.type === 'badge' ? 'Upload Logo / Ikon' : 'Upload Gambar Popup')}
+                      {activeData.type === 'mockup' ? 'Upload Gambar Screenshot' : (activeData.type === 'badge' ? 'Upload Logo / Ikon' : 'Upload Gambar Popup')}
                     </span>
                     <div style={{
                       border: '2px dashed var(--color-outline)', 
@@ -2098,6 +2562,22 @@ const getPatternStyle = (pattern: string) => {
                     <input type="number" className={styles.inputField} value={activeData.h || 0} onChange={(e) => handlePropChange('h', Number(e.target.value))} />
                   </div>
                 </div>
+
+                {/* Rotasi Slider */}
+                <div style={{ marginTop: 12 }}>
+                  <span className={styles.controlLabel} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span>Rotasi</span>
+                    <span>{activeData.rotation || 0}°</span>
+                  </span>
+                  <input
+                    type="range"
+                    min="-45"
+                    max="45"
+                    value={activeData.rotation || 0}
+                    onChange={(e) => handlePropChange('rotation', Number(e.target.value))}
+                    style={{ width: '100%' }}
+                  />
+                </div>
               </div>
 
               {(activeData.type === 'text' || activeData.type === 'badge') && (
@@ -2106,10 +2586,11 @@ const getPatternStyle = (pattern: string) => {
                   
                   <span className={styles.controlLabel} style={{display:'block', marginBottom:4}}>Font Weight</span>
                   <select className={styles.selectField} value={activeData.fontWeight || 'normal'} onChange={(e) => handlePropChange('fontWeight', e.target.value)}>
-                    <option value="normal">Normal</option>
-                    <option value="500">Medium</option>
-                    <option value="bold">Bold</option>
-                    <option value="900">Black</option>
+                    <option value="normal">Normal (400)</option>
+                    <option value="500">Medium (500)</option>
+                    <option value="600">Semi Bold (600)</option>
+                    <option value="bold">Bold (700)</option>
+                    <option value="900">Black / Ultra (900)</option>
                   </select>
 
                   <span className={styles.controlLabel} style={{display:'block', marginBottom:4}}>Size & Color</span>
@@ -2129,8 +2610,6 @@ const getPatternStyle = (pattern: string) => {
               )}
             </>
           )}
-          
-
         </DraggableDialog>
       </div>
       {/* MODALS */}
