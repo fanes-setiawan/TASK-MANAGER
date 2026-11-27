@@ -216,6 +216,133 @@ const getPatternStyle = (pattern: string) => {
   const mockupFrame = activePageData.mockupFrame || 'iphone13';
   const is3D = activePageData.is3D ?? false;
 
+  // Dimensi Kanvas Responsif & Akurat
+  const { width: currentCanvasWidth, height: currentCanvasHeight } = React.useMemo(() => {
+    const parts = (canvasSize || '1080x1920').split('x');
+    const rawW = parseInt(parts[0], 10) || 1080;
+    const rawH = parseInt(parts[1], 10) || 1920;
+    const isLandscape = rawW > rawH;
+
+    if (canvasSize === '1024x500') {
+      return { width: 800, height: 390 };
+    }
+    if (canvasSize === '512x512' || canvasSize === '1024x1024' || canvasSize === '1080x1080') {
+      return { width: 520, height: 520 };
+    }
+    if (isLandscape) {
+      const width = 800;
+      const height = Math.round(width * (rawH / rawW));
+      return { width, height };
+    }
+    const width = 450;
+    const height = Math.round(width * (rawH / rawW));
+    return { width, height };
+  }, [canvasSize]);
+
+  // Import dari Play Store Submissions State
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [submissionsList, setSubmissionsList] = useState<any[]>([]);
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+
+  const fetchSubmissionsForImport = async () => {
+    if (!currentUser?.uid) return;
+    setLoadingSubmissions(true);
+    try {
+      const res = await fetch(`/api/playstore/submit?userId=${currentUser.uid}`);
+      const data = await res.json();
+      if (data.submissions) {
+        setSubmissionsList(data.submissions);
+      }
+    } catch (err) {
+      console.error("Failed to load submissions for import", err);
+    } finally {
+      setLoadingSubmissions(false);
+    }
+  };
+
+  const handleImportSubmissionAssets = (sub: any) => {
+    // 1. Update Project Name
+    setProjectName(`Mockup - ${sub.appName}`);
+
+    // 2. Kumpulkan screenshots yang ada
+    const phoneScreens = sub.uploadedAssets?.screenshots || [];
+    const appLogo = sub.uploadedAssets?.logo;
+
+    if (phoneScreens.length > 0) {
+      const newPages: PageData[] = phoneScreens.map((ss: any, idx: number) => {
+        const downloadUrl = `/api/playstore/download?submissionId=${sub.id}&fileId=${ss.id}`;
+        return {
+          id: `Page ${idx + 1}`,
+          canvasSize: '1080x2400',
+          canvasBackground: 'linear-gradient(135deg, #1e40af 0%, #047857 100%)',
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'android',
+          is3D: idx === 0, // Page 1 3D hero, halaman lainnya flat
+          elements: [
+            {
+              id: 'Header Label',
+              type: 'badge',
+              text: sub.appName,
+              imageUrl: appLogo?.id ? `/api/playstore/download?submissionId=${sub.id}&fileId=${appLogo.id}` : undefined,
+              icon: 'verified',
+              x: 120,
+              y: 50,
+              color: 'black',
+            },
+            {
+              id: 'Judul',
+              type: 'text',
+              text: idx === 0 ? sub.appName : `Fitur Unggulan #${idx + 1}`,
+              fontSize: 32,
+              color: '#FFFFFF',
+              x: 25,
+              y: 120,
+              w: 400,
+              fontWeight: 'bold',
+            },
+            {
+              id: 'Subtitle',
+              type: 'text',
+              text: idx === 0 ? (sub.shortDescription || 'Aplikasi Android Resmi') : 'Mudah, Cepat, dan Terpercaya',
+              fontSize: 16,
+              color: '#a7f3d0',
+              x: 25,
+              y: 200,
+              w: 400,
+              fontWeight: 500,
+            },
+            {
+              id: 'Mockup',
+              type: 'mockup',
+              x: 95,
+              y: 280,
+            },
+          ],
+        };
+      });
+
+      setPages(newPages);
+      setActivePageId(newPages[0].id);
+      if (phoneScreens[0]?.id) {
+        setScreenshotUrl(`/api/playstore/download?submissionId=${sub.id}&fileId=${phoneScreens[0].id}`);
+      }
+    } else {
+      // Jika hanya teks dan logo
+      setElements(prev => prev.map(el => {
+        if (el.id === 'Judul') return { ...el, text: sub.appName };
+        if (el.id === 'Subtitle') return { ...el, text: sub.shortDescription || el.text };
+        if (el.id === 'Header Label') return { ...el, text: sub.appName };
+        return el;
+      }));
+    }
+
+    setShowImportModal(false);
+  };
+
   const activeData = elements.find(el => el.id === activeLayer) || { type: 'background' } as any;
 
   const handlePropChange = (field: string, value: string | number) => {
@@ -413,8 +540,8 @@ const getPatternStyle = (pattern: string) => {
   React.useEffect(() => {
     if (!draggingLayer) return;
 
-    const canvasWidth = canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480;
-    const canvasHeight = canvasWidth * (parseInt(canvasSize.split('x')[1] || "1920") / parseInt(canvasSize.split('x')[0] || "1080"));
+    const canvasWidth = currentCanvasWidth;
+    const canvasHeight = currentCanvasHeight;
 
     const handleMouseMove = (e: MouseEvent) => {
       setElements((prev: CanvasElement[]) => {
@@ -766,6 +893,17 @@ const getPatternStyle = (pattern: string) => {
           <button className={styles.iconBtn} title="Buka Proyek" onClick={() => setShowOpenModal(true)} style={{marginLeft: 8, padding: '4px 8px', display: 'flex', gap: 4, alignItems: 'center', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13}}>
              <span className="material-symbols-outlined" style={{fontSize: 16}}>folder_open</span> Buka
           </button>
+          <button 
+            className={styles.iconBtn} 
+            title="Tarik Aset Screenshot dari Klien Play Store" 
+            onClick={() => {
+              setShowImportModal(true);
+              fetchSubmissionsForImport();
+            }} 
+            style={{marginLeft: 8, padding: '4px 10px', display: 'flex', gap: 4, alignItems: 'center', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, fontSize: 13, color: '#1d4ed8', fontWeight: 600}}
+          >
+             <span className="material-symbols-outlined" style={{fontSize: 16}}>cloud_download</span> Impor Aset Klien
+          </button>
         </div>
 
         <div className={styles.topBarCenter}>
@@ -990,8 +1128,8 @@ const getPatternStyle = (pattern: string) => {
 
           <div className={styles.canvasContainer} onClick={() => setActiveLayer("Background")}>
             <div style={{
-              width: (canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480) * (activeZoom / 100),
-              height: ((canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480) * (parseInt(canvasSize.split('x')[1]) / parseInt(canvasSize.split('x')[0]))) * (activeZoom / 100),
+              width: currentCanvasWidth * (activeZoom / 100),
+              height: currentCanvasHeight * (activeZoom / 100),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1003,8 +1141,8 @@ const getPatternStyle = (pattern: string) => {
                 transformOrigin: 'center',
                 boxShadow: shadowEnabled ? '0 20px 40px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.1)',
                 background: canvasBackground,
-                width: canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480,
-                height: (canvasSize.split('x')[0] && parseInt(canvasSize.split('x')[0]) > parseInt(canvasSize.split('x')[1]) ? 800 : 480) * (parseInt(canvasSize.split('x')[1]) / parseInt(canvasSize.split('x')[0])),
+                width: currentCanvasWidth,
+                height: currentCanvasHeight,
                 position: 'relative',
                 overflow: 'hidden',
                 outline: activeLayer === "Background" ? '4px solid #2563eb' : 'none'
@@ -1730,6 +1868,92 @@ const getPatternStyle = (pattern: string) => {
                   <div style={{fontSize: 12, color: '#64748b', marginTop: 8}}>Mohon tunggu, proses HD render memakan waktu.</div>
                 </div>
               )}
+           </div>
+         </div>
+       )}
+
+       {/* MODAL IMPORT DARI PLAY STORE SUBMISSIONS */}
+       {showImportModal && (
+         <div style={{position: 'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center'}}>
+           <div style={{background:'white', padding:24, borderRadius:12, width: 560, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
+                <div>
+                  <h3 style={{margin:0, fontSize: 18, color: '#0f172a'}}>Tarik Aset dari Submisi Play Store</h3>
+                  <p style={{margin: '4px 0 0 0', fontSize: 12, color: '#64748b'}}>Pilih submisi aplikasi untuk langsung mengimpor logo & screenshot ke editor mockup.</p>
+                </div>
+                <button className={styles.iconBtn} onClick={() => setShowImportModal(false)}><span className="material-symbols-outlined">close</span></button>
+              </div>
+
+              <div style={{overflowY: 'auto', flex: 1, paddingRight: 4}}>
+                {loadingSubmissions ? (
+                  <div style={{textAlign: 'center', padding: '32px 0', color: '#64748b'}}>
+                    <span className="material-symbols-outlined" style={{fontSize: 28, animation: 'spin 1s linear infinite'}}>autorenew</span>
+                    <p style={{marginTop: 8, fontSize: 13}}>Memuat daftar submisi klien...</p>
+                  </div>
+                ) : submissionsList.length === 0 ? (
+                  <div style={{textAlign: 'center', padding: 32, color: '#94a3b8'}}>
+                    <span className="material-symbols-outlined" style={{fontSize: 40, color: '#cbd5e1'}}>inbox</span>
+                    <p style={{marginTop: 8, fontWeight: 600}}>Belum ada submisi dari klien</p>
+                    <p style={{fontSize: 12}}>Kirimkan tautan pengumpulan aset ke klien terlebih dahulu di menu Play Store Assets.</p>
+                  </div>
+                ) : (
+                  <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
+                    {submissionsList.map((sub: any) => {
+                      const ssCount = sub.uploadedAssets?.screenshots?.length || 0;
+                      const logoId = sub.uploadedAssets?.logo?.id;
+                      return (
+                        <div 
+                          key={sub.id} 
+                          style={{
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center', 
+                            padding: '12px 16px', 
+                            border: '1px solid #e2e8f0', 
+                            borderRadius: 10, 
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            background: '#ffffff'
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#2563eb')}
+                          onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
+                          onClick={() => handleImportSubmissionAssets(sub)}
+                        >
+                          <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                            {logoId ? (
+                              <img 
+                                src={`/api/playstore/download?submissionId=${sub.id}&fileId=${logoId}`} 
+                                alt={sub.appName}
+                                style={{width: 44, height: 44, borderRadius: 10, objectFit: 'cover', border: '1px solid #e2e8f0'}}
+                                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                              />
+                            ) : (
+                              <div style={{width: 44, height: 44, borderRadius: 10, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700}}>
+                                {sub.appName ? sub.appName.charAt(0).toUpperCase() : '📱'}
+                              </div>
+                            )}
+                            <div>
+                              <div style={{fontWeight: 700, fontSize: 14, color: '#0f172a'}}>{sub.appName}</div>
+                              <div style={{fontSize: 12, color: '#64748b', marginTop: 2}}>
+                                Klien: {sub.clientName} • <code>{sub.packageName}</code>
+                              </div>
+                              <div style={{fontSize: 11, color: '#059669', marginTop: 2, fontWeight: 600}}>
+                                ✓ {ssCount} Screenshot Ponsel Tersedia
+                              </div>
+                            </div>
+                          </div>
+                          <button 
+                            className={styles.btnPrimary} 
+                            style={{padding: '6px 14px', fontSize: 12, whiteSpace: 'nowrap'}}
+                          >
+                            Gunakan Aset
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
            </div>
          </div>
        )}
