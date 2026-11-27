@@ -101,6 +101,26 @@ export default function DesainMockupPage() {
   const [isExportingMultiple, setIsExportingMultiple] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
+  // Multi-Device Export Targets: user designs once, exports to chosen device formats
+  interface DeviceTarget {
+    id: string;
+    label: string;
+    platform: 'android' | 'ios' | 'tablet';
+    width: number;
+    height: number;
+    mockupFrame: 'android' | 'iphone15' | 'iphone13';
+    description: string;
+  }
+
+  const availableDeviceTargets: DeviceTarget[] = [
+    { id: 'android_phone', label: 'Android Phone (Play Store)', platform: 'android', width: 1080, height: 2400, mockupFrame: 'android', description: 'Standar rilis Google Play Store (9:20)' },
+    { id: 'iphone_pro_max', label: 'iPhone 16 Pro Max (6.9" / 6.7")', platform: 'ios', width: 1290, height: 2796, mockupFrame: 'iphone15', description: 'Standar wajib App Store iOS terbaru' },
+    { id: 'iphone_standard', label: 'iPhone 6.5" / 6.1" (iOS)', platform: 'ios', width: 1242, height: 2688, mockupFrame: 'iphone13', description: 'Kompatibilitas luas generasi iPhone' },
+    { id: 'ipad_pro', label: 'iPad Pro / Tablet 10" (Landscape/Portrait)', platform: 'tablet', width: 2048, height: 2732, mockupFrame: 'android', description: 'Ukuran tablet Google Play & Apple iPad' },
+  ];
+
+  const [selectedDevices, setSelectedDevices] = useState<string[]>(['android_phone', 'iphone_pro_max']);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -377,12 +397,408 @@ const getPatternStyle = (pattern: string) => {
   };
 
   const applyBundle = (bundleType: string) => {
+    // 1. Template: Health & Food Tracker (Fresh Mint / Teal)
+    if (bundleType === 'food_health_bundle') {
+      const baseBg = 'linear-gradient(180deg, #0d9488 0%, #115e59 100%)';
+      const bundlePages: PageData[] = [
+        {
+          id: "Page 1",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Header Label", type: "badge", text: "Healthy Food App", icon: "restaurant", x: 120, y: 50, color: "white" },
+            { id: "Judul", type: "text", text: "Track Calories,\nLose Weight", fontSize: 38, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Target harian & nutrisi seimbang", fontSize: 16, color: "#ccfbf1", x: 30, y: 230, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 300, w: 260, h: 520 },
+            { id: "Rating Badge", type: "badge", text: "4.8 ★ Rating Aplikasi", icon: "star", x: 130, y: 840, color: "white" }
+          ]
+        },
+        {
+          id: "Page 2",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: true,
+          elements: [
+            { id: "Judul", type: "text", text: "Smart Choices,\nTasty Results", fontSize: 36, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "bold" },
+            { id: "Subtitle", type: "text", text: "Rekomendasi menu lezat setiap hari", fontSize: 16, color: "#ccfbf1", x: 30, y: 220, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 100, y: 310, w: 260, h: 520 },
+            { id: "Calories Badge", type: "badge", text: "Kalori Terukur", icon: "local_fire_department", x: 140, y: 840, color: "white" }
+          ]
+        },
+        {
+          id: "Page 3",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Eat Well,\nFeel Great", fontSize: 38, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Lacak asupan makronutrisi lengkap", fontSize: 16, color: "#ccfbf1", x: 30, y: 230, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 300, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 4",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Fuel Up,\nTrim Down", fontSize: 38, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Capai target berat badan idealmu", fontSize: 16, color: "#ccfbf1", x: 30, y: 230, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 300, w: 260, h: 520 }
+          ]
+        }
+      ];
+      setPages(bundlePages);
+      setActivePageId("Page 1");
+      return;
+    }
+
+    // 2. Template: Travel & Booking (Royal Cobalt Blue)
+    if (bundleType === 'travel_booking_bundle') {
+      const baseBg = 'linear-gradient(180deg, #1d4ed8 0%, #172554 100%)';
+      const bundlePages: PageData[] = [
+        {
+          id: "Page 1",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'dots',
+          mockupFrame: 'iphone15',
+          is3D: true,
+          elements: [
+            { id: "Header Label", type: "badge", text: "Travel & Hotels", icon: "flight", x: 125, y: 50, color: "white" },
+            { id: "Judul", type: "text", text: "Find Your\nDream Stay", fontSize: 40, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Hotels • Flights • Trains • Rentals", fontSize: 15, color: "#bfdbfe", x: 30, y: 230, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 300, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 2",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'dots',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Curated Plans\nWith AI", fontSize: 38, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Smart Assistant Experience", fontSize: 16, color: "#bfdbfe", x: 30, y: 230, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 300, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 3",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'dots',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "View Location\nPhotos", fontSize: 38, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Foto nyata 360° dari para tamu", fontSize: 16, color: "#bfdbfe", x: 30, y: 230, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 300, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 4",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'dots',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Never Get Lost,\nAlways Online", fontSize: 36, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Peta offline & navigasi akurat", fontSize: 16, color: "#bfdbfe", x: 30, y: 220, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 300, w: 260, h: 520 }
+          ]
+        }
+      ];
+      setPages(bundlePages);
+      setActivePageId("Page 1");
+      return;
+    }
+
+    // 3. Template: Food Delivery & Restaurant (Warm Cream & Forest Green)
+    if (bundleType === 'food_delivery_bundle') {
+      const baseBg = '#f4f1ea';
+      const bundlePages: PageData[] = [
+        {
+          id: "Page 1",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Header Label", type: "badge", text: "★ ★ ★ ★ ★ Best Delivery App", icon: "star", x: 90, y: 50, color: "black" },
+            { id: "Judul", type: "text", text: "Build\nYour Bowl", fontSize: 44, color: "#064e3b", x: 30, y: 130, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Kombinasi bahan segar pilihan Anda", fontSize: 16, color: "#047857", x: 30, y: 250, w: 400, fontWeight: 600 },
+            { id: "Mockup", type: "mockup", x: 95, y: 310, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 2",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Order Near You", fontSize: 40, color: "#064e3b", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Fast delivery or easy pickup", fontSize: 16, color: "#047857", x: 30, y: 220, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 300, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 3",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Choose a\nLocation", fontSize: 40, color: "#064e3b", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Find your closest delivery hub", fontSize: 16, color: "#047857", x: 30, y: 230, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 310, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 4",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: '"Easy to use,\nfood tastes amazing."', fontSize: 34, color: "#064e3b", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Ribuan ulasan bintang 5 pelanggan", fontSize: 16, color: "#047857", x: 30, y: 220, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 310, w: 260, h: 520 }
+          ]
+        }
+      ];
+      setPages(bundlePages);
+      setActivePageId("Page 1");
+      return;
+    }
+
+    // 4. Template: Water & Hydration Tracker (Vibrant Cyan / Splash Blue)
+    if (bundleType === 'water_tracker_bundle') {
+      const baseBg = 'linear-gradient(180deg, #0284c7 0%, #0369a1 100%)';
+      const bundlePages: PageData[] = [
+        {
+          id: "Page 1",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'waves',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Header Label", type: "badge", text: "Hydration Coach", icon: "water_drop", x: 125, y: 50, color: "white" },
+            { id: "Judul", type: "text", text: "Drink Your\nWater Daily", fontSize: 40, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Stay fit, glowing, and energetic", fontSize: 16, color: "#bae6fd", x: 30, y: 230, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 300, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 2",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'waves',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Reach Your Goal", fontSize: 38, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Pengingat minum otomatis tepat waktu", fontSize: 16, color: "#bae6fd", x: 30, y: 220, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 300, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 3",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'waves',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "See Full Stats", fontSize: 38, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Grafik mingguan & bulanan terperinci", fontSize: 16, color: "#bae6fd", x: 30, y: 220, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 300, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 4",
+          canvasSize: '1080x2400',
+          canvasBackground: baseBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'waves',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Stay Motivated", fontSize: 38, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Dapatkan lencana penghargaan harian", fontSize: 16, color: "#bae6fd", x: 30, y: 220, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 300, w: 260, h: 520 }
+          ]
+        }
+      ];
+      setPages(bundlePages);
+      setActivePageId("Page 1");
+      return;
+    }
+
+    // 5. Template: Gradient Pop (Gradient Purple / Pink - Modern Social App)
+    if (bundleType === 'social_gradient_bundle') {
+      const gradientBg = 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%)';
+      const bundlePages: PageData[] = [
+        {
+          id: "Page 1",
+          canvasSize: '1080x2400',
+          canvasBackground: gradientBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Useful. Social.\nExpressive.", fontSize: 40, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Ekspresikan dirimu tanpa batas", fontSize: 16, color: "#fbcfe8", x: 30, y: 230, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 310, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 2",
+          canvasSize: '1080x2400',
+          canvasBackground: gradientBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Bring your vibe\nto your chats", fontSize: 36, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Stiker & emoji animasi kustom", fontSize: 16, color: "#fbcfe8", x: 30, y: 220, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 310, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 3",
+          canvasSize: '1080x2400',
+          canvasBackground: gradientBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Hang out anytime,\nanywhere", fontSize: 36, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Voice & video room jernih HD", fontSize: 16, color: "#fbcfe8", x: 30, y: 220, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 310, w: 260, h: 520 }
+          ]
+        },
+        {
+          id: "Page 4",
+          canvasSize: '1080x2400',
+          canvasBackground: gradientBg,
+          canvasBgImage: null,
+          canvasBgOpacity: 1,
+          canvasBgMode: 'cover',
+          canvasBgScale: 100,
+          canvasBgPattern: 'none',
+          mockupFrame: 'iphone15',
+          is3D: false,
+          elements: [
+            { id: "Judul", type: "text", text: "Get instant answers\nwith AI assistant", fontSize: 36, color: "#FFFFFF", x: 30, y: 120, w: 400, fontWeight: "900" },
+            { id: "Subtitle", type: "text", text: "Asisten cerdas pendamping harianmu", fontSize: 16, color: "#fbcfe8", x: 30, y: 220, w: 400, fontWeight: 500 },
+            { id: "Mockup", type: "mockup", x: 95, y: 310, w: 260, h: 520 }
+          ]
+        }
+      ];
+      setPages(bundlePages);
+      setActivePageId("Page 1");
+      return;
+    }
+
     if (bundleType === 'modern_bundle') {
       const baseBg = 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)';
       const bundlePages: PageData[] = [
         {
           id: "Page 1",
-          canvasSize: '500x1024',
+          canvasSize: '1080x2400',
           canvasBackground: baseBg,
           canvasBgImage: null,
           canvasBgOpacity: 1,
@@ -400,7 +816,7 @@ const getPatternStyle = (pattern: string) => {
         },
         {
           id: "Page 2",
-          canvasSize: '500x1024',
+          canvasSize: '1080x2400',
           canvasBackground: baseBg,
           canvasBgImage: null,
           canvasBgOpacity: 1,
@@ -415,118 +831,6 @@ const getPatternStyle = (pattern: string) => {
             { id: "Mockup", type: "mockup", x: 60, y: 300, w: 320, h: 650 },
             { id: "Label Data", type: "image_card", x: 180, y: 400, w: 220, h: 90 },
             { id: "Wifi Offline", type: "badge", text: "Offline", icon: "wifi_off", x: 300, y: 700, color: "white" }
-          ]
-        },
-        {
-          id: "Page 3",
-          canvasSize: '500x1024',
-          canvasBackground: baseBg,
-          canvasBgImage: null,
-          canvasBgOpacity: 1,
-          canvasBgMode: 'cover',
-          canvasBgScale: 100,
-          canvasBgPattern: 'none',
-          mockupFrame: 'iphone15',
-          is3D: false,
-          elements: [
-            { id: "Judul", type: "text", text: "Video Downloader", fontSize: 32, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
-            { id: "Subtitle", type: "text", text: "Download media sekali klik dari mana saja", fontSize: 16, color: "#dbeafe", x: 20, y: 140, w: 460, fontWeight: 500 },
-            { id: "Mockup", type: "mockup", x: 100, y: 220, w: 300, h: 600 },
-            { id: "Social Card", type: "image_card", x: 40, y: 350, w: 420, h: 120 },
-            { id: "Download Icon", type: "badge", text: "Unduh", icon: "download", x: 320, y: 680, color: "white" }
-          ]
-        },
-        {
-          id: "Page 4",
-          canvasSize: '500x1024',
-          canvasBackground: baseBg,
-          canvasBgImage: null,
-          canvasBgOpacity: 1,
-          canvasBgMode: 'cover',
-          canvasBgScale: 100,
-          canvasBgPattern: 'none',
-          mockupFrame: 'iphone15',
-          is3D: false,
-          elements: [
-            { id: "Judul", type: "text", text: "Aplikasi Mini Terpadu", fontSize: 32, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
-            { id: "Subtitle", type: "text", text: "Tidak ada unduhan tambahan, hemat memori", fontSize: 16, color: "#dbeafe", x: 20, y: 140, w: 460, fontWeight: 500 },
-            { id: "Mockup", type: "mockup", x: 100, y: 220, w: 300, h: 600 },
-            { id: "Tools Card", type: "image_card", x: 40, y: 400, w: 380, h: 250 },
-            { id: "Briefcase", type: "badge", text: "Alat", icon: "work", x: 340, y: 720, color: "white" }
-          ]
-        },
-        {
-          id: "Page 5",
-          canvasSize: '500x1024',
-          canvasBackground: baseBg,
-          canvasBgImage: null,
-          canvasBgOpacity: 1,
-          canvasBgMode: 'cover',
-          canvasBgScale: 100,
-          canvasBgPattern: 'none',
-          mockupFrame: 'iphone15',
-          is3D: false,
-          elements: [
-            { id: "Judul", type: "text", text: "Generator Foto AI", fontSize: 32, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
-            { id: "Subtitle", type: "text", text: "Generasi sekali klik dengan gaya kekinian", fontSize: 16, color: "#dbeafe", x: 20, y: 140, w: 460, fontWeight: 500 },
-            { id: "Mockup", type: "mockup", x: 100, y: 220, w: 300, h: 600 },
-            { id: "Badge AI", type: "badge", text: "Magic", icon: "auto_awesome", x: 320, y: 650, color: "white" }
-          ]
-        },
-        {
-          id: "Page 6",
-          canvasSize: '500x1024',
-          canvasBackground: baseBg,
-          canvasBgImage: null,
-          canvasBgOpacity: 1,
-          canvasBgMode: 'cover',
-          canvasBgScale: 100,
-          canvasBgPattern: 'none',
-          mockupFrame: 'iphone15',
-          is3D: false,
-          elements: [
-            { id: "Judul", type: "text", text: "Pemutar Musik Aktif", fontSize: 32, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
-            { id: "Subtitle", type: "text", text: "Mainkan dan dengarkan musik favorit kapan saja", fontSize: 16, color: "#dbeafe", x: 20, y: 140, w: 460, fontWeight: 500 },
-            { id: "Mockup", type: "mockup", x: 100, y: 220, w: 300, h: 600 },
-            { id: "Music Icon", type: "badge", text: "Lagu", icon: "music_note", x: 300, y: 680, color: "white" }
-          ]
-        },
-        {
-          id: "Page 7",
-          canvasSize: '500x1024',
-          canvasBackground: baseBg,
-          canvasBgImage: null,
-          canvasBgOpacity: 1,
-          canvasBgMode: 'cover',
-          canvasBgScale: 100,
-          canvasBgPattern: 'none',
-          mockupFrame: 'iphone15',
-          is3D: false,
-          elements: [
-            { id: "Judul", type: "text", text: "Safebox Pribadi", fontSize: 32, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
-            { id: "Subtitle", type: "text", text: "Tempat terbaik untuk menyembunyikan media", fontSize: 16, color: "#dbeafe", x: 20, y: 140, w: 460, fontWeight: 500 },
-            { id: "Mockup", type: "mockup", x: 100, y: 220, w: 300, h: 600 },
-            { id: "Lock Card", type: "image_card", x: 140, y: 400, w: 260, h: 260 },
-            { id: "Lock Icon", type: "badge", text: "Aman", icon: "lock", x: 280, y: 700, color: "white" }
-          ]
-        },
-        {
-          id: "Page 8",
-          canvasSize: '500x1024',
-          canvasBackground: baseBg,
-          canvasBgImage: null,
-          canvasBgOpacity: 1,
-          canvasBgMode: 'cover',
-          canvasBgScale: 100,
-          canvasBgPattern: 'none',
-          mockupFrame: 'iphone15',
-          is3D: false,
-          elements: [
-            { id: "Judul", type: "text", text: "Pemutar Video HD", fontSize: 32, color: "#FFFFFF", x: 20, y: 80, w: 460, fontWeight: "bold" },
-            { id: "Subtitle", type: "text", text: "Nikmati film, acara TV, dan MV kapan saja", fontSize: 16, color: "#dbeafe", x: 20, y: 140, w: 460, fontWeight: 500 },
-            { id: "Mockup", type: "mockup", x: 100, y: 220, w: 300, h: 600 },
-            { id: "Video Card", type: "image_card", x: 60, y: 480, w: 380, h: 180 },
-            { id: "Play Icon", type: "badge", text: "Tonton", icon: "play_arrow", x: 320, y: 650, color: "white" }
           ]
         }
       ];
@@ -821,6 +1125,11 @@ const getPatternStyle = (pattern: string) => {
 
   const handleExportMultiple = async () => {
     if (!canvasRef.current || selectedExportPages.length === 0) return;
+    if (selectedDevices.length === 0) {
+      alert("Pilih minimal satu tipe perangkat untuk diekspor.");
+      return;
+    }
+
     try {
       setIsExportingMultiple(true);
       const JSZip = (await import('jszip')).default;
@@ -828,37 +1137,46 @@ const getPatternStyle = (pattern: string) => {
       const zip = new JSZip();
       
       // Fetch Google Fonts CSS to bypass html-to-image CORS cssRules crash
-      const fontCSS = await fetch('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap').then(res => res.text()).catch(() => '');
+      const fontCSS = await fetch('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap').then(res => res.text()).catch(() => '');
       
       const originalPageId = activePageId;
-      
-      for (let i = 0; i < selectedExportPages.length; i++) {
-        const pageId = selectedExportPages[i];
-        setExportProgress(Math.round((i / selectedExportPages.length) * 100));
-        
-        setActivePageId(pageId);
-        await new Promise(resolve => setTimeout(resolve, 600));
+      const targetDevices = availableDeviceTargets.filter(d => selectedDevices.includes(d.id));
+      const totalOperations = selectedExportPages.length * targetDevices.length;
+      let completedOps = 0;
 
-        const pageData = pages.find(p => p.id === pageId);
-        
-        const blob = await htmlToImage.toBlob(canvasRef.current, {
-          quality: 1,
-          backgroundColor: pageData?.canvasBackground || undefined,
-          pixelRatio: 3, // High Quality HD
-          fontEmbedCSS: fontCSS
-        });
-        
-        if (blob) {
-          zip.file(`Mockup-${pageId.replace(/\s+/g, '-')}.png`, blob);
+      for (const dev of targetDevices) {
+        const folder = zip.folder(dev.label.replace(/[^a-zA-Z0-9_-]/g, '_'));
+
+        for (let i = 0; i < selectedExportPages.length; i++) {
+          const pageId = selectedExportPages[i];
+          completedOps++;
+          setExportProgress(Math.round((completedOps / totalOperations) * 100));
+
+          setActivePageId(pageId);
+          // Set frame device sementara untuk export
+          updatePageProperty({ mockupFrame: dev.mockupFrame, canvasSize: `${dev.width}x${dev.height}` });
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          const pageData = pages.find(p => p.id === pageId);
+          
+          const blob = await htmlToImage.toBlob(canvasRef.current, {
+            quality: 1,
+            backgroundColor: pageData?.canvasBackground || undefined,
+            pixelRatio: 2, // High Quality Crisp Export
+            fontEmbedCSS: fontCSS
+          });
+          
+          if (blob && folder) {
+            folder.file(`${pageId.replace(/\s+/g, '-')}_${dev.width}x${dev.height}.png`, blob);
+          }
         }
       }
       
       setExportProgress(100);
-      
       setActivePageId(originalPageId);
       
       const zipContent = await zip.generateAsync({ type: 'blob' });
-      saveAs(zipContent, `${projectName.replace(/\s+/g, '_')}-Mockups.zip`);
+      saveAs(zipContent, `${projectName.replace(/\s+/g, '_')}_Store_Screenshots.zip`);
       
       setShowExportModal(false);
     } catch (err) {
@@ -1040,18 +1358,66 @@ const getPatternStyle = (pattern: string) => {
             </div>
 
             <div>
-              <h3 style={{fontSize: 11, color: 'var(--color-outline)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700}}>Pilih Bundle (1 Set)</h3>
-              <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+              <h3 style={{fontSize: 11, color: 'var(--color-outline)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700}}>Pilih Bundle Mockup (1 Set)</h3>
+              <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
                  <div onClick={() => {
-                   if(window.confirm('PERINGATAN: Menerapkan bundle akan menimpa seluruh halaman (Page 1-8) di proyek ini. Lanjutkan?')) {
-                     applyBundle('modern_bundle');
+                   if(window.confirm('Terapkan bundle Health & Calories Tracker (4 Halaman)?')) {
+                     applyBundle('food_health_bundle');
                    }
                  }} style={{
-                   padding: 12, borderRadius: 8, cursor: 'pointer', border: '1px solid var(--color-outline-variant)', background: '#f8fafc', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
+                   padding: 12, borderRadius: 8, cursor: 'pointer', border: '1px solid #14b8a6', background: '#f0fdfa', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
                  }}>
-                    <div style={{position: 'absolute', top: 0, right: 0, background: '#3b82f6', color: 'white', fontSize: 9, padding: '2px 6px', borderBottomLeftRadius: 8, fontWeight: 'bold'}}>8 PAGES</div>
-                    <div style={{fontSize: 13, fontWeight: 600, color: 'var(--color-textColor)', marginBottom: 2}}>Bundle App Biru</div>
-                    <div style={{fontSize: 11, color: 'var(--color-outline)', lineHeight: 1.4}}>Set lengkap bergaya ShareIT (Hero 3D, fitur pop-up flat).</div>
+                    <div style={{position: 'absolute', top: 0, right: 0, background: '#0d9488', color: 'white', fontSize: 9, padding: '2px 8px', borderBottomLeftRadius: 8, fontWeight: 'bold'}}>FOOD & HEALTH</div>
+                    <div style={{fontSize: 13, fontWeight: 700, color: '#115e59', marginBottom: 2}}>Health & Calories Tracker</div>
+                    <div style={{fontSize: 11, color: '#0f766e', lineHeight: 1.4}}>Tema segar hijau toska dengan tipografi tebal modern & badge rating.</div>
+                 </div>
+
+                 <div onClick={() => {
+                   if(window.confirm('Terapkan bundle Travel & Booking (4 Halaman)?')) {
+                     applyBundle('travel_booking_bundle');
+                   }
+                 }} style={{
+                   padding: 12, borderRadius: 8, cursor: 'pointer', border: '1px solid #60a5fa', background: '#eff6ff', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
+                 }}>
+                    <div style={{position: 'absolute', top: 0, right: 0, background: '#2563eb', color: 'white', fontSize: 9, padding: '2px 8px', borderBottomLeftRadius: 8, fontWeight: 'bold'}}>TRAVEL & STAY</div>
+                    <div style={{fontSize: 13, fontWeight: 700, color: '#1e3a8a', marginBottom: 2}}>Travel & Hotel Booking</div>
+                    <div style={{fontSize: 11, color: '#1d4ed8', lineHeight: 1.4}}>Tema biru royal elegan dengan pola titik & floating tags.</div>
+                 </div>
+
+                 <div onClick={() => {
+                   if(window.confirm('Terapkan bundle Food Delivery & Restaurant (4 Halaman)?')) {
+                     applyBundle('food_delivery_bundle');
+                   }
+                 }} style={{
+                   padding: 12, borderRadius: 8, cursor: 'pointer', border: '1px solid #d1fae5', background: '#fcfbf7', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
+                 }}>
+                    <div style={{position: 'absolute', top: 0, right: 0, background: '#064e3b', color: 'white', fontSize: 9, padding: '2px 8px', borderBottomLeftRadius: 8, fontWeight: 'bold'}}>FOOD DELIVERY</div>
+                    <div style={{fontSize: 13, fontWeight: 700, color: '#064e3b', marginBottom: 2}}>Warm Cream & Green Delivery</div>
+                    <div style={{fontSize: 11, color: '#047857', lineHeight: 1.4}}>Gaya minimalis organik warna cream hangat & hijau hutan.</div>
+                 </div>
+
+                 <div onClick={() => {
+                   if(window.confirm('Terapkan bundle Water & Hydration Tracker (4 Halaman)?')) {
+                     applyBundle('water_tracker_bundle');
+                   }
+                 }} style={{
+                   padding: 12, borderRadius: 8, cursor: 'pointer', border: '1px solid #7dd3fc', background: '#f0f9ff', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
+                 }}>
+                    <div style={{position: 'absolute', top: 0, right: 0, background: '#0284c7', color: 'white', fontSize: 9, padding: '2px 8px', borderBottomLeftRadius: 8, fontWeight: 'bold'}}>HYDRATION & HABIT</div>
+                    <div style={{fontSize: 13, fontWeight: 700, color: '#0369a1', marginBottom: 2}}>Splash Water Tracker</div>
+                    <div style={{fontSize: 11, color: '#0284c7', lineHeight: 1.4}}>Aura segar warna biru air dengan pola ombak cair.</div>
+                 </div>
+
+                 <div onClick={() => {
+                   if(window.confirm('Terapkan bundle Gradient Pop Social App (4 Halaman)?')) {
+                     applyBundle('social_gradient_bundle');
+                   }
+                 }} style={{
+                   padding: 12, borderRadius: 8, cursor: 'pointer', border: '1px solid #f472b6', background: '#fdf2f8', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
+                 }}>
+                    <div style={{position: 'absolute', top: 0, right: 0, background: '#db2777', color: 'white', fontSize: 9, padding: '2px 8px', borderBottomLeftRadius: 8, fontWeight: 'bold'}}>SOCIAL & CHAT</div>
+                    <div style={{fontSize: 13, fontWeight: 700, color: '#831843', marginBottom: 2}}>Gradient Pop Vibrant</div>
+                    <div style={{fontSize: 11, color: '#be185d', lineHeight: 1.4}}>Gradasi dinamis ungu-pink masa kini ala media sosial & AI.</div>
                  </div>
               </div>
             </div>
@@ -1819,15 +2185,64 @@ const getPatternStyle = (pattern: string) => {
 
        {showExportModal && (
          <div style={{position: 'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center'}}>
-           <div style={{background:'white', padding:24, borderRadius:12, width: 450, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'}}>
+           <div style={{background:'white', padding:24, borderRadius:12, width: 520, maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'}}>
               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
-                <h3 style={{margin:0}}>Export HD (ZIP)</h3>
+                <div>
+                  <h3 style={{margin:0, fontSize: 18}}>Export Multi-Device (ZIP)</h3>
+                  <p style={{margin: '4px 0 0 0', fontSize: 12, color: '#64748b'}}>Desain 1 kali, otomatis di-render ke semua pilihan resolusi perangkat toko aplikasi.</p>
+                </div>
                 {!isExportingMultiple && <button className={styles.iconBtn} onClick={() => setShowExportModal(false)}><span className="material-symbols-outlined">close</span></button>}
               </div>
               
               {!isExportingMultiple ? (
                 <>
-                  <div style={{display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 12, borderBottom: '1px solid #e2e8f0', marginBottom: 12}}>
+                  <div style={{marginBottom: 16}}>
+                    <label style={{fontWeight: 700, fontSize: 13, color: '#1e293b', display: 'block', marginBottom: 8}}>
+                      Pilih Tipe Perangkat Tujuan:
+                    </label>
+                    <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                      {availableDeviceTargets.map((dev) => {
+                        const isChecked = selectedDevices.includes(dev.id);
+                        return (
+                          <div 
+                            key={dev.id} 
+                            style={{
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 10, 
+                              padding: '8px 12px', 
+                              border: isChecked ? '1px solid #2563eb' : '1px solid #e2e8f0', 
+                              background: isChecked ? '#eff6ff' : '#ffffff', 
+                              borderRadius: 8,
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => {
+                              if (isChecked) {
+                                setSelectedDevices(prev => prev.filter(id => id !== dev.id));
+                              } else {
+                                setSelectedDevices(prev => [...prev, dev.id]);
+                              }
+                            }}
+                          >
+                            <input 
+                              type="checkbox" 
+                              checked={isChecked}
+                              onChange={() => {}}
+                              style={{cursor: 'pointer'}}
+                            />
+                            <div style={{flex: 1}}>
+                              <div style={{fontWeight: 600, fontSize: 13, color: isChecked ? '#1d4ed8' : '#0f172a'}}>
+                                {dev.label} <span style={{fontSize: 11, fontWeight: 500, color: '#64748b'}}>({dev.width} x {dev.height} px)</span>
+                              </div>
+                              <div style={{fontSize: 11, color: '#64748b'}}>{dev.description}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={{display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 10, borderBottom: '1px solid #e2e8f0', marginBottom: 10}}>
                     <input 
                       type="checkbox" 
                       checked={selectedExportPages.length === pages.length}
@@ -1836,10 +2251,11 @@ const getPatternStyle = (pattern: string) => {
                         else setSelectedExportPages([]);
                       }}
                       id="selectAllPages"
+                      style={{cursor: 'pointer'}}
                     />
-                    <label htmlFor="selectAllPages" style={{fontWeight: 'bold', cursor: 'pointer'}}>Pilih Semua Halaman</label>
+                    <label htmlFor="selectAllPages" style={{fontWeight: 'bold', fontSize: 13, cursor: 'pointer'}}>Pilih Semua Halaman ({pages.length})</label>
                   </div>
-                  <div style={{overflowY: 'auto', flex: 1, paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 8}}>
+                  <div style={{overflowY: 'auto', flex: 1, paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 140}}>
                     {pages.map(p => (
                       <div key={p.id} style={{display: 'flex', alignItems: 'center', gap: 8}}>
                         <input 
@@ -1850,15 +2266,20 @@ const getPatternStyle = (pattern: string) => {
                             if (e.target.checked) setSelectedExportPages([...selectedExportPages, p.id]);
                             else setSelectedExportPages(selectedExportPages.filter(id => id !== p.id));
                           }}
+                          style={{cursor: 'pointer'}}
                         />
-                        <label htmlFor={`export-${p.id}`} style={{cursor: 'pointer'}}>{p.id}</label>
+                        <label htmlFor={`export-${p.id}`} style={{cursor: 'pointer', fontSize: 13}}>{p.id}</label>
                       </div>
                     ))}
                   </div>
-                  <div style={{display:'flex', justifyContent:'flex-end', gap:12, marginTop:24}}>
+                  <div style={{display:'flex', justifyContent:'flex-end', gap:12, marginTop:20}}>
                     <button className={styles.btnSecondary} onClick={() => setShowExportModal(false)}>Batal</button>
-                    <button className={styles.btnPrimary} onClick={handleExportMultiple} disabled={selectedExportPages.length === 0}>
-                      Export {selectedExportPages.length} Halaman
+                    <button 
+                      className={styles.btnPrimary} 
+                      onClick={handleExportMultiple} 
+                      disabled={selectedExportPages.length === 0 || selectedDevices.length === 0}
+                    >
+                      Export {selectedExportPages.length} Halaman x {selectedDevices.length} Perangkat (ZIP)
                     </button>
                   </div>
                 </>
@@ -1867,8 +2288,8 @@ const getPatternStyle = (pattern: string) => {
                   <div style={{width: '100%', background: '#e2e8f0', borderRadius: 8, height: 8, overflow: 'hidden', marginBottom: 16}}>
                     <div style={{background: '#3b82f6', height: '100%', width: `${exportProgress}%`, transition: 'width 0.3s'}} />
                   </div>
-                  <div style={{fontWeight: 'bold'}}>Mengekspor Halaman ke ZIP...</div>
-                  <div style={{fontSize: 12, color: '#64748b', marginTop: 8}}>Mohon tunggu, proses HD render memakan waktu.</div>
+                  <div style={{fontWeight: 'bold'}}>Mengekspor Multi-Device ke ZIP... ({exportProgress}%)</div>
+                  <div style={{fontSize: 12, color: '#64748b', marginTop: 8}}>Sedang me-render kanvas sesuai ukuran resolusi tiap perangkat.</div>
                 </div>
               )}
            </div>
