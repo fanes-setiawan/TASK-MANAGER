@@ -522,9 +522,9 @@ function SharePreviewContent() {
               Project not found.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 64, alignItems: 'center' }}>
+            <div className={styles.canvasWrapper} style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 64, alignItems: 'center' }}>
               {pages.map((page, pageIdx) => (
-                <div key={pageIdx} style={{ width: 794 * (zoomLevel / 100), height: 1123 * (zoomLevel / 100), position: 'relative' }}>
+                <div key={pageIdx} className={styles.pageOuterWrapper} style={{ width: 794 * (zoomLevel / 100), height: 1123 * (zoomLevel / 100), position: 'relative' }}>
                   <div
                     className={styles.pdfPage}
                     style={{
@@ -662,7 +662,7 @@ function SharePreviewContent() {
                     )}
 
                     {page.isLast && (
-                      <div style={{ marginTop: 'auto', paddingTop: 32, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                      <div className={styles.lastPageFooter} style={{ marginTop: 'auto', paddingTop: 24, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                         {/* Notes Section */}
                         {notes && (
                           <div style={{ marginBottom: 24, padding: '16px', backgroundColor: '#f8fafc', borderRadius: 8, fontSize: 13, color: '#475569', border: '1px solid #e2e8f0' }}>
