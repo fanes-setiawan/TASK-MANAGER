@@ -387,7 +387,7 @@ function SharePreviewContent() {
   // Chunking logic for Pagination
   const HEADER_HEIGHT = 380;
   const FOOTER_HEIGHT = 220;
-  const PAGE_HEIGHT_LIMIT = 1020; // Increased to use full page
+  const PAGE_HEIGHT_LIMIT = 1100; // Increased to ensure clean 1-page fit for compact proposals
   const NEW_PAGE_HEADER_HEIGHT = 80;
 
   const pages: any[] = [];
@@ -395,19 +395,18 @@ function SharePreviewContent() {
   pages.push(currentPage);
 
   flatRows.forEach((row) => {
-    let rowHeight = 36;
+    let rowHeight = 32;
     if (row.type === 'module') {
-      rowHeight = (row.data.name && row.data.name.length > 40) ? 56 : 40;
+      rowHeight = (row.data.name && row.data.name.length > 40) ? 48 : 36;
     } else {
       const nameLen = row.data.name ? row.data.name.length : 0;
       const descLen = (row.data.description || row.data.desc || row.data.deskripsi || "").length;
       
-      // More aggressive row height estimation
-      if (descLen > 150) rowHeight = 100;
-      else if (descLen > 100) rowHeight = 80;
-      else if (nameLen > 40 || descLen > 60) rowHeight = 64;
-      else if (nameLen > 20 || descLen > 30) rowHeight = 48;
-      else rowHeight = 40;
+      if (descLen > 150) rowHeight = 70;
+      else if (descLen > 100) rowHeight = 55;
+      else if (nameLen > 40 || descLen > 60) rowHeight = 45;
+      else if (nameLen > 20 || descLen > 30) rowHeight = 38;
+      else rowHeight = 32;
     }
 
     if (currentPage.heightUsed + rowHeight > PAGE_HEIGHT_LIMIT) {
@@ -419,10 +418,10 @@ function SharePreviewContent() {
   });
 
   // Check if footer fits on the last page
-  if (currentPage.heightUsed + FOOTER_HEIGHT > PAGE_HEIGHT_LIMIT) {
-    pages.push({ items: [], hasHeader: false, heightUsed: FOOTER_HEIGHT, isLast: true });
-  } else {
+  if (flatRows.length <= 4 || currentPage.heightUsed + FOOTER_HEIGHT <= PAGE_HEIGHT_LIMIT) {
     currentPage.isLast = true;
+  } else {
+    pages.push({ items: [], hasHeader: false, heightUsed: FOOTER_HEIGHT, isLast: true });
   }
 
   if (loading) {
@@ -617,10 +616,10 @@ function SharePreviewContent() {
                         <table className={styles.pdfTable}>
                           <thead style={{ backgroundColor: themeColor }}>
                             <tr>
-                              <th style={{ width: '8%' }}>No.</th>
-                              <th style={{ width: '25%' }}>Task</th>
-                              <th style={{ width: '45%' }}>Deskripsi</th>
-                              <th style={{ width: '22%', textAlign: 'right' }}>Harga</th>
+                              <th style={{ width: '7%' }}>No.</th>
+                              <th style={{ width: '33%' }}>Item / Task</th>
+                              <th style={{ width: '40%' }}>Deskripsi</th>
+                              <th style={{ width: '20%', textAlign: 'right' }}>Harga</th>
                             </tr>
                           </thead>
                           <tbody>
