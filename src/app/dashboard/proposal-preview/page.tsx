@@ -522,9 +522,9 @@ function ProposalPreviewContent() {
   const PAGE_HEIGHT_LIMIT = 1100; // Increased to ensure clean 1-page fit for compact proposals
   const NEW_PAGE_HEADER_HEIGHT = 80;
 
-  const pages: any[] = [];
+  const rawPages: any[] = [];
   let currentPage: any = { items: [], hasHeader: true, heightUsed: HEADER_HEIGHT, isLast: false };
-  pages.push(currentPage);
+  rawPages.push(currentPage);
 
   flatRows.forEach((row) => {
     let rowHeight = 32;
@@ -543,18 +543,32 @@ function ProposalPreviewContent() {
 
     if (currentPage.heightUsed + rowHeight > PAGE_HEIGHT_LIMIT) {
       currentPage = { items: [], hasHeader: false, heightUsed: NEW_PAGE_HEADER_HEIGHT, isLast: false };
-      pages.push(currentPage);
+      rawPages.push(currentPage);
     }
     currentPage.items.push(row);
     currentPage.heightUsed += rowHeight;
   });
 
   // Check if footer fits on the last page
-  // If total items <= 4, keep all on page 1 without awkward split
-  if (flatRows.length <= 4 || currentPage.heightUsed + FOOTER_HEIGHT <= PAGE_HEIGHT_LIMIT) {
+  // If items <= 6 or space permits, keep footer on current page without creating extra page
+  if (flatRows.length <= 6 || currentPage.heightUsed + FOOTER_HEIGHT <= PAGE_HEIGHT_LIMIT) {
     currentPage.isLast = true;
   } else {
-    pages.push({ items: [], hasHeader: false, heightUsed: FOOTER_HEIGHT, isLast: true });
+    rawPages.push({ items: [], hasHeader: false, heightUsed: FOOTER_HEIGHT, isLast: true });
+  }
+
+  // Filter out any ghost/empty pages:
+  // A page is only valid if it has items OR is designated as the last footer page (when items exist on prior pages)
+  const pages = rawPages.filter((p, idx) => {
+    if (p.items && p.items.length > 0) return true;
+    if (p.isLast && idx > 0) return true; // standalone footer page
+    if (idx === 0) return true; // initial page
+    return false;
+  });
+
+  // Ensure the very last active page has isLast = true
+  if (pages.length > 0) {
+    pages[pages.length - 1].isLast = true;
   }
 
   // Compute grouped views based on email
